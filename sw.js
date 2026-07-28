@@ -28,17 +28,27 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('message', e => { if (e.data === 'skipWaiting') self.skipWaiting(); });
 
+/* 코드·셸은 반드시 서버와 재검증한다.
+   그냥 fetch(req) 하면 브라우저 HTTP 캐시(GitHub Pages는 max-age=600)를 재사용해
+   배포 직후에도 옛 파일이 돌아온다. no-cache는 304로 값싸게 확인만 한다. */
+const revalidate = url => fetch(url, {cache: 'no-cache', credentials: 'same-origin'});
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   const sameOrigin = url.origin === location.origin;
 
-  // 앱 진입(내비게이션): 네트워크 우선, 실패 시 캐시된 셸
+  // 앱 진입(내비게이션): 서버 재검증 우선, 실패 시 캐시된 셸
   if (req.mode === 'navigate') {
     e.respondWith((async () => {
-      try { return await fetch(req); }
-      catch { return (await caches.match('./index.html')) || (await caches.match('./')) || Response.error(); }
+      try {
+        const res = await revalidate(req.url);
+        if (res && res.ok) (await caches.open(V)).put('./index.html', res.clone()).catch(() => {});
+        return res;
+      } catch {
+        return (await caches.match('./index.html')) || (await caches.match('./')) || Response.error();
+      }
     })());
     return;
   }
@@ -62,11 +72,11 @@ self.addEventListener('fetch', e => {
 
   // 코드·데이터(js/json/webmanifest)는 네트워크 우선.
   // 캐시 우선으로 두면 새 index.html + 구버전 kb.js 가 섞여 앱이 깨진다.
-  if (/\.(js|json|webmanifest)$/i.test(url.pathname)) {
+  if (/\.(js|json|webmanifest|html)$/i.test(url.pathname)) {
     e.respondWith((async () => {
       const c = await caches.open(V);
       try {
-        const res = await fetch(req);
+        const res = await revalidate(req.url);
         if (res && res.ok) c.put(req, res.clone()).catch(() => {});
         return res;
       } catch {

@@ -477,5 +477,102 @@ const BOTTLERS = [
   {en:'Wilson & Morgan', ko:'윌슨앤모건', alias:['wilson morgan']},
 ];
 
+/* ── 대량 증류소 목록 ────────────────────────────────────────
+   앱이 한글↔영문을 발음 골격으로 매칭하므로 한글 별칭이 없어도 검색된다.
+   형식: [영문명, 지역, (국가), (타입), (비고)] */
+const REGION_CASK = {
+  Islay:'Ex-Bourbon Barrel (피티드)', Speyside:'Ex-Bourbon + Sherry Cask',
+  Highland:'Ex-Bourbon + Sherry Cask', Island:'Ex-Bourbon + Sherry Cask',
+  Lowland:'Ex-Bourbon Cask', Campbeltown:'Ex-Bourbon + Sherry Cask',
+  Kentucky:'New Charred American Oak', Tennessee:'New Charred American Oak (숯 여과)',
+  Japan:'Ex-Bourbon + Sherry Cask', Ireland:'Ex-Bourbon + Sherry Cask',
+  Blend:'Ex-Bourbon + Sherry Cask (블렌딩)', _:'Ex-Bourbon Cask',
+};
+const REGION_TYPE = {
+  Kentucky:'Bourbon', Tennessee:'Tennessee Whiskey', Japan:'Japanese Single Malt',
+  Ireland:'Irish', Blend:'Blended Scotch',
+};
+const REGION_COUNTRY = {
+  Islay:'스코틀랜드', Speyside:'스코틀랜드', Highland:'스코틀랜드', Island:'스코틀랜드',
+  Lowland:'스코틀랜드', Campbeltown:'스코틀랜드', Blend:'스코틀랜드',
+  Kentucky:'미국', Tennessee:'미국', Japan:'일본', Ireland:'아일랜드',
+};
+const BRANDS_COMPACT = [
+  // ── Speyside
+  ['Cardhu','Speyside'], ['Benrinnes','Speyside'], ['Strathmill','Speyside'],
+  ['Glen Spey','Speyside'], ['Glenburgie','Speyside'], ['Glen Keith','Speyside'],
+  ['Allt-a-Bhainne','Speyside'], ['Kininvie','Speyside'], ['Roseisle','Speyside'],
+  ['Caperdonich','Speyside',null,null,'폐쇄 증류소 — 유통 물량은 대부분 독립 병입입니다.'],
+  ['Convalmore','Speyside',null,null,'폐쇄 증류소'],
+  ['Dallas Dhu','Speyside',null,null,'폐쇄 증류소'],
+  ['Pittyvaich','Speyside',null,null,'폐쇄 증류소'],
+  ['Coleburn','Speyside',null,null,'폐쇄 증류소'],
+  ['Imperial','Speyside',null,null,'폐쇄 증류소'],
+  // ── Highland
+  ['Royal Brackla','Highland'], ['Glenglassaugh','Highland'], ['Macduff','Highland'],
+  ['Nc\'nean','Highland'], ['GlenWyvis','Highland'], ['Dornoch','Highland'],
+  ['Brora','Highland',null,null,'폐쇄 후 2021년 재가동 — 구 병입은 고가입니다.'],
+  ['Glenugie','Highland',null,null,'폐쇄 증류소'],
+  ['Glenlochy','Highland',null,null,'폐쇄 증류소'],
+  ['Millburn','Highland',null,null,'폐쇄 증류소'],
+  // ── Islay / Island
+  ['Port Ellen','Islay',null,null,'폐쇄 후 2024년 재가동 — 구 병입은 고가입니다.'],
+  ['Lagg','Island'], ['Abhainn Dearg','Island'],
+  // ── Lowland
+  ['Rosebank','Lowland'], ['Littlemill','Lowland',null,null,'폐쇄 증류소'],
+  ['Clydeside','Lowland'], ['Lindores Abbey','Lowland'], ['Holyrood','Lowland'],
+  ['Annandale','Lowland'], ['InchDairnie','Lowland'], ['The Borders','Lowland'],
+  ['Lochlea','Lowland'],
+  // ── Japan
+  ['Karuizawa','Japan',null,null,'폐쇄 증류소 — 경매 위주로 거래됩니다.'],
+  ['Shizuoka','Japan'], ['Saburomaru','Japan'], ['Nagahama','Japan'],
+  ['Eigashima','Japan'], ['Yuza','Japan'], ['Matsui','Japan'], ['Togouchi','Japan'],
+  ["Ichiro's Malt",'Japan'],
+  // ── USA
+  ['Jim Beam','Kentucky'], ['Evan Williams','Kentucky'], ['Heaven Hill','Kentucky'],
+  ['1792','Kentucky'], ['Old Grand-Dad','Kentucky'], ['Willett','Kentucky'],
+  ['Old Fitzgerald','Kentucky'], ['Yellowstone','Kentucky'], ['New Riff','Kentucky'],
+  ['George T. Stagg','Kentucky'], ['High West','미국','미국','Bourbon'],
+  ['WhistlePig','미국','미국','Rye'], ['Balcones','미국','미국','World Whisky'],
+  ['Westward','미국','미국','World Whisky'], ['Uncle Nearest','Tennessee'],
+  // ── Ireland
+  ['Midleton','Ireland'], ['Tullamore D.E.W.','Ireland'], ['Roe & Co','Ireland'],
+  ['Dingle','Ireland'], ['Waterford','Ireland'], ['Slane','Ireland'],
+  ['Glendalough','Ireland'], ['Knappogue Castle','Ireland'], ['West Cork','Ireland'],
+  ['Method and Madness','Ireland'],
+  // ── World
+  ['Rampur','인도','인도','World Whisky'], ['Indri','인도','인도','World Whisky'],
+  ['Bimber','잉글랜드','영국','World Whisky'], ['Cotswolds','잉글랜드','영국','World Whisky'],
+  ['The Lakes','잉글랜드','영국','World Whisky'], ['Lark','태즈메이니아','호주','World Whisky'],
+  ['Hellyers Road','태즈메이니아','호주','World Whisky'], ['Slyrs','독일','독일','World Whisky'],
+  ['Puni','이탈리아','이탈리아','World Whisky'], ['Millstone','네덜란드','네덜란드','World Whisky'],
+  ['Stauning','덴마크','덴마크','World Whisky'], ['High Coast','스웨덴','스웨덴','World Whisky'],
+  ['Teerenpeli','핀란드','핀란드','World Whisky'], ['Kyrö','핀란드','핀란드','World Whisky'],
+  // ── Blended Scotch
+  ["Grant's",'Blend'], ["Dewar's",'Blend'], ["Buchanan's",'Blend'], ['Old Parr','Blend'],
+  ['White Horse','Blend'], ["Teacher's",'Blend'], ['Cutty Sark','Blend'], ['J&B','Blend'],
+  ['Whyte & Mackay','Blend'], ['Naked Malt','Blend',null,'Blended Malt'],
+  ['Royal Salute','Blend'], ['Copper Dog','Blend',null,'Blended Malt'],
+  ['Islay Mist','Blend'], ['Hankey Bannister','Blend'], ["William Lawson's",'Blend'],
+  ['Passport','Blend'],
+];
+{
+  const seen = new Set(BRANDS.map(b => b.k));
+  for (const [en, region, country, type, note] of BRANDS_COMPACT){
+    const k = en.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    BRANDS.push({
+      k, en, ko:'', region,
+      country: country || REGION_COUNTRY[region] || '스코틀랜드',
+      type: type || REGION_TYPE[region] || 'Single Malt',
+      cask: REGION_CASK[region] || REGION_CASK._,
+      wiki: en.replace(/[^\w\s'-]/g, '').trim().replace(/\s+/g, '_') +
+        (REGION_COUNTRY[region] === '스코틀랜드' && region !== 'Blend' ? '_distillery' : ''),
+      note,
+    });
+  }
+}
+
 /* 브랜드 키 → 브랜드 객체 */
 const BRAND_BY_KEY = Object.fromEntries(BRANDS.map(b => [b.k, b]));

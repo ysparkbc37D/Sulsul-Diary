@@ -277,7 +277,20 @@ pre.csv{
 }
 .wiz input:focus{outline:none;border-color:var(--accent2);box-shadow:0 0 0 3px var(--accent-bg)}
 .exs{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
+.exs[hidden]{display:none}   /* display 지정이 hidden 속성을 덮어쓰지 않도록 */
 .ex{font-size:11.5px;padding:5px 10px;border-radius:999px;background:var(--surface2);color:var(--ink2)}
+.sugg{margin-top:11px;display:flex;flex-direction:column;gap:6px;text-align:left}
+.sg{
+  display:flex;flex-direction:column;gap:1px;padding:9px 12px;border-radius:11px;
+  background:var(--surface);border:1px solid var(--line);text-align:left;
+}
+.sg b{font-size:14px;font-weight:600;letter-spacing:-.01em}
+.sg span{font-size:11.5px;color:var(--ink3)}
+.sg:active{background:var(--accent-bg);border-color:var(--accent-line)}
+.sgpick{
+  font-size:12px;color:var(--accent);background:var(--accent-bg);border:1px solid var(--accent-line);
+  border-radius:10px;padding:8px 11px;text-align:left;
+}
 .wlog{margin-top:16px;text-align:left;font-size:12.5px}
 .hitbox{background:var(--accent-bg);border:1px solid var(--accent-line);border-radius:12px;padding:12px 13px}
 .hitbox .t{font-weight:700;color:var(--accent);font-size:12.5px;margin-bottom:6px}
@@ -478,6 +491,11 @@ let DB = {items:[], meta:{}};
 let V = {q:'', type:'all', status:'all', sort:'recent'};
 let installEvt = null;
 
+/* 추천 정렬용 우선도 — 테이스팅 노트를 직접 정리한 증류소, 제품 라인업이 있는 증류소를 앞세운다 */
+BRANDS.forEach(b => {
+  b.pri = (b.house ? 2 : 0) + (PRODUCTS.some(p => p.b === b.k) ? 2 : 0);
+});
+
 /* ── util ─────────────────────────────────── */
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
@@ -596,17 +614,122 @@ const byId = id => DB.items.find(x => x.id === id);
 /* ══════════════════════════════════════════
    자동 초안 엔진
    ══════════════════════════════════════════ */
-function matchBrand(q){
-  const n = squish(q); let best = null;
-  for (const b of BRANDS){
-    for (const a of [b.ko, b.en, ...(b.alias || [])]){
-      const na = squish(a);
-      if (!na || !n.includes(na)) continue;
-      const s = na.length * 2 + (n.startsWith(na) ? 6 : 0);
-      if (!best || s > best.s) best = {b, s};
+/* ══════════════════════════════════════════
+   발음 골격(phonetic skeleton) 매칭
+   한글과 영문을 같은 자음 클래스 문자열로 바꿔 표기 차이·오타를 흡수한다.
+   예) 글렌드로낙 · 글렌드로나크 · Glendronach → 모두 "krntrnk"
+   ══════════════════════════════════════════ */
+const CHO  = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+const JONG = ' ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ';
+const JAMO_CLASS = {
+  'ㄱ':'k','ㄲ':'k','ㅋ':'k',
+  'ㅈ':'c','ㅉ':'c','ㅊ':'c',              // j·z·ch·ts 계열
+  'ㄷ':'t','ㄸ':'t','ㅌ':'t','ㅂ':'p','ㅃ':'p','ㅍ':'p',
+  'ㅅ':'s','ㅆ':'s','ㄴ':'n','ㅁ':'m','ㄹ':'r','ㅎ':'h','ㅇ':'n',
+  'ㄳ':'ks','ㄵ':'nc','ㄶ':'n','ㄺ':'rk','ㄻ':'rm','ㄼ':'rp','ㄽ':'rs',
+  'ㄾ':'rt','ㄿ':'rp','ㅀ':'r','ㅄ':'ps',
+};
+const LAT_CLASS = {g:'k',k:'k',q:'k',c:'k',x:'ks',d:'t',t:'t',
+  b:'p',p:'p',f:'p',v:'p',s:'s',n:'n',m:'m',l:'r',r:'r',h:'h'};
+/** 문자열 → 자음 클래스 골격 (모음·w·y 무시, 연속 중복 축약) */
+function phonKey(s){
+  let out = '';
+  const t = String(s).toLowerCase()
+    // ①은 ㅈ·ㅊ 계열(j·z·ch·ts) 임시 표식 — 뒤의 c→k 치환에 휩쓸리지 않게 한다
+    .replace(/ch|ts|tz|sch/g, '1').replace(/[jz]/g, '1')
+    .replace(/sh|ss/g, 's').replace(/th/g, 't').replace(/ph/g, 'p')
+    .replace(/gh/g, '')                    // High·Highland 등에서 묵음
+    .replace(/ck|qu/g, 'k')
+    .replace(/c(?=[eiy])/g, 's')           // ce·ci·cy 는 /s/
+    .replace(/c/g, 'k');                   // 그 밖의 c 는 경음 /k/ (Cardhu·Cotswolds)
+  for (const ch of t){
+    const code = ch.charCodeAt(0);
+    if (code >= 0xAC00 && code <= 0xD7A3){          // 완성형 한글
+      const i = code - 0xAC00;
+      const cho = CHO[Math.floor(i / 588)];
+      out += (cho === 'ㅇ' ? '' : (JAMO_CLASS[cho] || ''));   // 초성 ㅇ은 음가 없음
+      out += (JAMO_CLASS[JONG[i % 28]] || '');
+    } else if (ch === '1'){
+      out += 'c';
+    } else if (ch >= 'a' && ch <= 'z'){
+      out += (LAT_CLASS[ch] || '');
     }
   }
-  return best && best.b;
+  return out.replace(/(.)\1+/g, '$1');
+}
+/** 한글 표기는 음절 끝 r 과 묵음 h 를 흔히 생략한다 → 그 둘을 지운 보조 키 */
+const softKey = k => k.replace(/[rh]/g, '').replace(/(.)\1+/g, '$1');
+/** 보조 키가 같아 동점이 나는 경우가 많아, 1차 골격 점수를 타이브레이커로 섞는다 */
+function keySim(a, b){
+  if (!a || !b) return 0;
+  const p = simKey(a, b);
+  const s = simKey(softKey(a), softKey(b));
+  return Math.max(p, s * 0.94) * 0.95 + p * 0.05;
+}
+function lev(a, b){
+  if (a === b) return 0;
+  if (!a.length || !b.length) return Math.max(a.length, b.length);
+  let prev = Array.from({length: b.length + 1}, (_, i) => i);
+  for (let i = 1; i <= a.length; i++){
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++)
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i-1] === b[j-1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+const simKey = (a, b) => (!a || !b) ? 0 : 1 - lev(a, b) / Math.max(a.length, b.length);
+
+/** 질의에서 숙성/도수/캐스크 표기를 걷어내고, 앞쪽 1~3단어 조합을 후보 키로 만든다 */
+function queryKeys(q){
+  const cleaned = String(q)
+    .replace(/\d+\s*(?:년|yo\b|y\.?o\.?\b|years?\b)/gi, ' ')
+    .replace(/캐스크\s*스트렝스|cask\s*strength|\bcs\b/gi, ' ')
+    .replace(/\d+(?:\.\d+)?\s*%/g, ' ')
+    .replace(/\b(?:single|malt|whisky|whiskey|scotch|bourbon|년|배치|batch)\b/gi, ' ')
+    .trim();
+  const w = cleaned.split(/\s+/).filter(Boolean);
+  const keys = new Set([cleaned.replace(/\s+/g, '')]);
+  for (let n = 1; n <= Math.min(3, w.length); n++) keys.add(w.slice(0, n).join(''));
+  return [...keys].filter(Boolean);
+}
+/** 브랜드 추천 목록 (점수 내림차순) */
+function brandCandidates(q, limit = 8){
+  const nq = squish(q);
+  const qk = queryKeys(q).map(k => ({raw: squish(k), key: phonKey(k)})).filter(x => x.key || x.raw);
+  if (!nq) return [];
+  const out = [];
+  for (const b of BRANDS){
+    let best = 0;
+    for (const nm of [b.ko, b.en, ...(b.alias || [])]){
+      if (!nm) continue;
+      const nn = squish(nm), nk = phonKey(nm);
+      /* ① 표기 그대로 일치 — 가장 신뢰도가 높다 */
+      if (nn && nq.includes(nn)) best = Math.max(best, 1.1 + Math.min(nn.length, 20) / 100);
+      /* 입력 중인 접두 일치는 발음 골격 우연 일치(0.99)보다 확실한 근거다.
+         한글은 한 글자에도 정보량이 많아(맥→맥캘란) 1글자부터 인정한다 */
+      if (nn && nn.startsWith(nq) && (nq.length >= 2 || /[가-힣]/.test(nq)))
+        best = Math.max(best, 1.0);
+      if (nn && nn.includes(nq) && nq.length >= 3) best = Math.max(best, 0.9);
+      if (!nk) continue;
+      for (const x of qk){
+        if (!x.key || x.key.length < 2) continue;
+        if (nk === x.key){ best = Math.max(best, 0.99); continue; }
+        /* ② 골격 접두 일치 — 입력 중(자동완성)인 상황. 길이 차가 클 때는 인정하지 않는다 */
+        if (nk.startsWith(x.key) && x.key.length >= 3 && nk.length - x.key.length <= 3)
+          best = Math.max(best, 0.92);
+        best = Math.max(best, keySim(x.key, nk));
+      }
+    }
+    if (best >= 0.62) out.push({b, s: best});
+  }
+  return out
+    .sort((x, y) => y.s - x.s || (y.b.pri || 0) - (x.b.pri || 0) || x.b.en.length - y.b.en.length)
+    .slice(0, limit);
+}
+function matchBrand(q){
+  const c = brandCandidates(q, 1);
+  return (c.length && c[0].s >= 0.78) ? c[0].b : null;
 }
 function parseAge(s){
   let m = String(s).match(/(\d{1,2})\s*(?:년|yo\b|y\.?o\.?\b|years?\b|y\b)/i);
@@ -965,9 +1088,11 @@ function openWizard(){
   openSheet('새 위스키 등록', `
     <div class="wiz">
       <p class="wt">위스키 이름만 입력하세요</p>
-      <p class="ws">내장 DB와 위키백과에서 사양·테이스팅 노트·병 사진 초안을 찾아 채웁니다.</p>
-      <input id="wname" placeholder="예: 글렌알라키 10년 캐스크 스트렝스" autocomplete="off">
-      <div class="exs">
+      <p class="ws">증류소 ${BRANDS.length}곳을 등록해 두었습니다. 한글·영문 아무 표기로 입력해도
+        발음으로 찾아 사양·테이스팅 노트·병 사진 초안을 채웁니다.</p>
+      <input id="wname" placeholder="예: 글렌알라키 · 아드벡 · Longmorn" autocomplete="off">
+      <div class="sugg" id="sugg"></div>
+      <div class="exs" id="exs">
         <button class="ex" data-ex="아드벡 10년">아드벡 10년</button>
         <button class="ex" data-ex="발베니 12년 더블우드">발베니 12년 더블우드</button>
         <button class="ex" data-ex="라가불린 16년">라가불린 16년</button>
@@ -985,6 +1110,40 @@ function openWizard(){
     inp.value = x.dataset.ex; go();
   };
   inp.onkeydown = e => { if (e.key === 'Enter') go(); };
+
+  /* 입력하는 동안 증류소 추천 — DB에 무엇이 있는지 바로 보이게 한다 */
+  let tid = 0;
+  inp.oninput = () => { clearTimeout(tid); tid = setTimeout(suggest, 130); };
+  function suggest(){
+    const v = inp.value.trim(), box = $('#sugg'), exs = $('#exs');
+    if (v.length < 1){ box.innerHTML = ''; exs.hidden = false; return; }
+    exs.hidden = true;
+    const c = brandCandidates(v, 6);
+    if (!c.length){
+      box.innerHTML = `<p class="hint">일치하는 증류소를 찾지 못했습니다 — 영문명으로도 시도해 보세요.
+        그대로 진행하면 빈 양식에 이름만 채워집니다.</p>`;
+      return;
+    }
+    box.innerHTML = c.map(x => `<button class="sg" data-k="${esc(x.b.k)}">
+        <b>${esc(x.b.ko || x.b.en)}</b>
+        <span>${x.b.ko ? esc(x.b.en) + ' · ' : ''}${esc(x.b.region)} · ${esc(x.b.country)} · ${esc(x.b.type || 'Single Malt')}</span>
+      </button>`).join('');
+  }
+  $('#sugg').onclick = e => {
+    const s = e.target.closest('[data-k]'); if (!s) return;
+    const b = BRAND_BY_KEY[s.dataset.k]; if (!b) return;
+    const nm = b.ko || b.en;
+    inp.value = nm;
+    const ps = PRODUCTS.filter(p => p.b === b.k);
+    const strip = new RegExp('^(the\\s+)?' + b.en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    $('#sugg').innerHTML = `<div class="sgpick"><b>${esc(nm)}</b> 선택 — ${esc(b.region)} · ${esc(b.country)}${
+      ps.length ? '<br>제품을 고르면 도수·캐스크·평점까지 채워집니다.'
+                : '<br>제품 데이터는 없어 증류소 기준으로 초안을 만듭니다.'}</div>`
+      + (ps.length ? `<div class="exs">${ps.map(p => {
+          const label = (p.name_en.replace(strip, '').trim() || p.name_en).replace(/\s*\(.*?\)\s*/g, ' ').trim();
+          return `<button class="ex" data-ex="${esc(nm + ' ' + label)}">${esc(label)}</button>`;
+        }).join('')}</div>` : '');
+  };
   $('#shFoot').onclick = e => {
     const a = e.target.closest('[data-act]'); if (!a) return;
     if (a.dataset.act === 'manual') openEdit(null);
@@ -994,9 +1153,16 @@ function openWizard(){
     const v = inp.value.trim();
     if (!v){ toast('위스키 이름을 입력해 주세요'); inp.focus(); return; }
     const d = draftFrom(v);
-    $('#wlog').innerHTML = `<div class="hitbox"><div class="t">초안을 만들었습니다</div>
-      <ul>${d.lines.map(l => `<li>${l}</li>`).join('')}</ul></div>`;
-    setTimeout(() => openEdit(null, d), 420);
+    const q = encodeURIComponent(v);
+    $('#wlog').innerHTML = `<div class="hitbox">
+      <div class="t">${d.brand ? '초안을 만들었습니다' : '증류소를 찾지 못했습니다'}</div>
+      <ul>${d.lines.map(l => `<li>${l}</li>`).join('')}</ul></div>`
+      + (d.brand ? '' : `<div class="lrow">
+          <a class="lnk" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+%EC%9C%84%EC%8A%A4%ED%82%A4">구글 검색 ↗</a>
+          <a class="lnk" target="_blank" rel="noopener" href="https://www.google.com/search?q=site%3Adailyshot.co+${q}">데일리샷 ↗</a>
+          <a class="lnk" target="_blank" rel="noopener" href="https://www.whiskybase.com/search?q=${q}">Whiskybase ↗</a>
+        </div>`);
+    setTimeout(() => openEdit(null, d), d.brand ? 420 : 1400);
   }
 }
 
