@@ -660,7 +660,9 @@ function saveSync(){
   try{ localStorage.setItem(LS_SYNC, JSON.stringify(SYNC)); }catch(e){}
 }
 const ghToken = () => { try{ return localStorage.getItem(LS_TOK) || ''; }catch(e){ return ''; } };
-const syncOn = () => !!(SYNC.repo && ghToken());
+/** HTTP 헤더에는 ASCII 만 넣을 수 있다 — 한글이 섞인 값은 미리 걸러 원시 오류를 막는다 */
+const tokenAscii = t => /^[\x21-\x7e]+$/.test(t || '');
+const syncOn = () => !!(SYNC.repo && ghToken() && tokenAscii(ghToken()));
 
 /* UTF-8 ↔ base64 (한글이 섞이므로 TextEncoder 경유) */
 function b64enc(str){
@@ -763,8 +765,11 @@ async function syncNow(quiet){
     SYNC.err = m.slice(0, 200); saveSync();
     syncBadge('err');
     /* 조용한 동기화라도 실패는 알린다 — 모르는 채로 두면 데이터가 갈라진다 */
-    toast('동기화 실패 — ' + (m.includes('Bad credentials') ? '토큰을 확인하세요'
-      : m.includes('Not Found') ? '저장소·브랜치·권한을 확인하세요' : m).slice(0, 60));
+    toast('동기화 실패 — ' + (
+      m.includes('Bad credentials') ? '토큰이 무효합니다'
+      : m.includes('not accessible by personal access token') ? '토큰에 이 저장소 권한이 없습니다'
+      : m.includes('Not Found') ? '저장소·브랜치를 확인하세요'
+      : m).slice(0, 60) + ' · ⚙️ 진단을 확인하세요');
     return {ok: false, error: m};
   }finally{
     syncing = false;
@@ -1817,9 +1822,12 @@ function openData(){
       <div class="f"><label>브랜치</label>
         <input id="syBranch" value="${esc(SYNC.branch)}" placeholder="main" autocomplete="off"></div>
       <div class="f wide"><label>액세스 토큰 (Fine-grained · Contents 읽기/쓰기)</label>
-        <input id="syTok" type="password" value="${ghToken() ? '••••••••••••' : ''}"
-          placeholder="github_pat_..." autocomplete="off"></div>
+        <input id="syTok" type="password" value=""
+          placeholder="${ghToken() ? '저장됨 — 바꿀 때만 입력' : 'github_pat_...'}"
+          autocomplete="off" autocapitalize="off" spellcheck="false"></div>
     </div>
+    ${ghToken() ? `<p class="hint" style="margin-top:6px">저장된 토큰: <b>${esc(ghToken().slice(0, 11))}…${esc(ghToken().slice(-4))}</b>
+      · ${ghToken().length}자 <button class="mini" id="syTokDel" style="margin-left:6px">지우기</button></p>` : ''}
     <div class="stack" style="margin-top:10px">
       <button class="btn pri" id="syNow">${syncOn() ? '지금 동기화' : '연결하고 동기화'}</button>
       <button class="btn" id="syDiag">🔎 연결 진단</button>
@@ -1870,14 +1878,18 @@ function openData(){
 
   $('#shFoot').onclick = closeSheet;
   $('#syNow').onclick = async () => {
-    const t = $('#syTok').value.trim();
+    /* 붙여넣기 과정에서 끼어드는 공백·줄바꿈·마스킹 문자를 모두 제거한다 */
+    const t = $('#syTok').value.replace(/[\s•]/g, '');
     SYNC.repo = $('#syRepo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '');
-    SYNC.path = $('#syPath').value.trim() || 'collection.json';
+    SYNC.path = $('#syPath').value.trim().replace(/^\/+/, '') || 'collection.json';
     SYNC.branch = $('#syBranch').value.trim() || 'main';
-    if (t && !/^•+$/.test(t)){ try{ localStorage.setItem(LS_TOK, t); }catch(e){} }
+    if (t){ try{ localStorage.setItem(LS_TOK, t); }catch(e){} }
     saveSync();
     if (!SYNC.repo) return toast('저장소를 owner/repo 형식으로 입력하세요');
     if (!ghToken()) return toast('액세스 토큰을 입력하세요');
+    if (!tokenAscii(ghToken())) return toast('토큰에 한글·공백이 섞였습니다 — 다시 붙여넣어 주세요');
+    if (!/^(github_pat_|ghp_)/.test(ghToken()))
+      return toast('토큰은 github_pat_ 또는 ghp_ 로 시작해야 합니다');
     const b = $('#syNow'); b.disabled = true; b.textContent = '동기화 중…';
     const r = await syncNow(false);
     if (r?.ok) openData();
@@ -1887,17 +1899,42 @@ function openData(){
     const box = $('#syDiagOut');
     box.innerHTML = `<p class="hint" style="margin-top:10px"><span class="spin"></span> 확인 중…</p>`;
     /* 화면에서 고친 값으로 바로 진단할 수 있게 입력값을 먼저 반영 */
-    const t = $('#syTok').value.trim();
+    /* 붙여넣기 과정에서 끼어드는 공백·줄바꿈·마스킹 문자를 모두 제거한다 */
+    const t = $('#syTok').value.replace(/[\s•]/g, '');
     SYNC.repo = $('#syRepo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '');
-    SYNC.path = $('#syPath').value.trim() || 'collection.json';
+    SYNC.path = $('#syPath').value.trim().replace(/^\/+/, '') || 'collection.json';
     SYNC.branch = $('#syBranch').value.trim() || 'main';
-    if (t && !/^•+$/.test(t)){ try{ localStorage.setItem(LS_TOK, t); }catch(e){} }
+    if (t){ try{ localStorage.setItem(LS_TOK, t); }catch(e){} }
     saveSync();
     const rows = [], tk = ghToken();
-    rows.push(['토큰', tk ? `입력됨 (${esc(tk.slice(0, 11))}… ${tk.length}자)` : '❌ 없음']);
+    /* 네트워크를 타기 전에 토큰 생김새부터 확인한다 — 잘린 채 붙여넣는 실수가 가장 흔하다 */
+    const kind = !tk ? '' :
+      /^github_pat_[A-Za-z0-9_]{50,}$/.test(tk) ? '✅ Fine-grained 형식' :
+      /^ghp_[A-Za-z0-9]{36}$/.test(tk) ? '✅ Classic 형식' :
+      /^github_pat_/.test(tk) ? `⚠ Fine-grained 인데 너무 짧습니다 (${tk.length}자, 보통 90자 이상) — 복사가 잘렸을 수 있습니다` :
+      /^(gho_|ghu_|ghs_|ghr_)/.test(tk) ? '⚠ 다른 종류의 토큰입니다 (OAuth/앱 토큰)' :
+      '⚠ 형식이 이상합니다 — github_pat_ 또는 ghp_ 로 시작해야 합니다';
+    rows.push(['토큰', tk ? `${esc(tk.slice(0, 11))}…${esc(tk.slice(-4))} · ${tk.length}자<br>${kind}` : '❌ 없음']);
     rows.push(['저장소', SYNC.repo ? esc(SYNC.repo) : '❌ 미설정']);
     rows.push(['파일 · 브랜치', esc(SYNC.path) + ' · ' + esc(SYNC.branch)]);
-    if (tk && SYNC.repo){
+    /* 토큰 자체가 유효한지를 저장소 접근과 분리해서 확인한다 */
+    if (tk && !tokenAscii(tk)){
+      rows.push(['토큰 유효성', '❌ 토큰에 한글·공백 같은 문자가 섞여 있습니다 — 토큰이 아닌 값을 붙여넣었을 가능성이 큽니다']);
+    } else if (tk){
+      try{
+        const r = await fetch('https://api.github.com/user', {
+          headers:{Authorization:'Bearer ' + tk, Accept:'application/vnd.github+json'}});
+        const j = await r.json().catch(() => ({}));
+        rows.push(['토큰 유효성', r.ok
+          ? `✅ 유효 — GitHub 계정 <b>${esc(j.login || '?')}</b>`
+          : r.status === 403
+            ? `✅ 토큰은 유효합니다 (계정 조회 권한만 없음 — 정상)`
+          : r.status === 401
+            ? `❌ 401 Bad credentials — 토큰이 무효·만료·오타입니다. 새로 발급해 다시 입력하세요.`
+            : `⚠ HTTP ${r.status} — ${esc(j.message || '')} (아래 저장소 접근 결과로 판단하세요)`]);
+      }catch(e){ rows.push(['토큰 유효성', '❌ 네트워크 오류 ' + esc(e.message)]); }
+    }
+    if (tk && SYNC.repo && tokenAscii(tk)){
       try{
         const r = await fetch('https://api.github.com/repos/' + SYNC.repo, {
           headers:{Authorization:'Bearer ' + tk, Accept:'application/vnd.github+json'}});
@@ -1907,10 +1944,20 @@ function openData(){
           if (j.default_branch && j.default_branch !== SYNC.branch)
             rows.push(['⚠ 브랜치 불일치', `기본 브랜치가 <b>${esc(j.default_branch)}</b> 입니다 — 위 브랜치 칸을 바꿔 주세요`]);
           if (!j.permissions?.push)
-            rows.push(['⚠ 쓰기 권한', '토큰에 Contents: Read and write 권한이 없습니다']);
+            rows.push(['⚠ 쓰기 권한 없음', '토큰 설정에서 <b>Permissions → Contents</b> 를 '
+              + '<b>Read and write</b> 로 바꿔 주세요 (읽기만 되면 업로드가 실패합니다)']);
+        } else if (r.status === 403){
+          /* 토큰은 유효한데 이 저장소에 권한이 없는 상태 — 401 과 원인이 다르다 */
+          rows.push(['저장소 접근', `❌ 403 — ${esc(j.message || '')}<br>
+            <b>토큰은 유효하지만 이 저장소 권한이 없습니다.</b> 토큰 설정에서<br>
+            ① <b>Repository access</b> → Only select repositories 에 <b>${esc(SYNC.repo.split('/')[1] || '')}</b> 가 선택되어 있는지<br>
+            ② <b>Permissions → Contents</b> 가 <b>Read and write</b> 인지 확인하세요.`]);
+        } else if (r.status === 404){
+          rows.push(['저장소 접근', `❌ 404 — 저장소를 찾을 수 없습니다<br>
+            이름 오타이거나, <b>토큰의 Repository access 목록에 이 저장소가 선택되지 않았습니다</b><br>
+            (저장소를 토큰보다 나중에 만들었다면 토큰 설정에서 다시 선택해야 합니다)`]);
         } else {
-          rows.push(['저장소 접근', `❌ HTTP ${r.status} — ${esc(j.message || '')}` +
-            (r.status === 404 ? ' (이름 오타 / 토큰에 이 저장소가 선택되지 않음)' : '')]);
+          rows.push(['저장소 접근', `❌ HTTP ${r.status} — ${esc(j.message || '')}`]);
         }
       }catch(e){ rows.push(['저장소 접근', '❌ 네트워크 오류 ' + esc(e.message)]); }
       try{
@@ -1926,6 +1973,10 @@ function openData(){
     if (SYNC.err) rows.push(['마지막 오류', esc(SYNC.err)]);
     box.innerHTML = `<table class="spec" style="margin-top:12px">${
       rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table>`;
+  };
+  if ($('#syTokDel')) $('#syTokDel').onclick = () => {
+    try{ localStorage.removeItem(LS_TOK); }catch(e){}
+    SYNC.err = ''; saveSync(); openData(); toast('토큰을 지웠습니다 — 새로 입력하세요');
   };
   if ($('#syOff')) $('#syOff').onclick = () => {
     if (!confirm('이 기기에서 동기화 연결을 해제할까요?\n저장된 데이터와 원격 파일은 지워지지 않습니다.')) return;
