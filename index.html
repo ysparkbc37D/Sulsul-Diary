@@ -449,7 +449,7 @@ pre.csv{
    Whisky Collector — 앱 로직
    저장: localStorage(wc.v1) · 자동 초안: kb.js + Wikipedia/Commons
    ══════════════════════════════════════════════════════════ */
-const LS = 'wc.v1', LS_THEME = 'wc.theme';
+const LS = 'wc.v1', LS_THEME = 'wc.theme', LS_SYNC = 'wc.sync', LS_TOK = 'wc.token';
 const TYPES = ['Single Malt','Blended Malt','Blended Scotch','Single Grain','Bourbon','Rye',
   'Tennessee Whiskey','Japanese Single Malt','Japanese Blended','Irish','World Whisky','기타'];
 const STATUS = ['미개봉','오픈','비움'];
@@ -595,6 +595,7 @@ function save(){
   DB.meta.updated = nowISO();
   try{ localStorage.setItem(LS, JSON.stringify(DB)); }
   catch(e){ toast('⚠ 저장 실패 — 용량 초과일 수 있습니다. JSON 백업을 받으세요'); }
+  if (typeof syncSoon === 'function' && !syncing) syncSoon();
 }
 function normalize(o){
   const it = {id: o.id || uid()};
@@ -610,6 +611,140 @@ function normalize(o){
   return it;
 }
 const byId = id => DB.items.find(x => x.id === id);
+
+/** 삭제 기록(툼스톤) — 없으면 다른 기기에서 지운 병이 동기화 때 되살아난다.
+    삭제 시각은 반드시 그 항목의 updated_at 보다 뒤여야 한다(기기 시계 차이 대비). */
+function tomb(list){
+  DB.meta.tombs ||= {};
+  const now = nowISO();
+  for (const x of [].concat(list)){
+    const id = typeof x === 'string' ? x : x?.id;
+    if (!id) continue;
+    const upd = (typeof x === 'string' ? '' : x.updated_at) || '';
+    DB.meta.tombs[id] = (upd && upd >= now)
+      ? new Date(new Date(upd).getTime() + 1000).toISOString()
+      : now;
+  }
+}
+
+/* ══════════════════════════════════════════
+   기기 간 동기화 — GitHub 저장소를 데이터베이스로 사용
+   · 읽기/쓰기 모두 GitHub Contents API
+   · 토큰은 이 브라우저에만 저장하며 백업 파일에 포함하지 않는다
+   ══════════════════════════════════════════ */
+let SYNC = {repo:'', path:'collection.json', branch:'main', sha:'', last:''};
+let syncing = false, syncTid = 0;
+
+function loadSync(){
+  try{ Object.assign(SYNC, JSON.parse(localStorage.getItem(LS_SYNC) || '{}')); }catch(e){}
+}
+function saveSync(){
+  try{ localStorage.setItem(LS_SYNC, JSON.stringify(SYNC)); }catch(e){}
+}
+const ghToken = () => { try{ return localStorage.getItem(LS_TOK) || ''; }catch(e){ return ''; } };
+const syncOn = () => !!(SYNC.repo && ghToken());
+
+/* UTF-8 ↔ base64 (한글이 섞이므로 TextEncoder 경유) */
+function b64enc(str){
+  const b = new TextEncoder().encode(str);
+  let s = '';
+  for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function b64dec(b64){
+  const raw = atob(String(b64).replace(/\s/g, ''));
+  const u = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) u[i] = raw.charCodeAt(i);
+  return new TextDecoder().decode(u);
+}
+async function gh(path, opt){
+  const r = await fetch('https://api.github.com/repos/' + SYNC.repo + '/contents/' + path +
+      (opt?.method === 'PUT' ? '' : '?ref=' + encodeURIComponent(SYNC.branch)), {
+    method: opt?.method || 'GET',
+    headers: {
+      Authorization: 'Bearer ' + ghToken(),
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(opt?.body ? {'Content-Type':'application/json'} : {}),
+    },
+    body: opt?.body,
+  });
+  if (r.status === 404) return {missing: true};
+  const j = await r.json().catch(() => null);
+  if (!r.ok) throw new Error((j && j.message) || ('HTTP ' + r.status));
+  return j;
+}
+/** 원격/로컬 병합 — 항목은 updated_at 이 최신인 쪽, 삭제는 툼스톤이 최신이면 삭제 유지 */
+function mergeSnapshot(remote){
+  const tombs = {...(remote.meta?.tombs || {}), ...(DB.meta.tombs || {})};
+  for (const [id, t] of Object.entries(remote.meta?.tombs || {}))
+    if ((DB.meta.tombs?.[id] || '') > t) tombs[id] = DB.meta.tombs[id];
+  const map = new Map();
+  for (const it of (remote.items || [])) map.set(it.id, normalize(it));
+  let added = 0, updated = 0;
+  for (const it of DB.items){
+    const r = map.get(it.id);
+    if (!r){ map.set(it.id, it); added++; }
+    else if ((it.updated_at || '') > (r.updated_at || '')){ map.set(it.id, it); updated++; }
+  }
+  const items = [...map.values()].filter(it => {
+    const t = tombs[it.id];
+    return !(t && t > (it.updated_at || ''));
+  });
+  const before = DB.items.length;
+  DB.items = items;
+  DB.meta.tombs = tombs;
+  return {pulled: Math.max(0, items.length - before + added), local: added + updated};
+}
+function snapshot(){
+  return JSON.stringify({
+    _app: 'whisky-collector', _updated: nowISO(),
+    items: DB.items, meta: {tombs: DB.meta.tombs || {}, seeded: DB.meta.seeded},
+  }, null, 1);
+}
+/** 원격을 읽어 병합하고, 달라졌으면 다시 올린다 */
+async function syncNow(quiet){
+  if (!syncOn() || syncing) return null;
+  syncing = true;
+  try{
+    const got = await gh(SYNC.path);
+    let remote = {items: [], meta: {}};
+    if (!got.missing){
+      SYNC.sha = got.sha;
+      try{ remote = JSON.parse(b64dec(got.content)); }catch(e){ throw new Error('원격 파일 형식 오류'); }
+    }
+    const before = snapshot().length;
+    const res = mergeSnapshot(remote);
+    save();
+    render();
+    const body = snapshot();
+    if (body.length > 5e6 && !quiet)
+      toast('⚠ 데이터가 ' + Math.round(body.length / 1e6) + 'MB입니다 — 사진이 많으면 동기화가 느려집니다');
+    const remoteBody = got.missing ? '' : b64dec(got.content);
+    if (body.replace(/"_updated":"[^"]*"/, '') !== remoteBody.replace(/"_updated":"[^"]*"/, '')){
+      const put = await gh(SYNC.path, {method:'PUT', body: JSON.stringify({
+        message: '컬렉션 동기화 (' + DB.items.length + '병)',
+        content: b64enc(body), branch: SYNC.branch,
+        ...(SYNC.sha ? {sha: SYNC.sha} : {}),
+      })});
+      SYNC.sha = put.content?.sha || SYNC.sha;
+    }
+    SYNC.last = nowISO(); saveSync();
+    if (!quiet) toast(`동기화 완료 — ${DB.items.length}병`);
+    return {ok: true, ...res, size: Math.round(body.length / 1024)};
+  }catch(e){
+    const m = String(e.message || e);
+    if (!quiet) toast('동기화 실패 — ' + (m.includes('Bad credentials') ? '토큰을 확인하세요'
+      : m.includes('Not Found') ? '저장소 이름·권한을 확인하세요' : m).slice(0, 60));
+    return {ok: false, error: m};
+  }finally{ syncing = false; }
+}
+/** 저장 후 잠깐 모아서 한 번만 올린다 */
+function syncSoon(){
+  if (!syncOn()) return;
+  clearTimeout(syncTid);
+  syncTid = setTimeout(() => syncNow(true), 4000);
+}
 
 /* ══════════════════════════════════════════
    자동 초안 엔진
@@ -1078,7 +1213,8 @@ function openDetail(id){
     }
     if (a.dataset.act === 'del'){
       if (!confirm(`"${fullName(it)}"을(를) 삭제할까요?\n되돌릴 수 없습니다.`)) return;
-      DB.items = DB.items.filter(x => x.id !== it.id); save(); render(); closeSheet(); toast('삭제했습니다');
+      DB.items = DB.items.filter(x => x.id !== it.id);
+      tomb(it); save(); render(); closeSheet(); toast('삭제했습니다');
     }
   };
 }
@@ -1620,7 +1756,37 @@ function openData(){
   try{ bytes = new Blob([localStorage.getItem(LS) || '']).size; }catch(e){}
   const dark = document.documentElement.dataset.theme === 'dark';
 
+  const ago = t => {
+    if (!t) return '없음';
+    const m = Math.floor((Date.now() - new Date(t)) / 60000);
+    return m < 1 ? '방금 전' : m < 60 ? m + '분 전' : m < 1440 ? Math.floor(m/60) + '시간 전' : Math.floor(m/1440) + '일 전';
+  };
   openSheet('데이터 · 설정', `
+    <h4 class="sec">기기 간 동기화</h4>
+    <div class="note" style="margin-bottom:11px">
+      ${syncOn()
+        ? `<b>연결됨</b> · ${esc(SYNC.repo)}/${esc(SYNC.path)}<br>마지막 동기화 <b>${ago(SYNC.last)}</b> · ${DB.items.length}병`
+        : `현재 이 <b>기기 안에만</b> 저장됩니다. GitHub 저장소를 데이터베이스로 연결하면
+           폰·PC가 같은 목록을 봅니다. 아래에 <b>비공개 저장소</b>와 토큰을 넣어 주세요.`}
+    </div>
+    <div class="fg">
+      <div class="f wide"><label>데이터 저장소 (owner/repo)</label>
+        <input id="syRepo" value="${esc(SYNC.repo)}" placeholder="ysparkbc37D/whisky-data" autocomplete="off"></div>
+      <div class="f"><label>파일 경로</label>
+        <input id="syPath" value="${esc(SYNC.path)}" placeholder="collection.json" autocomplete="off"></div>
+      <div class="f"><label>브랜치</label>
+        <input id="syBranch" value="${esc(SYNC.branch)}" placeholder="main" autocomplete="off"></div>
+      <div class="f wide"><label>액세스 토큰 (Fine-grained · Contents 읽기/쓰기)</label>
+        <input id="syTok" type="password" value="${ghToken() ? '••••••••••••' : ''}"
+          placeholder="github_pat_..." autocomplete="off"></div>
+    </div>
+    <div class="stack" style="margin-top:10px">
+      <button class="btn pri" id="syNow">${syncOn() ? '지금 동기화' : '연결하고 동기화'}</button>
+      ${syncOn() ? `<button class="btn dgr" id="syOff" style="width:auto">연결 해제</button>` : ''}
+    </div>
+    <p class="hint" style="margin-top:8px">토큰은 <b>이 브라우저에만</b> 저장되고 백업 파일에는 포함되지 않습니다.
+      기기마다 한 번씩 입력하세요. 저장소를 <b>Private</b>으로 만들면 나만 볼 수 있습니다.</p>
+
     <h4 class="sec">가져오기</h4>
     <div class="stack">
       <button class="btn" id="impFile">파일에서 가져오기 (JSON · CSV)</button>
@@ -1661,6 +1827,26 @@ function openData(){
     `<button class="btn pri" data-act="close">닫기</button>`);
 
   $('#shFoot').onclick = closeSheet;
+  $('#syNow').onclick = async () => {
+    const t = $('#syTok').value.trim();
+    SYNC.repo = $('#syRepo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '');
+    SYNC.path = $('#syPath').value.trim() || 'collection.json';
+    SYNC.branch = $('#syBranch').value.trim() || 'main';
+    if (t && !/^•+$/.test(t)){ try{ localStorage.setItem(LS_TOK, t); }catch(e){} }
+    saveSync();
+    if (!SYNC.repo) return toast('저장소를 owner/repo 형식으로 입력하세요');
+    if (!ghToken()) return toast('액세스 토큰을 입력하세요');
+    const b = $('#syNow'); b.disabled = true; b.textContent = '동기화 중…';
+    const r = await syncNow(false);
+    if (r?.ok) openData();
+    else { b.disabled = false; b.textContent = '다시 시도'; }
+  };
+  if ($('#syOff')) $('#syOff').onclick = () => {
+    if (!confirm('이 기기에서 동기화 연결을 해제할까요?\n저장된 데이터와 원격 파일은 지워지지 않습니다.')) return;
+    try{ localStorage.removeItem(LS_TOK); }catch(e){}
+    SYNC = {repo:'', path:'collection.json', branch:'main', sha:'', last:''};
+    saveSync(); openData(); toast('연결을 해제했습니다');
+  };
   $('#impFile').onclick = () => $('#impInput').click();
   $('#impInput').onchange = e => {
     const file = e.target.files[0]; if (!file) return;
@@ -1699,14 +1885,17 @@ function openData(){
     else toast('브라우저 메뉴 → "홈 화면에 추가"를 눌러 주세요');
   };
   $('#rmExamples').onclick = () => {
-    const before = DB.items.length;
-    DB.items = DB.items.filter(i => !String(i.tags || '').split(',').map(s => s.trim()).includes('예시'));
-    save(); render(); openData(); toast(`예시 ${before - DB.items.length}병을 삭제했습니다`);
+    const kill = DB.items.filter(i => String(i.tags || '').split(',').map(s => s.trim()).includes('예시'));
+    DB.items = DB.items.filter(i => !kill.includes(i));
+    tomb(kill);
+    save(); render(); openData(); toast(`예시 ${kill.length}병을 삭제했습니다`);
   };
   $('#wipe').onclick = () => {
     if (!confirm('모든 위스키 데이터를 삭제합니다.\n백업이 없으면 복구할 수 없습니다. 계속할까요?')) return;
-    if (!confirm('정말 초기화할까요?')) return;
-    DB = {items:[], meta:{}}; save(); render(); closeSheet(); toast('초기화했습니다');
+    if (!confirm('정말 초기화할까요?' + (syncOn() ? '\n동기화된 다른 기기에서도 삭제됩니다.' : ''))) return;
+    const gone = DB.items;
+    DB = {items:[], meta:{}}; tomb(gone);
+    save(); render(); closeSheet(); toast('초기화했습니다');
   };
 }
 function setTheme(t){
@@ -1751,9 +1940,16 @@ async function autoNormalize(){
 
 /* ── boot ─────────────────────────────────── */
 try{ const t = localStorage.getItem(LS_THEME); if (t) setTheme(t); }catch(e){}
+loadSync();
 load();
 render();
 setTimeout(autoNormalize, 700);
+if (syncOn()) setTimeout(() => syncNow(true), 300);
+/* 앱으로 돌아왔을 때 다른 기기의 변경을 받아온다 */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !syncOn()) return;
+  if (Date.now() - new Date(SYNC.last || 0) > 60000) syncNow(true);
+});
 if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
   addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 </script>
