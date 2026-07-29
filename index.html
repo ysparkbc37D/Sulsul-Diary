@@ -1866,14 +1866,20 @@ function importText(text){
   }
   if (!incoming.length) return toast('가져올 항목이 없습니다');
   let add = 0, upd = 0;
+  const touched = [];
   incoming.forEach(n => {
     const i = DB.items.findIndex(x => x.id === n.id ||
       (x.name_ko && x.name_ko === n.name_ko) || (x.name_en && n.name_en && x.name_en === n.name_en));
-    if (i >= 0){ DB.items[i] = {...DB.items[i], ...n, id: DB.items[i].id, updated_at: nowISO()}; upd++; }
-    else { DB.items.unshift(n); add++; }
+    if (i >= 0){
+      DB.items[i] = {...DB.items[i], ...n, id: DB.items[i].id, updated_at: nowISO()};
+      touched.push(DB.items[i]); upd++;
+    } else { DB.items.unshift(n); touched.push(n); add++; }
   });
   save(); render(); closeSheet();
   toast(`가져오기 완료 — 신규 ${add}건, 갱신 ${upd}건`);
+  /* 가져온 사진은 즉시 전부 규격을 맞춘다. 부팅 정규화(8장)에 맡기면
+     많이 가져올수록 원본 URL 그대로 남아 목록의 병 크기가 들쭉날쭉해진다. */
+  setTimeout(() => normalizeMissing(touched, {progress: true}), 600);
 }
 
 /* ── stats ────────────────────────────────── */
@@ -2144,16 +2150,10 @@ function openData(){
   $('#normAll').onclick = async () => {
     const targets = DB.items.filter(i => !i.image_norm && (i.image_url || i.image_data));
     if (!targets.length) return toast('맞출 대상이 없습니다');
-    const b = $('#normAll'); b.disabled = true;
-    let ok = 0, ng = 0;
-    for (let i = 0; i < targets.length; i++){
-      b.textContent = `맞추는 중… ${i + 1}/${targets.length}`;
-      const t = targets[i];
-      const n = await normalizeThumb(t.image_data || t.image_url);
-      if (n){ t.image_norm = n; t.image_data = ''; ok++; } else ng++;
-    }
-    save(); render(); openData();
-    toast(`${ok}병 맞춤 완료${ng ? ` · ${ng}병은 출처 제한으로 원본 유지` : ''}`);
+    const b = $('#normAll'); b.disabled = true; b.textContent = '맞추는 중…';
+    const ok = await normalizeMissing(targets, {progress: true});
+    openData();
+    if (!ok) toast('출처 제한으로 맞출 수 없었습니다 — 원본을 그대로 표시합니다');
   };
   $('#btnTheme').onclick = () => { setTheme(dark ? 'light' : 'dark'); openData(); };
   $('#btnInstall').onclick = () => {
@@ -2201,18 +2201,24 @@ $('#scrim').onclick = closeSheet;
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
 
-/* 아직 규격이 맞춰지지 않은 사진을 배경에서 조용히 정규화 (한 번에 최대 8장) */
-async function autoNormalize(){
-  if (!navigator.onLine) return;
-  const t = DB.items.filter(i => !i.image_norm && i.image_url).slice(0, 8);
-  if (!t.length) return;
+/** 규격이 맞춰지지 않은 썸네일을 정규화. 대상 목록을 직접 받아 뒤에 남기지 않는다. */
+async function normalizeMissing(list, opt){
+  if (!navigator.onLine) return 0;
+  const t = (list || DB.items).filter(i => !i.image_norm && (i.image_url || i.image_data));
+  if (!t.length) return 0;
+  const talk = opt?.progress && t.length > 3;
   let ok = 0;
-  for (const it of t){
-    const n = await normalizeThumb(it.image_url);
-    if (n){ it.image_norm = n; ok++; }
+  for (let i = 0; i < t.length; i++){
+    if (talk) toast(`썸네일 규격 맞추는 중… ${i + 1}/${t.length}`);
+    const n = await normalizeThumb(t[i].image_url || t[i].image_data);
+    if (n){ t[i].image_norm = n; t[i].image_data = ''; ok++; }
   }
   if (ok){ save(); render(); }
+  if (talk) toast(`썸네일 ${ok}장 정리 완료${t.length - ok ? ` · ${t.length - ok}장은 출처 제한` : ''}`);
+  return ok;
 }
+/* 부팅은 시작을 늦추지 않도록 8장만 (나머지는 가져오기 직후·설정에서 일괄 처리) */
+const autoNormalize = () => normalizeMissing(DB.items.slice(0, 8));
 
 /* ── boot ─────────────────────────────────── */
 try{ const t = localStorage.getItem(LS_THEME); if (t) setTheme(t); }catch(e){}
