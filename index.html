@@ -872,43 +872,134 @@ function queryKeys(q){
   for (let n = 1; n <= Math.min(3, w.length); n++) keys.add(w.slice(0, n).join(''));
   return [...keys].filter(Boolean);
 }
-/** 브랜드 추천 목록 (점수 내림차순) */
-function brandCandidates(q, limit = 8){
-  const nq = squish(q);
-  const qk = queryKeys(q).map(k => ({raw: squish(k), key: phonKey(k)})).filter(x => x.key || x.raw);
-  if (!nq) return [];
-  const out = [];
-  for (const b of BRANDS){
-    let best = 0;
-    for (const nm of [b.ko, b.en, ...(b.alias || [])]){
-      if (!nm) continue;
-      const nn = squish(nm), nk = phonKey(nm);
-      /* ① 표기 그대로 일치 — 가장 신뢰도가 높다 */
-      if (nn && nq.includes(nn)) best = Math.max(best, 1.1 + Math.min(nn.length, 20) / 100);
-      /* 입력 중인 접두 일치는 발음 골격 우연 일치(0.99)보다 확실한 근거다.
-         한글은 한 글자에도 정보량이 많아(맥→맥캘란) 1글자부터 인정한다 */
-      if (nn && nn.startsWith(nq) && (nq.length >= 2 || /[가-힣]/.test(nq)))
-        best = Math.max(best, 1.0);
-      if (nn && nn.includes(nq) && nq.length >= 3) best = Math.max(best, 0.9);
-      if (!nk) continue;
-      for (const x of qk){
-        if (!x.key || x.key.length < 2) continue;
-        if (nk === x.key){ best = Math.max(best, 0.99); continue; }
-        /* ② 골격 접두 일치 — 입력 중(자동완성)인 상황. 길이 차가 클 때는 인정하지 않는다 */
-        if (nk.startsWith(x.key) && x.key.length >= 3 && nk.length - x.key.length <= 3)
-          best = Math.max(best, 0.92);
-        best = Math.max(best, keySim(x.key, nk));
-      }
+/** 이름 후보들과 질의를 비교 → {s: 점수, exact: 표기가 그대로 일치했는지}
+    exact 는 "우연한 발음 유사"와 "명시적 이름 일치"를 가르는 데 쓴다.
+    (블루라벨↔Balblair 은 발음이 0.99로 우연히 붙지만 exact 가 아니다) */
+function nameScore(nq, qk, names, opts){
+  let s = 0, exact = false;
+  for (const nm of names){
+    if (!nm) continue;
+    const nn = squish(nm);
+    if (!nn || nn.length < 2) continue;
+    if (opts?.skipNumeric && /^\d+$/.test(nn)) continue;   // '12' 같은 숫자는 식별력이 없다
+    if (nq.includes(nn)){ s = Math.max(s, 1.1 + Math.min(nn.length, 20) / 100); exact = true; }
+    /* 입력 중인 접두 일치. 한글은 한 글자에도 정보량이 많아(맥→맥캘란) 1글자부터 인정 */
+    if (nn.startsWith(nq) && (nq.length >= 2 || /[가-힣]/.test(nq))){ s = Math.max(s, 1.0); exact = true; }
+    if (nn.includes(nq) && nq.length >= 3){ s = Math.max(s, 0.9); exact = true; }
+    const nk = phonKey(nm);
+    if (!nk) continue;
+    for (const x of qk){
+      if (!x.key || x.key.length < 2) continue;
+      if (nk === x.key){ s = Math.max(s, 0.99); continue; }
+      if (nk.startsWith(x.key) && x.key.length >= 3 && nk.length - x.key.length <= 3)
+        s = Math.max(s, 0.92);
+      s = Math.max(s, keySim(x.key, nk));
     }
-    if (best >= 0.62) out.push({b, s: best});
+  }
+  return {s, exact};
+}
+const qKeysOf = q => queryKeys(q).map(k => ({key: phonKey(k)}));
+/** 증류소 추천 목록 (점수 내림차순) */
+function brandCandidates(q, limit = 8){
+  const nq = squish(q); if (!nq) return [];
+  const qk = qKeysOf(q), out = [];
+  for (const b of BRANDS){
+    const r = nameScore(nq, qk, [b.ko, b.en, ...(b.alias || [])]);
+    if (r.s >= 0.62) out.push({b, s: r.s, exact: r.exact});
   }
   return out
     .sort((x, y) => y.s - x.s || (y.b.pri || 0) - (x.b.pri || 0) || x.b.en.length - y.b.en.length)
     .slice(0, limit);
 }
+/** 제품명에서 증류소명을 뗀 "표현명" (Ardbeg Uigeadail → Uigeadail) */
+function exprOf(p, b){
+  return String(p.name_en)
+    .replace(new RegExp('^(the\\s+)?' + String(b.en).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '')
+    .replace(/\(.*?\)/g, ' ').replace(/\s+/g, ' ').trim();
+}
+/** 표현명(제품) 추천 목록 — 증류소를 말하지 않고 "아부나흐"만 부르는 경우를 잡는다 */
+function productCandidates(q, limit = 8){
+  const nq = squish(q); if (!nq) return [];
+  const qk = qKeysOf(q), out = [];
+  for (const p of PRODUCTS){
+    const b = BRAND_BY_KEY[p.b]; if (!b) continue;
+    const r = nameScore(nq, qk, [p.name_en, exprOf(p, b), ...(p.m || [])], {skipNumeric: true});
+    if (r.s >= 0.82) out.push({p, b, s: r.s, exact: r.exact});
+  }
+  return out.sort((x, y) => y.s - x.s || x.p.name_en.length - y.p.name_en.length).slice(0, limit);
+}
 function matchBrand(q){
   const c = brandCandidates(q, 1);
   return (c.length && c[0].s >= 0.78) ? c[0].b : null;
+}
+/** 표현명에 흔히 붙는 표기에서 캐스크·도수·주의사항을 읽어낸다.
+    DB에 없는 제품이라도 "배럴프루프" "셰리 피니시" 같은 표기는 그 자체가 정보다. */
+const EXPR_RULES = [
+  {re:/barrel ?proof|배럴 ?프루프|바렐 ?프루프/i, label:'배럴 프루프',
+   cask:'캐스크 스트렝스 (물 희석 없음)', abv:'',
+   note:'⚠ 배럴 프루프 — 도수가 배치별로 크게 다릅니다(보통 55~65%). 라벨 확인 후 수정하세요.'},
+  {re:/cask ?strength|캐스크 ?스트렝스|캐스크 ?스트렌스|\bcs\b/i, label:'캐스크 스트렝스',
+   note:'⚠ 캐스크 스트렝스 — 도수는 배치/병별로 다릅니다. 라벨 확인 후 수정하세요.'},
+  {re:/single ?barrel|single ?cask|싱글 ?배럴|싱글 ?캐스크/i, label:'싱글 배럴/캐스크',
+   note:'⚠ 싱글 배럴/캐스크 — 병마다 도수와 풍미가 다릅니다.'},
+  {re:/small ?batch|스몰 ?배치/i, label:'스몰 배치'},
+  {re:/bottled ?in ?bond|bib\b|본디드/i, label:'Bottled in Bond', abv:'50',
+   note:'Bottled in Bond 규정상 4년 이상 숙성 · 100 proof(50%)입니다.'},
+  {re:/sherry ?(cask|finish|butt|hogshead)?|셰리|쉐리/i, label:'셰리 캐스크', cask:'Sherry Cask'},
+  {re:/\bpx\b|pedro ?ximenez|페드로 ?히메네스/i, label:'PX 셰리', cask:'PX Sherry Cask'},
+  {re:/oloroso|올로로소|올로로쏘/i, label:'올로로소 셰리', cask:'Oloroso Sherry Cask'},
+  {re:/port ?(pipe|cask|finish)|포트 ?(파이프|캐스크|피니시)/i, label:'포트 캐스크', cask:'Port Cask Finish'},
+  {re:/rum ?cask|럼 ?캐스크|caribbean|캐리비안/i, label:'럼 캐스크', cask:'Rum Cask Finish'},
+  {re:/madeira|마데이라/i, label:'마데이라 캐스크', cask:'Madeira Cask Finish'},
+  {re:/sauternes|소테른/i, label:'소테른 캐스크', cask:'Sauternes Cask Finish'},
+  {re:/virgin ?oak|버진 ?오크/i, label:'버진 오크', cask:'Virgin Oak'},
+  {re:/mizunara|미즈나라/i, label:'미즈나라', cask:'Mizunara (Japanese Oak)'},
+  {re:/peated|피티드|피트|스모키/i, label:'피티드'},
+  {re:/non ?chill|비냉각|무여과/i, label:'비냉각 여과'},
+  /* '쿨일라11sr24' 처럼 붙여 쓰는 표기가 많아 단어 경계를 요구하지 않는다 */
+  {re:/sr\s?\d{2}|\d{2,4}\s?sr(?![a-z])|special ?release|스페셜 ?릴리즈|스페셜 ?릴리스/i, label:'Special Release',
+   cask:'Special Release (연도별로 캐스크가 다름)',
+   note:'⚠ 디아지오 Special Release는 해마다 도수·캐스크가 다릅니다. 라벨 확인 후 수정하세요.'},
+  {re:/보틀 ?벙커|bottle ?bunker|트레이더스/i, label:'보틀벙커 단독',
+   note:'⚠ 유통사 단독 병입 — 도수·캐스크가 병마다 다릅니다.'},
+  {re:/단독|exclusive|익스클루시브/i, label:'단독 병입',
+   note:'⚠ 단독 병입 제품 — 라벨의 도수·캐스크를 확인해 주세요.'},
+  {re:/distillery ?(exclusive|edition)?|증류소 ?한정|디스틸러리/i, label:'증류소 한정/에디션',
+   note:'⚠ 증류소 한정 병입 — 라벨 확인이 필요합니다.'},
+  {re:/\b(19|20)\d{2}\b/, label:'빈티지 표기', note:'빈티지·병입 연도는 라벨을 확인해 메모에 적어 주세요.'},
+];
+function expressionHints(q){
+  const out = {cask:'', abv:'', notes:[], labels:[]};
+  for (const r of EXPR_RULES){
+    if (!r.re.test(q)) continue;
+    out.labels.push(r.label);
+    if (r.cask && !out.cask) out.cask = r.cask;
+    if (r.abv && !out.abv) out.abv = r.abv;
+    if (r.note) out.notes.push(r.note);
+  }
+  return out;
+}
+/** 질의 하나로 증류소·제품을 함께 판정. 표기 일치(exact)가 발음 유사보다 우선한다. */
+function resolve(q){
+  const bc = brandCandidates(q, 1)[0] || null;
+  const pcs = productCandidates(q, 3);
+  const pc = pcs[0] || null;
+  let brand = (bc && bc.s >= 0.78) ? bc.b : null;
+  let product = null, ambiguous = null;
+  if (pc && (pc.exact || pc.s >= 0.93)){
+    /* 제품의 증류소도 질의에 명시돼 있으면(스타워드 라가불린캐스크) 제품을 믿는다.
+       그렇지 않고 다른 증류소만 명시됐다면 증류소를 믿는다. */
+    const nq2 = squish(q), qk2 = qKeysOf(q);
+    const pcBrandNamed = nameScore(nq2, qk2,
+      [pc.b.ko, pc.b.en, ...(pc.b.alias || [])]).exact;
+    const conflict = bc?.exact && pc.b.k !== bc.b.k && !pcBrandNamed;
+    /* 다른 증류소 제품이 '완전 동점'일 때만 자동 확정을 피한다(스몰배치 등).
+       점수 차 0.02 는 더 구체적인 별칭이 일치했다는 뜻이므로 동점이 아니다. */
+    const tie = pcs[1] && pcs[1].exact && pcs[1].b.k !== pc.b.k && (pc.s - pcs[1].s) <= 0.001;
+    if (!conflict && !tie){ brand = pc.b; product = pc.p; }
+    else if (!conflict) ambiguous = pcs.slice(0, 3);
+  }
+  return {brand, product, ambiguous};
 }
 function parseAge(s){
   let m = String(s).match(/(\d{1,2})\s*(?:년|yo\b|y\.?o\.?\b|years?\b|y\b)/i);
@@ -952,7 +1043,8 @@ function draftFrom(raw){
   F.name_ko = q; F.status = '미개봉'; F.size_ml = '700'; F.remaining_pct = '100';
   F.purchase_date = today(); F.bottler = 'Official (OB)';
 
-  const brand = matchBrand(q);
+  const rs = resolve(q);
+  const brand = rs.brand;
   const age = parseAge(q);
   const abvIn = (q.match(/(\d{2}(?:\.\d)?)\s*%/) || [])[1];
   const ib = matchBottler(q);
@@ -961,10 +1053,21 @@ function draftFrom(raw){
   if (!brand){
     if (age) put('age', age);
     if (abvIn) put('abv', abvIn);
-    return {fields:F, keys, brand:null, product:null, lines:[
-      '내장 DB에서 증류소를 찾지 못했습니다.',
-      '<b>영문명으로 다시 시도</b>하면 정확도가 올라갑니다 (예: <b>Longmorn 23</b>).',
-      '또는 아래 항목을 직접 입력하고 <b>사진 다시 찾기</b>를 눌러 주세요.']};
+    /* 표기에서 읽어낸 정보라도 채워 준다 (배럴프루프·셰리 피니시 등) */
+    const hint = expressionHints(q);
+    if (hint.cask) put('cask', hint.cask);
+    if (hint.abv) put('abv', hint.abv);
+    if (hint.notes.length){ F.notes = hint.notes.join('\n'); keys.add('notes'); }
+    const lines = rs.ambiguous
+      ? ['이 표현명은 여러 증류소에 있습니다 — 어느 것인지 골라 주세요:',
+         ...rs.ambiguous.map(x => `<b>${esc(x.b.ko || x.b.en)} ${esc(exprOf(x.p, x.b))}</b> · ${esc(x.p.abv)}%`),
+         '이름 칸에 증류소를 함께 적으면 바로 채워집니다 (예: 포로지스 스몰배치).']
+      : ['내장 DB에서 증류소를 찾지 못했습니다.',
+         '<b>영문명으로 다시 시도</b>하면 정확도가 올라갑니다 (예: <b>Longmorn 23</b>).',
+         '또는 아래 항목을 직접 입력하고 <b>사진 다시 찾기</b>를 눌러 주세요.'];
+    if (hint.labels.length)
+      lines.push('표기에서 읽어낸 정보: <b>' + hint.labels.map(esc).join(' · ') + '</b>');
+    return {fields:F, keys, brand:null, product:null, lines};
   }
 
   put('distillery', brand.en);
@@ -973,7 +1076,10 @@ function draftFrom(raw){
   put('type', brand.type || 'Single Malt');
   lines.push(`증류소 <b>${esc(brand.en)}</b> · ${esc(brand.country)}${brand.region !== 'Blend' ? ' / ' + esc(brand.region) : ''} · ${esc(brand.type || 'Single Malt')}`);
 
-  const p = matchProduct(brand.k, q, age);
+  const p = rs.product || matchProduct(brand.k, q, age);
+  if (rs.ambiguous)
+    lines.push('표현명이 여러 증류소와 겹칩니다 — 추천 목록에서 정확한 제품을 골라 주세요: '
+      + rs.ambiguous.map(x => `<b>${esc(x.b.ko || x.b.en)} ${esc(exprOf(x.p, x.b))}</b>`).join(' / '));
   if (p){
     put('name_en', p.name_en);
     put('age', p.age);
@@ -992,10 +1098,18 @@ function draftFrom(raw){
     lines.push('캐스크 · 테이스팅 노트 3종' + (p.wb ? ' · 참고 평점' : '') + (p.lo ? ' · 추정 시장가' : '') + ' 채움');
   } else {
     if (age) put('age', age);
-    put('cask', brand.cask);
+    /* 표현명 자체가 정보를 담고 있다 — "배럴프루프"면 캐스크 스트렝스, "셰리 피니시"면 캐스크가 정해진다 */
+    const hint = expressionHints(q);
+    put('cask', hint.cask || brand.cask);
+    if (hint.abv) put('abv', hint.abv);
     const h = brand.house || REGION_STYLE[brand.region] || REGION_STYLE.default;
     put('nose', h.nose); put('taste', h.taste); put('finish', h.finish);
-    lines.push('개별 제품은 DB에 없어 <b>증류소 하우스 스타일</b>로 테이스팅 노트 초안을 채웠습니다.');
+    if (hint.notes.length){
+      F.notes = [F.notes, ...hint.notes].filter(Boolean).join('\n'); keys.add('notes');
+    }
+    lines.push('개별 제품이 DB에 없어 <b>증류소 하우스 스타일</b>로 테이스팅 노트 초안을 채웠습니다.');
+    if (hint.labels.length)
+      lines.push('표기에서 읽어낸 정보: <b>' + hint.labels.map(esc).join(' · ') + '</b>');
     lines.push('도수 · 캐스크 · 시장가는 실제 라벨을 확인해 수정해 주세요.');
   }
   if (abvIn) { F.abv = abvIn; keys.add('abv'); }
@@ -1064,8 +1178,11 @@ async function enrich(d){
   const toks = core.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
     .filter(w => w.length >= 4 && !['the','distillery','whisky','single','malt','reserve'].includes(w));
   const wikiP = b?.wiki ? wikiSummary(b.wiki) : Promise.resolve(null);
+  /* 표현명(Uigeadail·Quarter Cask 등)이 있으면 그 병 사진을 먼저 찾는다 */
+  const expr = (d.product && b) ? exprOf(d.product, b).replace(/\d+\s*year old/i, '').trim() : '';
   const queries = core
-    ? [`${core} whisky bottle`, `${core} bottle`,
+    ? [expr ? `${core} ${expr}` : null,
+       `${core} whisky bottle`, `${core} bottle`,
        age ? `${core} ${age} whisky` : null, `${core} whisky`].filter(Boolean)
     : [(d.fields.name_en || d.fields.name_ko || '') + ' whisky bottle'];
   const seen = new Set(); const all = [];
@@ -1298,18 +1415,29 @@ function openWizard(){
     const v = inp.value.trim(), box = $('#sugg'), exs = $('#exs');
     if (v.length < 1){ box.innerHTML = ''; exs.hidden = false; return; }
     exs.hidden = true;
-    const c = brandCandidates(v, 6);
-    if (!c.length){
-      box.innerHTML = `<p class="hint">일치하는 증류소를 찾지 못했습니다 — 영문명으로도 시도해 보세요.
-        그대로 진행하면 빈 양식에 이름만 채워집니다.</p>`;
+    /* 제품(표현명)을 먼저 보여준다 — 바로 고르면 도수·캐스크·평점까지 채워지기 때문 */
+    const ps = productCandidates(v, 4);
+    const bs = brandCandidates(v, 6 - Math.min(ps.length, 3));
+    if (!ps.length && !bs.length){
+      box.innerHTML = `<p class="hint">일치하는 위스키를 찾지 못했습니다 — 영문명으로도 시도해 보세요.
+        그대로 진행하면 증류소·표기에서 읽어낸 만큼만 채워집니다.</p>`;
       return;
     }
-    box.innerHTML = c.map(x => `<button class="sg" data-k="${esc(x.b.k)}">
+    box.innerHTML = ps.slice(0, 3).map(x => {
+      const nm = (x.b.ko || x.b.en) + ' ' + exprOf(x.p, x.b);
+      return `<button class="sg" data-q="${esc(nm)}">
+        <b>${esc(nm)}</b>
+        <span>제품 · ${esc(x.p.abv)}% · ${x.p.age === 'NAS' ? '숙성 미표기' : esc(x.p.age) + '년'} · ${esc(x.b.region)}</span>
+      </button>`;
+    }).join('') + bs.map(x => `<button class="sg" data-k="${esc(x.b.k)}">
         <b>${esc(x.b.ko || x.b.en)}</b>
-        <span>${x.b.ko ? esc(x.b.en) + ' · ' : ''}${esc(x.b.region)} · ${esc(x.b.country)} · ${esc(x.b.type || 'Single Malt')}</span>
+        <span>증류소 · ${x.b.ko ? esc(x.b.en) + ' · ' : ''}${esc(x.b.region)} · ${esc(x.b.country)} · ${esc(x.b.type || 'Single Malt')}</span>
       </button>`).join('');
   }
   $('#sugg').onclick = e => {
+    /* 제품 추천을 고르면 그대로 초안 생성으로 진행한다 */
+    const pq = e.target.closest('[data-q]');
+    if (pq){ inp.value = pq.dataset.q; go(); return; }
     const s = e.target.closest('[data-k]'); if (!s) return;
     const b = BRAND_BY_KEY[s.dataset.k]; if (!b) return;
     const nm = b.ko || b.en;
@@ -1500,7 +1628,12 @@ function openEdit(id, draft){
       credit = 'Wikimedia Commons — ' + c.dataset.t;
       applyImage(c.dataset.u);
     };
-    if (res.wiki) box.insertAdjacentHTML('afterend',
+    /* 병 사진이 없어 증류소 사진만 제안된 경우 — 오해하지 않게 알려준다 */
+    if (res.images.every(im => /증류소 사진/.test(im.title)))
+      box.insertAdjacentHTML('afterend',
+        `<p class="hint" id="wikiNote">병 사진이 위키미디어에 없어 <b>증류소 사진</b>을 제안했습니다 —
+          정확한 기록을 원하시면 <b>📷 직접 촬영</b>을 권합니다.</p>`);
+    else if (res.wiki) box.insertAdjacentHTML('afterend',
       `<p class="hint" id="wikiNote">📖 <a href="${esc(res.wiki.url)}" target="_blank" rel="noopener">${esc(res.wiki.title)}</a> —
         ${esc((res.wiki.extract || '').slice(0, 90))}…</p>`);
   }
