@@ -1076,7 +1076,9 @@ function draftFrom(raw){
   put('type', brand.type || 'Single Malt');
   lines.push(`증류소 <b>${esc(brand.en)}</b> · ${esc(brand.country)}${brand.region !== 'Blend' ? ' / ' + esc(brand.region) : ''} · ${esc(brand.type || 'Single Malt')}`);
 
-  const p = rs.product || matchProduct(brand.k, q, age);
+  /* 증류소가 정해진 뒤의 매칭이 숙성 연수를 함께 보므로 이쪽을 우선한다.
+     (노마드 10년 → 표현명 색인은 '노마드'만 보고 NAS 제품을 고르기 때문) */
+  const p = matchProduct(brand.k, q, age) || rs.product;
   if (rs.ambiguous)
     lines.push('표현명이 여러 증류소와 겹칩니다 — 추천 목록에서 정확한 제품을 골라 주세요: '
       + rs.ambiguous.map(x => `<b>${esc(x.b.ko || x.b.en)} ${esc(exprOf(x.p, x.b))}</b>`).join(' / '));
