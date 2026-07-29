@@ -1880,7 +1880,11 @@ function openStats(){
   const priced = a.filter(i => Number(i.purchase_price));
   const buy = priced.reduce((s, i) => s + Number(i.purchase_price), 0);
   const mkt = a.reduce((s, i) => s + marketMid(i), 0);
-  const diff = priced.reduce((s, i) => s + marketMid(i), 0) - buy;
+  /* 손익은 구매가와 시장가가 '둘 다' 있는 병만 대상으로 한다.
+     시장가가 비어 있는 한정판까지 넣으면 −100% 처럼 사실과 다른 수치가 나온다. */
+  const both = priced.filter(i => marketMid(i) > 0);
+  const buyBoth = both.reduce((s, i) => s + Number(i.purchase_price), 0);
+  const diff = both.reduce((s, i) => s + marketMid(i), 0) - buyBoth;
   const scored = a.filter(i => bestScore(i));
   const avgSc = scored.length ? (scored.reduce((s, i) => s + bestScore(i), 0) / scored.length).toFixed(1) : '—';
   const withAbv = a.filter(i => Number(i.abv));
@@ -1906,9 +1910,9 @@ function openStats(){
       <div class="kpi"><div class="k">추정 시장가</div><div class="v">${wonShort(mkt) || 0}<u>원</u></div>
         <div class="s">시장가 중간값 합산</div></div>
       <div class="kpi"><div class="k">평가 손익</div>
-        ${buy ? `<div class="v ${diff >= 0 ? 'up' : 'dn'}">${diff >= 0 ? '+' : '−'}${wonShort(Math.abs(diff)) || 0}<u>원</u></div>
-          <div class="s">${(diff / buy * 100).toFixed(1)}% · 구매가 기재 ${priced.length}병 기준</div>`
-          : `<div class="v">—</div><div class="s">구매가를 입력하면 계산됩니다</div>`}</div>
+        ${buyBoth ? `<div class="v ${diff >= 0 ? 'up' : 'dn'}">${diff >= 0 ? '+' : '−'}${wonShort(Math.abs(diff)) || 0}<u>원</u></div>
+          <div class="s">${(diff / buyBoth * 100).toFixed(1)}% · 구매가+시장가 모두 있는 ${both.length}병 기준</div>`
+          : `<div class="v">—</div><div class="s">시장가를 입력하면 계산됩니다</div>`}</div>
       <div class="kpi"><div class="k">평균 평점</div><div class="v">${avgSc}</div><div class="s">${scored.length}병 기준</div></div>
       <div class="kpi"><div class="k">평균 도수</div><div class="v">${avgAbv}${avgAbv === '—' ? '' : '<u>%</u>'}</div>
         <div class="s">${withAbv.length ? '최고 ' + Math.max(...withAbv.map(i => Number(i.abv))).toFixed(1) + '%' : '도수 미기재'}</div></div>
