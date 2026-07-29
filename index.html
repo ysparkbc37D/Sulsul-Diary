@@ -2085,19 +2085,14 @@ if (syncOn()){
   syncBadge('busy');
   setTimeout(() => syncNow(true), 300);
 }
+/* 주기적 자동 동기화는 쓰지 않는다.
+   동기화 시점은 ① 앱을 열 때 한 번 ② 추가·편집·삭제가 생겼을 때 ③ 지금 동기화 버튼, 세 가지뿐이다.
+   아래는 "대기 중인 업로드"를 놓치지 않기 위한 처리이며 새로 동기화를 유발하지 않는다.
+   (모바일은 앱을 벗어나면 타이머를 정지시켜, 편집 직후 나가면 업로드가 사라진다) */
 document.addEventListener('visibilitychange', () => {
-  if (!syncOn()) return;
-  if (document.visibilityState === 'hidden'){
-    syncFlush();                       // 떠나기 전에 대기 중인 업로드를 밀어낸다
-  } else if (Date.now() - new Date(SYNC.last || 0) > 20000){
-    syncNow(true);                     // 돌아오면 다른 기기의 변경을 받아온다
-  }
+  if (document.visibilityState === 'hidden') syncFlush();
 });
 window.addEventListener('pagehide', syncFlush);
-/* 앱을 열어 둔 채로도 다른 기기의 변경이 들어오게 한다 */
-setInterval(() => {
-  if (syncOn() && document.visibilityState === 'visible' && !syncing) syncNow(true);
-}, 45000);
 if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
   addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 </script>
