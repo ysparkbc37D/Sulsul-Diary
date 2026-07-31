@@ -1,6 +1,6 @@
 {
-  "name": "Whisky Collector — 내 위스키 기록 카드",
-  "short_name": "Whisky",
+  "name": "술술다이어리 — 내 위스키 기록",
+  "short_name": "술술다이어리",
   "description": "구매한 위스키의 사양·캐스크·테이스팅 노트·평점·시장가를 폰에서 관리하는 개인 컬렉션 앱",
   "lang": "ko",
   "dir": "ltr",

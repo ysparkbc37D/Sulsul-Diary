@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Whisky Collector — 내 위스키 기록 카드</title>
+<title>술술다이어리 — 내 위스키 기록</title>
 <meta name="theme-color" content="#faf8f5">
 <meta name="description" content="위스키 이름만 입력하면 사양·캐스크·테이스팅 노트 초안을 자동으로 만들어 주는 개인 컬렉션 앱">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Whisky">
+<meta name="apple-mobile-web-app-title" content="술술다이어리">
 <style>
 /* ══════════════ design tokens ══════════════ */
 :root{
@@ -72,8 +72,8 @@ header.top{
 }
 .top-in{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:9px}
 .brand{flex:1;min-width:0;display:flex;align-items:baseline;gap:9px}
-.wm{font-family:var(--serif);font-size:20px;letter-spacing:-.01em;line-height:1}
-.wm em{font-style:italic}
+/* 한글 워드마크 — 세리프는 기기별로 바탕체로 떨어져 낡아 보이므로 산세리프로 둔다 */
+.wm{font-size:19px;font-weight:700;letter-spacing:-.045em;line-height:1}
 .wm2{font-size:9.5px;letter-spacing:.22em;color:var(--ink3);font-weight:600;white-space:nowrap}
 .cnt{font-size:11.5px;color:var(--ink3);white-space:nowrap;flex:none}
 @media(max-width:420px){ .wm2{display:none} }
@@ -146,9 +146,10 @@ header.top{
   position:relative;aspect-ratio:4/5;background:#fff;
   display:grid;place-items:center;border-bottom:1px solid var(--line);
 }
-.thumb img{width:100%;height:100%;object-fit:contain;display:block}
+/* 절대 위치로 빼야 원본 이미지의 내재 높이가 4:5 프레임을 밀어내지 못한다 */
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
 /* 정규화되지 않은 원본 URL은 여백을 CSS로 보정 */
-.thumb.raw img{padding:9px}
+.thumb.raw img{inset:9px}
 .ph{
   position:absolute;inset:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:4px;background:var(--surface2);
@@ -157,6 +158,9 @@ header.top{
 .ph small{font-size:9.5px;color:var(--ink3);letter-spacing:.06em}
 .dot{position:absolute;top:9px;right:9px;width:7px;height:7px;border-radius:50%}
 .s-sealed{background:var(--ok)} .s-open{background:var(--warn)} .s-empty{background:var(--off)}
+.s-tried{background:transparent;border:2px solid var(--accent2);width:9px;height:9px}
+.trd{font-size:9.5px;color:var(--accent);border:1px solid var(--accent-line);
+  padding:0 5px;border-radius:5px;line-height:18px}
 .cbody{padding:10px 12px 12px;display:flex;flex-direction:column;gap:4px;flex:1}
 .ctype{font-size:9.5px;letter-spacing:.09em;color:var(--ink3);text-transform:uppercase;font-weight:600;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -227,8 +231,8 @@ header.top{
   width:104px;flex:none;aspect-ratio:4/5;border-radius:12px;overflow:hidden;position:relative;
   background:#fff;border:1px solid var(--line);
 }
-.hero .im.raw{padding:6px}
-.hero .im img{width:100%;height:100%;object-fit:contain}
+.hero .im.raw img{inset:6px}
+.hero .im img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .hero .hi{min-width:0;display:flex;flex-direction:column;gap:3px;padding-top:2px}
 .hero h3{margin:0;font-size:18px;line-height:1.3;letter-spacing:-.02em;font-weight:600}
 .hero .en{margin:0;font-family:var(--serif);font-size:12.5px;color:var(--ink2);line-height:1.4}
@@ -329,8 +333,8 @@ pre.csv{
   width:88px;flex:none;aspect-ratio:4/5;border-radius:11px;overflow:hidden;position:relative;
   background:#fff;border:1px solid var(--line);
 }
-.imgb .prev.raw{padding:5px}
-.imgb .prev img{width:100%;height:100%;object-fit:contain}
+.imgb .prev.raw img{inset:5px}
+.imgb .prev img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .imgb .side{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
 .mrow{display:flex;gap:5px;flex-wrap:wrap}
 .mini{
@@ -346,7 +350,8 @@ pre.csv{
   background:var(--surface);border:1px solid var(--line);padding:3px;
 }
 .cand.on{border-color:var(--accent2);box-shadow:0 0 0 2px var(--accent-bg)}
-.cand img{width:100%;height:100%;object-fit:contain}
+.cand{position:relative}
+.cand img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 
 /* ══════════════ stats ══════════════ */
 .kpis{display:grid;gap:10px;grid-template-columns:1fr 1fr}
@@ -374,6 +379,40 @@ pre.csv{
   border-radius:11px;padding:11px;font-size:11.5px;
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
+/* ── 이미지 확대·롤링 ─────────────────────── */
+.lightbox{
+  position:fixed;inset:0;z-index:80;background:rgba(16,13,10,.94);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+  padding:calc(var(--safe-t) + 48px) 12px calc(var(--safe-b) + 56px);
+}
+.lightbox.on{opacity:1;pointer-events:auto}
+.lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:10px;background:#fff}
+.lb-x{
+  position:absolute;top:calc(var(--safe-t) + 10px);right:12px;width:40px;height:40px;border-radius:12px;
+  background:rgba(255,255,255,.14);color:#fff;font-size:17px;display:grid;place-items:center;
+}
+.lb-nav{
+  position:absolute;top:50%;transform:translateY(-50%);width:44px;height:64px;border-radius:12px;
+  background:rgba(255,255,255,.12);color:#fff;font-size:30px;line-height:1;display:grid;place-items:center;
+}
+.lb-prev{left:8px} .lb-next{right:8px}
+.lb-nav[hidden]{display:none}
+.lb-dots{
+  position:absolute;bottom:calc(var(--safe-b) + 18px);left:0;right:0;
+  display:flex;gap:7px;justify-content:center;
+}
+.lb-dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35);display:block}
+.lb-dots i.on{background:#fff;transform:scale(1.25)}
+/* 상세 화면 사진 묶음 */
+.shots{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+.shot{
+  width:52px;aspect-ratio:4/5;border-radius:9px;overflow:hidden;
+  background:#fff;border:1px solid var(--line);flex:none;
+}
+.shot{position:relative}
+.shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
+.shot.on{border-color:var(--accent2);box-shadow:0 0 0 2px var(--accent-bg)}
 .toast{
   position:fixed;left:50%;bottom:calc(26px + var(--safe-b));transform:translate(-50%,18px);
   background:var(--ink);color:var(--bg);padding:11px 20px;border-radius:999px;font-size:13.5px;
@@ -388,8 +427,8 @@ pre.csv{
 <header class="top">
   <div class="top-in">
     <div class="brand">
-      <span class="wm"><em>Whisky</em></span>
-      <span class="wm2">COLLECTOR</span>
+      <span class="wm">술술다이어리</span>
+      <span class="wm2">WHISKY DIARY</span>
       <span class="cnt" id="hdCnt"></span>
     </div>
     <button class="ib" id="btnStats" aria-label="통계">📊</button>
@@ -412,11 +451,14 @@ pre.csv{
     <div class="rowf">
       <select class="sel" id="statusSel">
         <option value="all">상태 전체</option>
+        <option value="__owned">보유만 (경험 제외)</option>
         <option value="미개봉">미개봉</option>
         <option value="오픈">오픈</option>
         <option value="비움">비움</option>
+        <option value="경험">유경험 (미보유)</option>
         <option value="__draft">초안 확인 필요</option>
       </select>
+      <select class="sel" id="ageSel"></select>
       <select class="sel" id="sortSel">
         <option value="recent">최근 등록순</option>
         <option value="bought">구입일순</option>
@@ -441,6 +483,13 @@ pre.csv{
   <div class="sh-body" id="shBody"></div>
   <div class="sh-foot" id="shFoot"></div>
 </section>
+<div class="lightbox" id="lightbox">
+  <button class="lb-x" id="lbClose" aria-label="닫기">✕</button>
+  <button class="lb-nav lb-prev" id="lbPrev" aria-label="이전">‹</button>
+  <img id="lbImg" alt="">
+  <button class="lb-nav lb-next" id="lbNext" aria-label="다음">›</button>
+  <div class="lb-dots" id="lbDots"></div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script id="seed" type="application/json">
@@ -464,7 +513,18 @@ pre.csv{
 const LS = 'wc.v1', LS_THEME = 'wc.theme', LS_SYNC = 'wc.sync', LS_TOK = 'wc.token';
 const TYPES = ['Single Malt','Blended Malt','Blended Scotch','Single Grain','Bourbon','Rye',
   'Tennessee Whiskey','Japanese Single Malt','Japanese Blended','Irish','World Whisky','기타'];
-const STATUS = ['미개봉','오픈','비움'];
+/* '경험'은 구매하지 않고 마셔본 위스키 — 보유 병수·구매액 집계에서 제외된다 */
+const STATUS = ['미개봉','오픈','비움','경험'];
+const OWNED = ['미개봉','오픈','비움'];
+/* 숙성 년수 필터 구간 */
+const AGE_BANDS = [
+  ['all','숙성 전체', () => true],
+  ['nas','숙성 미표기', a => !a],
+  ['u10','10년 이하', a => a && a <= 10],
+  ['11_15','11~15년', a => a >= 11 && a <= 15],
+  ['16_20','16~20년', a => a >= 16 && a <= 20],
+  ['o21','21년 이상', a => a >= 21],
+];
 
 const FIELDS = [
   ['name_ko','제품명(한글)','text',1],
@@ -500,7 +560,7 @@ const QUICK = ['name_ko','type','abv','cask','purchase_date','purchase_price',
   '__market','nose','taste','finish','__rating','image_url'];
 
 let DB = {items:[], meta:{}};
-let V = {q:'', type:'all', status:'all', sort:'recent'};
+let V = {q:'', type:'all', status:'all', age:'all', sort:'recent'};
 let installEvt = null;
 
 /* 추천 정렬용 우선도 — 테이스팅 노트를 직접 정리한 증류소, 제품 라인업이 있는 증류소를 앞세운다 */
@@ -572,11 +632,42 @@ const initials = it => {
   const base = w[0] || s;
   return (base.length > 1 ? base.slice(0, 2) : base + (w[1] ? w[1][0] : '')).toUpperCase();
 };
-const statusCls = s => s === '오픈' ? 's-open' : s === '비움' ? 's-empty' : 's-sealed';
+const statusCls = s => s === '오픈' ? 's-open' : s === '비움' ? 's-empty'
+  : s === '경험' ? 's-tried' : 's-sealed';
 const fullName = it => it.name_ko || it.name_en || '(이름 없음)';
 /** 표시용 이미지 — 정규화 썸네일이 있으면 항상 우선 */
-const imgOf = it => it.image_norm || it.image_data || it.image_url;
-const isRaw = it => !it.image_norm;
+const imgOf = it => (it.images && it.images[0]) || it.image_norm || it.image_data || it.image_url;
+const isRaw = it => !((it.images && it.images[0]) || it.image_norm);
+/** 그 병의 사진 목록 (없으면 빈 배열) */
+const shotsOf = it => (it.images && it.images.length ? it.images
+  : [it.image_norm || it.image_data || it.image_url].filter(Boolean));
+
+/* ── 이미지 확대·롤링 ─────────────────────── */
+let LB = {list: [], i: 0};
+function openLightbox(list, idx){
+  LB.list = (list || []).filter(Boolean);
+  if (!LB.list.length) return;
+  LB.i = Math.max(0, Math.min(idx || 0, LB.list.length - 1));
+  drawLightbox();
+  $('#lightbox').classList.add('on');
+  document.body.style.overflow = 'hidden';
+  pushGuard('lb');
+}
+function closeLightbox(fromBack){
+  $('#lightbox').classList.remove('on');
+  if ($('#sheet').classList.contains('on')) document.body.style.overflow = 'hidden';
+  else document.body.style.overflow = '';
+  if (!fromBack && history.state?.wc === 'lb'){ try{ history.back(); }catch(e){} }
+}
+function drawLightbox(){
+  $('#lbImg').src = LB.list[LB.i];
+  const many = LB.list.length > 1;
+  $('#lbPrev').hidden = !many; $('#lbNext').hidden = !many;
+  $('#lbDots').innerHTML = many
+    ? LB.list.map((_, i) => `<i class="${i === LB.i ? 'on' : ''}"></i>`).join('') : '';
+}
+const lbGo = d => { if (LB.list.length < 2) return;
+  LB.i = (LB.i + d + LB.list.length) % LB.list.length; drawLightbox(); };
 
 function toast(msg){
   const t = $('#toast'); t.textContent = msg; t.classList.add('on');
@@ -613,9 +704,13 @@ function normalize(o){
   const it = {id: o.id || uid()};
   KEYS.forEach(k => it[k] = o[k] ?? '');
   EXTRA.forEach(k => it[k] = o[k] ?? '');
-  /* image_norm: 크기가 정규화된 썸네일. 구버전 image_data는 여기로 이관 */
+  /* image_norm: 크기가 정규화된 대표 썸네일. 구버전 image_data는 여기로 이관 */
   it.image_norm = o.image_norm || '';
   it.image_data = it.image_norm ? '' : (o.image_data ?? '');
+  /* images: 최대 5장. 0번이 대표 사진이며 image_norm 과 항상 같게 유지한다 */
+  it.images = Array.isArray(o.images) ? o.images.filter(Boolean).slice(0, MAX_SHOTS) : [];
+  if (!it.images.length && it.image_norm) it.images = [it.image_norm];
+  if (it.images.length) it.image_norm = it.images[0];
   it.type ||= 'Single Malt';
   it.status = STATUS.includes(it.status) ? it.status : '미개봉';
   it.created_at = o.created_at || nowISO();
@@ -694,6 +789,28 @@ async function gh(path, opt){
   if (!r.ok) throw new Error((j && j.message) || ('HTTP ' + r.status));
   return j;
 }
+/** 원격 파일 읽기.
+    Contents API 는 1MB 를 넘으면 content 를 비우고 encoding:'none' 을 돌려준다.
+    사진이 늘면 바로 이 한계에 걸리므로, 그 경우 raw 미디어타입으로 본문을 다시 받는다. */
+async function ghReadFile(path){
+  const meta = await gh(path);
+  if (meta.missing) return {missing: true};
+  const out = {sha: meta.sha, size: meta.size || 0, encoding: meta.encoding || '', text: ''};
+  if (meta.encoding === 'base64' && meta.content){
+    try{ out.text = b64dec(meta.content); }catch(e){ out.text = ''; }
+  }
+  if (!out.text){
+    /* 1MB 초과 파일 — raw 로 직접 받는다 (최대 100MB) */
+    const r = await fetch('https://api.github.com/repos/' + SYNC.repo + '/contents/' + path
+        + '?ref=' + encodeURIComponent(SYNC.branch), {
+      headers: {Authorization: 'Bearer ' + ghToken(), Accept: 'application/vnd.github.raw',
+        'X-GitHub-Api-Version': '2022-11-28'},
+    });
+    if (r.ok){ out.text = await r.text(); out.via = 'raw'; }
+    else out.rawStatus = r.status;
+  }
+  return out;
+}
 /** 원격/로컬 병합 — 항목은 updated_at 이 최신인 쪽, 삭제는 툼스톤이 최신이면 삭제 유지 */
 function mergeSnapshot(remote){
   const tombs = {...(remote.meta?.tombs || {}), ...(DB.meta.tombs || {})};
@@ -732,20 +849,26 @@ async function syncNow(quiet){
   syncing = true; syncDirty = false;
   syncBadge('busy');
   try{
-    const got = await gh(SYNC.path);
+    const got = await ghReadFile(SYNC.path);
     let remote = {items: [], meta: {}};
     if (!got.missing){
       SYNC.sha = got.sha;
-      try{ remote = JSON.parse(b64dec(got.content)); }catch(e){ throw new Error('원격 파일 형식 오류'); }
+      if (!got.text) throw new Error(`원격 파일을 읽지 못했습니다 (${got.size}바이트, encoding=${got.encoding})`);
+      try{ remote = JSON.parse(got.text); }
+      catch(e){
+        throw new Error(`원격 파일 JSON 파싱 실패 (${got.size}바이트, 경로 ${SYNC.path})`
+          + ' — ⚙️ 진단에서 "원격 덮어쓰기"로 복구할 수 있습니다');
+      }
+      if (!Array.isArray(remote.items))
+        throw new Error('원격 파일에 items 배열이 없습니다 — 다른 파일을 가리키고 있는지 확인하세요');
     }
-    const before = snapshot().length;
     const res = mergeSnapshot(remote);
     save();
     render();
     const body = snapshot();
     if (body.length > 5e6 && !quiet)
       toast('⚠ 데이터가 ' + Math.round(body.length / 1e6) + 'MB입니다 — 사진이 많으면 동기화가 느려집니다');
-    const remoteBody = got.missing ? '' : b64dec(got.content);
+    const remoteBody = got.missing ? '' : (got.text || '');
     /* 시각 필드만 다른 경우는 올리지 않는다 (pretty-print 공백까지 감안해 제거) */
     const bare = s => String(s).replace(/"_updated":\s*"[^"]*"/, '');
     if (bare(body) !== bare(remoteBody)){
@@ -1206,12 +1329,19 @@ async function enrich(d){
 }
 
 /* ── filter / sort ────────────────────────── */
+const ageNum = it => {
+  const m = String(it.age ?? '').match(/\d+/);
+  return m ? parseInt(m[0], 10) : 0;      // NAS·미기재는 0
+};
 function visible(){
   const q = V.q.trim().toLowerCase();
+  const band = AGE_BANDS.find(b => b[0] === V.age) || AGE_BANDS[0];
   const a = DB.items.filter(it => {
     if (V.type !== 'all' && it.type !== V.type) return false;
     if (V.status === '__draft'){ if (it.draft !== '1') return false; }
+    else if (V.status === '__owned'){ if (!OWNED.includes(it.status)) return false; }
     else if (V.status !== 'all' && it.status !== V.status) return false;
+    if (!band[2](ageNum(it))) return false;
     if (!q) return true;
     return ['name_ko','name_en','distillery','cask','region','country','tags','type','notes']
       .some(k => String(it[k] ?? '').toLowerCase().includes(q));
@@ -1265,6 +1395,7 @@ function cardHTML(it){
       <h3>${esc(fullName(it))}</h3>
       <div class="cfoot">
         ${sc ? `<span class="sc">${sc}</span>` : ''}
+        ${it.status === '경험' ? `<span class="trd">경험</span>` : ''}
         ${it.draft === '1' ? `<span class="dr">초안</span>` : ''}
         ${!sc && it.abv ? `<span class="abv">${esc(it.abv)}%</span>` : ''}
         ${price ? `<span class="pr">${wonShort(price)}</span>` : ''}
@@ -1274,24 +1405,49 @@ function cardHTML(it){
 }
 
 /* ── sheet ────────────────────────────────── */
+/* ══════════════════════════════════════════
+   안드로이드 뒤로가기 처리
+   ① 시트가 열려 있으면 시트만 닫는다
+   ② 목록에서 누르면 "한 번 더 누르면 종료" 안내 후, 2초 안에 다시 누를 때만 나간다
+   ══════════════════════════════════════════ */
+let backArmed = false, backTid = 0;
+function pushGuard(kind){
+  try{ history.pushState({wc: kind}, ''); }catch(e){}
+}
+window.addEventListener('popstate', () => {
+  if ($('#lightbox')?.classList.contains('on')){ closeLightbox(); pushGuard('root'); return; }
+  if ($('#sheet').classList.contains('on')){ closeSheet(true); pushGuard('root'); return; }
+  if (backArmed){ backArmed = false; history.back(); return; }   // 두 번째 → 실제로 나감
+  backArmed = true;
+  toast('뒤로가기를 한 번 더 누르면 앱이 닫힙니다');
+  clearTimeout(backTid);
+  backTid = setTimeout(() => { backArmed = false; }, 2000);
+  pushGuard('root');
+});
+
 function openSheet(title, body, foot){
   $('#shTitle').textContent = title;
   $('#shBody').innerHTML = body;
   $('#shFoot').innerHTML = foot || '';
   $('#shBody').scrollTop = 0;
   $('#shBody').onclick = null; $('#shFoot').onclick = null;
+  const wasOpen = $('#sheet').classList.contains('on');
   $('#scrim').classList.add('on'); $('#sheet').classList.add('on');
   document.body.style.overflow = 'hidden';
+  if (!wasOpen) pushGuard('sheet');   // 뒤로가기가 앱을 닫는 대신 시트를 닫게 한다
 }
-function closeSheet(){
+/** fromBack: popstate 로 호출된 경우 history 를 다시 건드리지 않는다 */
+function closeSheet(fromBack){
   $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on');
   document.body.style.overflow = '';
+  if (!fromBack && history.state?.wc === 'sheet'){ try{ history.back(); }catch(e){} }
 }
 
 /* ── detail: 기록 카드 ────────────────────── */
 function openDetail(id){
   const it = byId(id); if (!it) return;
   const src = imgOf(it);
+  const shots = shotsOf(it);
   const rows = [
     ['위스키 타입', it.type],
     ['원산지 / 증류소', [it.country, it.region, it.distillery].filter(Boolean).join(' / ')],
@@ -1313,7 +1469,7 @@ function openDetail(id){
 
   const body = `
     <div class="hero">
-      <div class="im${isRaw(it) ? ' raw' : ''}">${src
+      <div class="im${isRaw(it) ? ' raw' : ''}" ${src ? 'data-zoom="0" title="탭하면 크게 보기"' : ''}>${src
         ? `<img src="${esc(src)}" alt="" onerror="this.remove()">`
         : `<div class="ph"><span>${esc(initials(it))}</span></div>`}</div>
       <div class="hi">
@@ -1328,6 +1484,9 @@ function openDetail(id){
         </div>
       </div>
     </div>
+    ${shots.length > 1 ? `<div class="shots">${shots.map((u, i) =>
+      `<button class="shot${i === 0 ? ' on' : ''}" data-zoom="${i}"><img src="${esc(u)}" alt=""></button>`).join('')}
+      <span class="hint" style="align-self:center">사진 ${shots.length}장 · 탭하면 확대</span></div>` : ''}
     ${it.image_credit ? `<p class="credit">이미지 출처: ${esc(it.image_credit)}</p>` : ''}
 
     <h4 class="sec">1. 기본 사양 &amp; 구매 정보</h4>
@@ -1364,6 +1523,13 @@ function openDetail(id){
      <button class="btn pri" data-act="edit">편집</button>`);
 
   $('#shBody').onclick = e => {
+    /* 사진 탭·더블클릭 → 확대 + 롤링 */
+    const z = e.target.closest('[data-zoom]');
+    if (z){
+      [...$('#shBody').querySelectorAll('.shot')].forEach(s => s.classList.toggle('on', s === z));
+      openLightbox(shots, +z.dataset.zoom);
+      return;
+    }
     const c = e.target.closest('[data-copy]'); if (!c) return;
     copy(c.dataset.copy === 'md' ? markdownCard(it) : quickCSV(it));
   };
@@ -1511,7 +1677,7 @@ function openEdit(id, draft){
       <b>초안이 채워졌습니다.</b> 표시된 항목은 내장 DB·위키백과 기반 추정값입니다.
       실제 라벨과 구매 정보를 확인해 수정한 뒤 저장하세요.</div>` : ''}
     <form id="ef" onsubmit="return false">
-      <h4 class="sec">병 사진</h4>
+      <h4 class="sec">병 사진 (최대 ${MAX_SHOTS}장)</h4>
       <div class="imgb">
         <div class="prev${isRaw(it) ? ' raw' : ''}" id="prev">${src
           ? `<img src="${esc(src)}" alt="" onerror="this.style.opacity=0">`
@@ -1530,10 +1696,11 @@ function openEdit(id, draft){
             <button type="button" class="mini" id="pickFile">📷 직접 촬영</button>
             ${src ? `<button type="button" class="mini" id="rmPhoto">사진 삭제</button>` : ''}
           </div>
-          <p class="hint">후보를 탭하면 바로 적용됩니다. 검색 결과에서는 이미지를
-            <b>길게 눌러 "이미지 주소 복사"</b> 후 위 칸에 붙여넣으세요.<br>
+          <div class="shots" id="shotList"></div>
+          <p class="hint">후보를 탭하거나 URL을 넣으면 <b>목록에 추가</b>됩니다 (최대 ${MAX_SHOTS}장).
+            첫 번째 사진이 대표로 쓰이고, 사진을 탭하면 대표로 지정·다시 탭하면 삭제됩니다.<br>
             적용된 사진은 <b>여백을 잘라 4:5 규격</b>으로 자동 맞춤됩니다.</p>
-          <input type="file" id="fileIn" accept="image/*" hidden>
+          <input type="file" id="fileIn" accept="image/*" multiple hidden>
         </div>
       </div>
       <h4 class="sec">기본 사양</h4>
@@ -1550,26 +1717,51 @@ function openEdit(id, draft){
     `<button class="btn" data-act="cancel">취소</button>
      <button class="btn pri" data-act="save">저장</button>`);
 
-  let thumb = it.image_norm || it.image_data || '';   // 정규화된 썸네일
+  /* 사진 목록에는 '정규화된' 것만 담는다. 원본 URL 을 그대로 넣으면
+     규격이 어긋난 이미지가 대표로 저장돼 목록 크기가 다시 들쭉날쭉해진다. */
+  let shots = (it.images?.length ? it.images : (it.image_norm ? [it.image_norm] : [])).slice(0, MAX_SHOTS);
+  let rawFallback = shots.length ? '' : (it.image_url || it.image_data || '');
   let credit = it.image_credit || '';
   const f = $('#ef');
   const prev = () => $('#prev');
-  /** 이미지 적용 = 정규화 시도 → 미리보기 반영 */
+  function drawShots(){
+    const box = $('#shotList');
+    box.innerHTML = shots.map((u, i) =>
+      `<button type="button" class="shot${i === 0 ? ' on' : ''}" data-si="${i}"
+        title="${i === 0 ? '대표 사진 — 다시 탭하면 삭제' : '탭하면 대표로 지정'}">
+        <img src="${esc(u)}" alt=""></button>`).join('')
+      + (shots.length ? `<span class="hint" style="align-self:center">${shots.length}/${MAX_SHOTS}장</span>` : '');
+    const first = shots[0] || rawFallback;
+    prev().classList.toggle('raw', !shots.length && !!rawFallback);
+    prev().innerHTML = first
+      ? `<img src="${esc(first)}" alt="" onerror="this.style.opacity=.2">`
+      : `<div class="ph"><span>${esc(initials(it))}</span></div>`;
+  }
+  /** 사진 추가 = 정규화 시도 후 목록에 넣는다 */
   async function applyImage(source, quiet){
     if (!source) return;
-    prev().classList.remove('raw');
+    if (shots.length >= MAX_SHOTS){ toast(`사진은 최대 ${MAX_SHOTS}장까지입니다`); return; }
     prev().innerHTML = `<div class="ph"><span class="spin"></span></div>`;
-    const n = await normalizeThumb(source);
-    thumb = n || '';
+    const first = shots.length === 0;
+    const n = await normalizeThumb(source, first ? THUMB_W : EXTRA_W, first ? THUMB_H : EXTRA_H);
     if (n){
-      prev().innerHTML = `<img src="${n}" alt="">`;
-      if (!quiet) toast('사진을 4:5 규격으로 맞췄습니다');
+      if (!shots.includes(n)) shots.push(n);
+      rawFallback = '';
+      if (!quiet) toast(`사진을 4:5 규격으로 맞췄습니다 (${shots.length}/${MAX_SHOTS})`);
     } else {
-      prev().classList.add('raw');
-      prev().innerHTML = `<img src="${esc(source)}" alt="" onerror="this.style.opacity=.2">`;
+      rawFallback = source;
       if (!quiet) toast('이 출처는 자동 크기 조절이 제한됩니다 (원본 사용)');
     }
+    drawShots();
   }
+  drawShots();
+  $('#shotList').onclick = e => {
+    const b = e.target.closest('[data-si]'); if (!b) return;
+    const i = +b.dataset.si;
+    if (i === 0){ shots.splice(0, 1); toast('대표 사진을 삭제했습니다'); }
+    else { const [x] = shots.splice(i, 1); shots.unshift(x); toast('대표 사진으로 지정했습니다'); }
+    drawShots();
+  };
   const nameFor = () => (f.name_en.value || f.name_ko.value || '').trim();
   const openSearch = u => {
     const n = nameFor();
@@ -1581,18 +1773,19 @@ function openEdit(id, draft){
   $('#findN').onclick = () => openSearch('https://search.shopping.naver.com/search/all?query=');
   $('#pickFile').onclick = () => $('#fileIn').click();
   $('#fileIn').onchange = async e => {
-    const file = e.target.files[0]; if (!file) return;
-    try{
-      credit = ''; urlIn.value = '';
-      await applyImage(await fileToDataURL(file));
-    }catch(err){ toast('사진 처리 실패'); }
+    const files = [...e.target.files].slice(0, MAX_SHOTS);
+    if (!files.length) return;
+    credit = '';
+    for (const file of files){
+      try{ await applyImage(await fileToDataURL(file), files.length > 1); }
+      catch(err){ toast('사진 처리 실패'); }
+    }
+    if (files.length > 1) toast(`사진 ${shots.length}장 적용`);
   };
   const rm = $('#rmPhoto');
   if (rm) rm.onclick = () => {
-    thumb = ''; urlIn.value = ''; credit = '';
-    prev().classList.remove('raw');
-    prev().innerHTML = `<div class="ph"><span>${esc(initials(it))}</span></div>`;
-    rm.remove(); toast('사진을 지웠습니다 (저장 필요)');
+    shots = []; rawFallback = ''; urlIn.value = ''; credit = '';
+    drawShots(); rm.remove(); toast('사진을 모두 지웠습니다 (저장 필요)');
   };
   const urlIn = f.querySelector('[name=image_url]');
   urlIn.onchange = () => {                      // 붙여넣기 후 포커스 아웃/엔터 시 정규화
@@ -1658,7 +1851,8 @@ function openEdit(id, draft){
     const o = {...it};
     KEYS.forEach(k => { if (f[k]) o[k] = f[k].value.trim(); });
     o.image_url = urlIn.value.trim();
-    o.image_norm = thumb;
+    o.images = shots.slice(0, MAX_SHOTS);
+    o.image_norm = o.images[0] || '';
     o.image_data = '';
     o.image_credit = o.image_url ? credit : '';
     ['purchase_price','market_low','market_high'].forEach(k => o[k] = parsePrice(o[k]));
@@ -1676,6 +1870,8 @@ function openEdit(id, draft){
    ① 배경 여백 자동 트리밍 → ② 4:5 흰 캔버스 중앙 배치 → ③ 동일 배율
    ══════════════════════════════════════════ */
 const THUMB_W = 360, THUMB_H = 450, THUMB_FILL = 0.9;
+const MAX_SHOTS = 5;                 // 병당 사진 최대 장수
+const EXTRA_W = 300, EXTRA_H = 375;  // 2번째 이후 사진은 조금 작게 저장해 용량을 아낀다
 
 function fileToDataURL(file){
   return new Promise((res, rej) => {
@@ -1721,8 +1917,10 @@ function trimBox(d, w, h){
   x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
   return {x:x0, y:y0, w:x1 - x0 + 1, h:y1 - y0 + 1};
 }
-/** src(URL 또는 data URI) → 정규화된 4:5 썸네일 data URI. 실패 시 null */
-async function normalizeThumb(src){
+/** src(URL 또는 data URI) → 정규화된 4:5 썸네일 data URI. 실패 시 null
+    W/H 를 넘기면 그 규격으로 만든다(추가 사진은 조금 작게 저장) */
+async function normalizeThumb(src, W, H){
+  W = W || THUMB_W; H = H || THUMB_H;
   if (!src) return null;
   const local = src.startsWith('data:') || src.startsWith(location.origin);
   let im = null;
@@ -1745,25 +1943,25 @@ async function normalizeThumb(src){
   catch(e){ return null; }               // 타 도메인 CORS 차단 → 원본 URL 그대로 사용
   /* 병은 세로로 길다 → '높이'를 기준으로 맞춰 모든 썸네일의 세로 존재감을 통일한다.
      가로가 넘치면 좌우를 중앙 크롭하고, 지나치게 파노라마인 경우에만 폭 기준으로 축소한다. */
-  let sc = THUMB_H * THUMB_FILL / box.h;
+  let sc = H * THUMB_FILL / box.h;
   let sx = box.x, sy = box.y, sw = box.w, sh = box.h;
   const need = box.w * sc;
-  if (need > THUMB_W){
-    if (need <= THUMB_W * 1.9){
-      const keep = THUMB_W / sc;                       // 원본에서 유지할 가로 폭
+  if (need > W){
+    if (need <= W * 1.9){
+      const keep = W / sc;                       // 원본에서 유지할 가로 폭
       sx = box.x + (box.w - keep) / 2; sw = keep;
     } else {
-      sc = THUMB_W * THUMB_FILL / box.w;               // 초광각 → 폭 기준
+      sc = W * THUMB_FILL / box.w;               // 초광각 → 폭 기준
     }
   }
   const dw = Math.max(1, Math.round(sw * sc)), dh = Math.max(1, Math.round(sh * sc));
   const c1 = document.createElement('canvas');
-  c1.width = THUMB_W; c1.height = THUMB_H;
+  c1.width = W; c1.height = H;
   const g1 = c1.getContext('2d');
-  g1.fillStyle = '#fff'; g1.fillRect(0, 0, THUMB_W, THUMB_H);
+  g1.fillStyle = '#fff'; g1.fillRect(0, 0, W, H);
   g1.imageSmoothingEnabled = true; g1.imageSmoothingQuality = 'high';
   g1.drawImage(c0, sx, sy, sw, sh,
-    Math.round((THUMB_W - dw) / 2), Math.round((THUMB_H - dh) / 2), dw, dh);
+    Math.round((W - dw) / 2), Math.round((H - dh) / 2), dw, dh);
   try{ return c1.toDataURL('image/jpeg', 0.8); }catch(e){ return null; }
 }
 
@@ -1911,8 +2109,10 @@ function openStats(){
   };
   openSheet('컬렉션 통계', `
     <div class="kpis">
-      <div class="kpi"><div class="k">보유 병수</div><div class="v">${n}<u>병</u></div>
-        <div class="s">${STATUS.map(s => s + ' ' + a.filter(i => i.status === s).length).join(' · ')}</div></div>
+      <div class="kpi"><div class="k">보유 병수</div>
+        <div class="v">${a.filter(i => OWNED.includes(i.status)).length}<u>병</u></div>
+        <div class="s">${OWNED.map(s => s + ' ' + a.filter(i => i.status === s).length).join(' · ')}
+          ${a.filter(i => i.status === '경험').length ? `<br>유경험(미보유) ${a.filter(i => i.status === '경험').length}병` : ''}</div></div>
       <div class="kpi"><div class="k">총 구매액</div><div class="v">${wonShort(buy) || 0}<u>원</u></div>
         <div class="s">${priced.length}병 기재${n - priced.length ? ` · ${n - priced.length}병 미기재` : ''}</div></div>
       <div class="kpi"><div class="k">추정 시장가</div><div class="v">${wonShort(mkt) || 0}<u>원</u></div>
@@ -2106,11 +2306,27 @@ function openData(){
         }
       }catch(e){ rows.push(['저장소 접근', '❌ 네트워크 오류 ' + esc(e.message)]); }
       try{
-        const got = await gh(SYNC.path);
+        const got = await ghReadFile(SYNC.path);
         if (got.missing) rows.push(['원격 데이터 파일', '아직 없음 — 첫 동기화 때 생성됩니다']);
         else{
-          const rem = JSON.parse(b64dec(got.content));
-          rows.push(['원격 데이터 파일', `✅ ${(rem.items || []).length}병 · 갱신 ${esc(String(rem._updated || '?').slice(0, 19))}`]);
+          const kb = Math.round((got.size || got.text.length) / 1024);
+          const how = got.via === 'raw' ? ' · raw 경로로 읽음(1MB 초과)' : '';
+          if (!got.text){
+            rows.push(['원격 데이터 파일', `❌ 본문을 읽지 못했습니다 (${kb}KB, encoding=${esc(got.encoding)}`
+              + (got.rawStatus ? `, raw HTTP ${got.rawStatus}` : '') + ')']);
+          } else {
+            try{
+              const rem = JSON.parse(got.text);
+              rows.push(['원격 데이터 파일', `✅ ${(rem.items || []).length}병 · ${kb}KB${how}`
+                + ` · 갱신 ${esc(String(rem._updated || '?').slice(0, 19))}`]);
+            }catch(e2){
+              rows.push(['원격 데이터 파일',
+                `❌ JSON 파싱 실패 (${kb}KB${how})<br>파일이 손상되었습니다. 아래 <b>원격 덮어쓰기</b>로 `
+                + `이 기기의 ${DB.items.length}병으로 복구할 수 있습니다.<br>`
+                + `<span style="color:#c0503c">앞 120자:</span> ${esc(got.text.slice(0, 120))}`]);
+              rows.push(['복구', `<button class="mini am" id="syForce">원격 덮어쓰기 (이 기기 → 원격)</button>`]);
+            }
+          }
         }
       }catch(e){ rows.push(['원격 데이터 파일', '❌ ' + esc(e.message)]); }
     }
@@ -2118,6 +2334,23 @@ function openData(){
     if (SYNC.err) rows.push(['마지막 오류', esc(SYNC.err)]);
     box.innerHTML = `<table class="spec" style="margin-top:12px">${
       rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table>`;
+    /* 원격 파일이 손상된 경우의 복구 — 이 기기 내용으로 강제 덮어쓴다 */
+    const fb = $('#syForce');
+    if (fb) fb.onclick = async () => {
+      if (!confirm(`원격 파일을 이 기기의 ${DB.items.length}병으로 덮어씁니다.\n`
+        + '다른 기기에만 있던 항목은 사라질 수 있습니다. 계속할까요?')) return;
+      fb.disabled = true; fb.textContent = '덮어쓰는 중…';
+      try{
+        const cur = await ghReadFile(SYNC.path);
+        const put = await gh(SYNC.path, {method:'PUT', body: JSON.stringify({
+          message: '손상된 원격 파일 복구 (' + DB.items.length + '병)',
+          content: b64enc(snapshot()), branch: SYNC.branch,
+          ...(cur.missing ? {} : {sha: cur.sha}),
+        })});
+        SYNC.sha = put.content?.sha || ''; SYNC.err = ''; SYNC.last = nowISO(); saveSync();
+        syncBadge('ok'); toast('원격 파일을 복구했습니다'); openData();
+      }catch(e){ fb.disabled = false; fb.textContent = '다시 시도'; toast('복구 실패 — ' + String(e.message).slice(0, 50)); }
+    };
   };
   if ($('#syTokDel')) $('#syTokDel').onclick = () => {
     try{ localStorage.removeItem(LS_TOK); }catch(e){}
@@ -2192,6 +2425,8 @@ $('#typeChips').onclick = e => {
 $('#q').oninput = e => { V.q = e.target.value; $('#qClr').hidden = !V.q; render(); };
 $('#qClr').onclick = () => { V.q = ''; $('#q').value = ''; $('#qClr').hidden = true; render(); };
 $('#statusSel').onchange = e => { V.status = e.target.value; render(); };
+$('#ageSel').innerHTML = AGE_BANDS.map(b => `<option value="${b[0]}">${b[1]}</option>`).join('');
+$('#ageSel').onchange = e => { V.age = e.target.value; render(); };
 $('#sortSel').onchange = e => { V.sort = e.target.value; render(); };
 $('#btnAdd').onclick = openWizard;
 $('#btnStats').onclick = openStats;
@@ -2200,6 +2435,26 @@ $('#shClose').onclick = closeSheet;
 $('#scrim').onclick = closeSheet;
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
+/* 라이트박스 조작 — 버튼·키보드·스와이프 */
+$('#lbClose').onclick = () => closeLightbox();
+$('#lbPrev').onclick = e => { e.stopPropagation(); lbGo(-1); };
+$('#lbNext').onclick = e => { e.stopPropagation(); lbGo(1); };
+$('#lightbox').onclick = e => { if (e.target.id === 'lightbox') closeLightbox(); };
+document.addEventListener('keydown', e => {
+  if (!$('#lightbox').classList.contains('on')) return;
+  if (e.key === 'ArrowLeft') lbGo(-1);
+  else if (e.key === 'ArrowRight') lbGo(1);
+  else if (e.key === 'Escape') closeLightbox();
+});
+{
+  let x0 = 0, y0 = 0;
+  const lb = $('#lightbox');
+  lb.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, {passive:true});
+  lb.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) lbGo(dx < 0 ? 1 : -1);
+  }, {passive:true});
+}
 
 /** 규격이 맞춰지지 않은 썸네일을 정규화. 대상 목록을 직접 받아 뒤에 남기지 않는다. */
 async function normalizeMissing(list, opt){
