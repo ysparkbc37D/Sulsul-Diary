@@ -112,6 +112,22 @@ header.top{
 .search input:focus{outline:none;border-color:var(--accent-line);box-shadow:0 0 0 3px var(--accent-bg)}
 .search .mg{position:absolute;left:14px;top:12px;color:var(--ink3);font-size:15px}
 .search .cl{position:absolute;right:8px;top:8px;width:28px;height:28px;border-radius:8px;color:var(--ink3)}
+/* 주종 세그먼트 — 최상위 구분이므로 필터 칩과 형태를 다르게 한다 */
+.segs{
+  display:flex;gap:3px;padding:3px;border-radius:12px;
+  background:var(--surface2);border:1px solid var(--line);
+  overflow-x:auto;scrollbar-width:none;
+}
+.segs::-webkit-scrollbar{display:none}
+.segs:empty{display:none}
+.seg{
+  flex:1 1 auto;min-width:max-content;padding:7px 10px;border-radius:9px;
+  font-size:12.5px;font-weight:600;color:var(--ink2);white-space:nowrap;
+  letter-spacing:-.02em;transition:.15s;
+}
+.seg b{font-weight:600;color:var(--ink3);margin-left:4px;font-size:11px}
+.seg.on{background:var(--surface);color:var(--ink);box-shadow:var(--sh1)}
+.seg.on b{color:var(--accent)}
 .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:1px}
 .chips::-webkit-scrollbar{display:none}
 .chip{
@@ -446,12 +462,12 @@ pre.csv{
 
 <div class="wrap">
   <div class="controls">
+    <div class="segs" id="catSegs"></div>
     <div class="search">
       <span class="mg">🔍</span>
       <input id="q" type="search" placeholder="이름 · 증류소 · 캐스크 · 태그 검색" autocomplete="off">
       <button class="cl" id="qClr" hidden>✕</button>
     </div>
-    <div class="chips" id="catChips"></div>
     <div class="chips" id="typeChips"></div>
     <div class="rowf">
       <select class="sel" id="statusSel">
@@ -520,21 +536,37 @@ const LS_TRASH = 'wc.trash';          // 전체 초기화 되돌리기용 스냅
 const TRASH_DAYS = 14;                // 이 기간 안에는 복구 가능
 const TYPES = ['Single Malt','Blended Malt','Blended Scotch','Single Grain','Bourbon','Rye',
   'Tennessee Whiskey','Japanese Single Malt','Japanese Blended','Irish','World Whisky','기타'];
-/* 주종(카테고리) — 위스키가 아닌 주류도 같은 앱에서 관리한다 */
-const CATS = ['위스키','와인','브랜디','럼','진','보드카','리큐르','사케·전통주','기타'];
+/* 주종 — 최상위 4개만 둔다. 세부 구분(진·럼·브랜디·사케)은 type 필드가 담당해
+   기타주류 탭 안에서 타입 칩으로 갈라 보인다. */
+const CATS = ['위스키','와인','리큐르','기타주류'];
+/* 구버전 세분 주종 → 4개 체계로 이관 */
+const CAT_MIGRATE = {'브랜디':'기타주류','럼':'기타주류','진':'기타주류','보드카':'기타주류',
+  '사케·전통주':'기타주류','기타':'기타주류'};
 /* 이름·타입에서 주종을 추정한다 (등록 시 1회, 이후 사용자가 수정 가능) */
 const CAT_RULES = [
-  /* '레드와인 캐스크'처럼 캐스크 표기에 든 와인은 주종이 아니다 → 단독 표기만 인정 */
   /* '토탈와인'(판매처) · '레드와인 캐스크'처럼 다른 낱말에 붙은 와인은 제외한다 */
   [/(?<![가-힣])와인(?![가-힣])|\bwine\b(?!.*cask)|샴페인|champagne/i, '와인'],
-  [/꼬냑|코냑|cognac|아르마냑|armagnac|브랜디|brandy|하디|hardy|vsop|xo\b/i, '브랜디'],
-  [/\b럼\b|럼주|rum|바카디|bacardi|말리부|malibu|캡틴모건/i, '럼'],
-  [/\b진\b|gin\b|봄베이|bombay|헨드릭|hendrick|탱커레이|비피터/i, '진'],
-  [/보드카|vodka|앱솔루트|스미노프/i, '보드카'],
-  [/리큐르|liqueur|캄파리|칸파리|campari|예거|jager|우메슈|매실|애플|apple|베일리스|깔루아|네그로니/i, '리큐르'],
-  [/사케|정종|준마이|다이긴조|청주|막걸리|약주|증류식소주|안동소주|아와모리|청명주|백화수복/i, '사케·전통주'],
-  [/위스키|whisky|whiskey|버번|bourbon|몰트|malt|스카치|scotch|라이|rye/i, '위스키'],
+  [/리큐르|liqueur|캄파리|칸파리|campari|예거|jager|우메슈|매실|애플|apple|베일리스|깔루아|네그로니|말리부|malibu/i, '리큐르'],
+  [/꼬냑|코냑|cognac|아르마냑|armagnac|브랜디|brandy|하디|hardy|vsop|\bxo\b/i, '기타주류'],
+  [/\b럼\b|럼주|\brum\b|바카디|bacardi|캡틴모건/i, '기타주류'],
+  [/\b진\b|\bgin\b|봄베이|bombay|헨드릭|hendrick|탱커레이|비피터/i, '기타주류'],
+  [/보드카|vodka|앱솔루트|스미노프/i, '기타주류'],
+  [/사케|정종|준마이|다이긴조|청주|막걸리|약주|증류식소주|안동소주|청명주|백화수복/i, '기타주류'],
+  [/위스키|whisky|whiskey|버번|bourbon|몰트|malt|스카치|scotch|\b라이\b|\brye\b/i, '위스키'],
 ];
+/* 기타주류의 세부 타입 — type 필드에 넣어 칩으로 갈라 보이게 한다 */
+const SUBTYPE_RULES = [
+  [/꼬냑|코냑|cognac|아르마냑|armagnac|브랜디|brandy|하디|hardy|vsop|\bxo\b/i, '브랜디'],
+  [/\b럼\b|럼주|\brum\b|바카디|bacardi|캡틴모건/i, '럼'],
+  [/\b진\b|\bgin\b|봄베이|bombay|헨드릭|hendrick|탱커레이|비피터/i, '진'],
+  [/보드카|vodka|앱솔루트|스미노프/i, '보드카'],
+  [/사케|정종|준마이|다이긴조|청주|막걸리|약주|증류식소주|안동소주|청명주|백화수복/i, '사케·전통주'],
+];
+function guessSubtype(it){
+  const hay = [it.name_ko, it.name_en, it.distillery].filter(Boolean).join(' ');
+  for (const [re, t] of SUBTYPE_RULES) if (re.test(hay)) return t;
+  return '';
+}
 /* 위스키임이 분명한 표식 — 판매처명(토탈와인 등)에 휘둘리지 않도록 먼저 판정한다 */
 const WHISKY_MARK = /위스키|whisk|버번|bourbon|몰트|malt|스카치|scotch|배럴 ?프루프|barrel ?proof|캐스크|cask|증류소|distiller/i;
 function guessCat(it){
@@ -746,7 +778,13 @@ function normalize(o){
   if (!it.images.length && it.image_norm) it.images = [it.image_norm];
   if (it.images.length) it.image_norm = it.images[0];
   it.type ||= 'Single Malt';
-  it.cat = CATS.includes(o.cat) ? o.cat : guessCat(it);
+  it.cat = CATS.includes(o.cat) ? o.cat
+         : (CAT_MIGRATE[o.cat] || guessCat(it));
+  /* 기타주류인데 타입이 위스키 계열로 남아 있으면 세부 타입으로 교체 */
+  if (it.cat === '기타주류'){
+    const st = guessSubtype(it);
+    if (st && (!it.type || TYPES.includes(it.type) || it.type === '기타')) it.type = st;
+  }
   it.status = STATUS.includes(it.status) ? it.status : '미개봉';
   it.created_at = o.created_at || nowISO();
   it.updated_at = o.updated_at || it.created_at;
@@ -1414,15 +1452,17 @@ function render(){
   const items = visible();
   $('#hdCnt').textContent = DB.items.length ? DB.items.length + '병' : '';
 
-  /* 주종 칩 — 데이터에 있는 주종만, 많은 순서로 */
+  /* 주종 세그먼트 — 데이터가 1건 이상인 주종만, CATS 정의 순서로 */
   const catCount = {};
   DB.items.forEach(i => { catCount[i.cat] = (catCount[i.cat] || 0) + 1; });
-  const cats = Object.keys(catCount).sort((x, y) => catCount[y] - catCount[x]);
-  $('#catChips').innerHTML = cats.length > 1
-    ? ['all', ...cats].map(c =>
-      `<button class="chip${V.cat === c ? ' on' : ''}" data-cat="${esc(c)}">${
-        c === 'all' ? '주종 전체' : esc(c)}<b>${c === 'all' ? DB.items.length : catCount[c]}</b></button>`).join('')
+  const cats = CATS.filter(c => catCount[c]);
+  $('#catSegs').innerHTML = cats.length > 1
+    ? [...cats, 'all'].map(c =>
+      `<button class="seg${V.cat === c ? ' on' : ''}" data-cat="${esc(c)}">${
+        c === 'all' ? '전체' : esc(c)}<b>${c === 'all' ? DB.items.length : catCount[c]}</b></button>`).join('')
     : '';
+  /* 선택된 주종이 사라졌으면 전체로 되돌린다 */
+  if (V.cat !== 'all' && !catCount[V.cat]) V.cat = 'all';
   /* 타입 칩 — 선택된 주종 안에서만 집계한다 */
   const inCat = DB.items.filter(i => V.cat === 'all' || i.cat === V.cat);
   const used = [...new Set(inCat.map(i => i.type))].filter(Boolean).sort();
@@ -1432,8 +1472,10 @@ function render(){
         t === 'all' ? '전체' : esc(t)}<b>${t === 'all' ? inCat.length : inCat.filter(i => i.type === t).length}</b></button>`).join('')
     : '';
 
-  /* 구매 합계는 폰에서 필터 줄을 밀어내므로 표시하지 않는다 (📊 통계에서 확인) */
-  $('#statLine').textContent = items.length === DB.items.length ? '' : items.length + '병';
+  /* 개수는 검색·상태·숙성 필터를 쓸 때만 표시한다.
+     주종 탭·타입 칩에는 이미 개수가 붙어 있어 중복이고, 폰에서 필터 줄을 밀어낸다. */
+  const filtering = V.q.trim() || V.status !== 'all' || V.age !== 'all';
+  $('#statLine').textContent = filtering ? items.length + '병' : '';
 
   $('#grid').innerHTML = items.map(cardHTML).join('');
   $('#emptyBox').innerHTML = items.length ? '' : (DB.items.length
@@ -2609,7 +2651,7 @@ $('#grid').onclick = e => {
   const c = e.target.closest('[data-open]');
   if (c) openDetail(c.dataset.open);
 };
-$('#catChips').onclick = e => {
+$('#catSegs').onclick = e => {
   const c = e.target.closest('[data-cat]'); if (!c) return;
   V.cat = c.dataset.cat; V.type = 'all';   // 주종을 바꾸면 타입 필터는 초기화
   render();
@@ -2675,6 +2717,12 @@ const autoNormalize = () => normalizeMissing(DB.items.slice(0, 8));
 try{ const t = localStorage.getItem(LS_THEME); if (t) setTheme(t); }catch(e){}
 loadSync();
 load();
+/* 대부분이 위스키이므로 위스키 탭에서 시작한다 (다른 주종이 섞여 있을 때만 의미가 있다) */
+{
+  const c = {};
+  DB.items.forEach(i => { c[i.cat] = (c[i.cat] || 0) + 1; });
+  if (c['위스키'] && Object.keys(c).length > 1) V.cat = '위스키';
+}
 render();
 setTimeout(autoNormalize, 700);
 if (syncOn()){
