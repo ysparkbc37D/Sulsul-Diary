@@ -515,6 +515,8 @@ pre.csv{
    저장: localStorage(wc.v1) · 자동 초안: kb.js + Wikipedia/Commons
    ══════════════════════════════════════════════════════════ */
 const LS = 'wc.v1', LS_THEME = 'wc.theme', LS_SYNC = 'wc.sync', LS_TOK = 'wc.token';
+const LS_TRASH = 'wc.trash';          // 전체 초기화 되돌리기용 스냅샷
+const TRASH_DAYS = 14;                // 이 기간 안에는 복구 가능
 const TYPES = ['Single Malt','Blended Malt','Blended Scotch','Single Grain','Bourbon','Rye',
   'Tennessee Whiskey','Japanese Single Malt','Japanese Blended','Irish','World Whisky','기타'];
 /* '경험'은 구매하지 않고 마셔본 위스키 — 보유 병수·구매액 집계에서 제외된다 */
@@ -2237,7 +2239,15 @@ function openData(){
       <button class="btn" id="btnInstall">홈 화면에 추가</button>
       <button class="btn" id="rmExamples">예시 데이터 삭제</button>
       <button class="btn dgr" id="wipe" style="width:auto">전체 초기화</button>
-    </div>`,
+    </div>
+    ${(() => { const t = trashInfo(); return t
+      ? `<div class="note" style="margin-top:11px">
+           <b>${t.n}병</b>을 ${t.days === 0 ? '오늘' : t.days + '일 전'} 초기화했습니다 —
+           ${TRASH_DAYS - t.days}일 안에 되돌릴 수 있습니다.
+           <div class="stack" style="margin-top:9px">
+             <button class="btn" id="restoreTrash">초기화 되돌리기 (${t.n}병 복원)</button>
+           </div></div>`
+      : ''; })()}`,
     `<button class="btn pri" data-act="close">닫기</button>`);
 
   $('#shFoot').onclick = closeSheet;
@@ -2438,13 +2448,103 @@ function openData(){
     tomb(kill);
     save(); render(); openData(); toast(`예시 ${kill.length}병을 삭제했습니다`);
   };
-  $('#wipe').onclick = () => {
-    if (!confirm('모든 위스키 데이터를 삭제합니다.\n백업이 없으면 복구할 수 없습니다. 계속할까요?')) return;
-    if (!confirm('정말 초기화할까요?' + (syncOn() ? '\n동기화된 다른 기기에서도 삭제됩니다.' : ''))) return;
-    const gone = DB.items;
-    DB = {items:[], meta:{}}; tomb(gone);
-    save(); render(); closeSheet(); toast('초기화했습니다');
+  $('#wipe').onclick = openWipe;
+  const rb = $('#restoreTrash');
+  if (rb) rb.onclick = restoreTrash;
+}
+/* ══════════════════════════════════════════
+   전체 초기화 — 되돌릴 수 없는 작업이므로 4중 안전장치
+   ① 영향 범위 명시(병수·구매합계·동기화 여부)
+   ② 백업 내려받기 강제(또는 명시적 포기 체크)
+   ③ '초기화' 단어 직접 입력
+   ④ 삭제 후 14일간 되돌리기 스냅샷 보관
+   ══════════════════════════════════════════ */
+const trashInfo = () => {
+  try{
+    const t = JSON.parse(localStorage.getItem(LS_TRASH) || 'null');
+    if (!t || !t.at) return null;
+    const days = (Date.now() - new Date(t.at)) / 86400000;
+    if (days > TRASH_DAYS) return null;
+    return {at: t.at, days: Math.floor(days), n: t.n || 0};
+  }catch(e){ return null; }
+};
+function openWipe(){
+  const n = DB.items.length;
+  const buy = DB.items.reduce((s, i) => s + (Number(i.purchase_price) || 0), 0);
+  const photos = DB.items.filter(i => (i.images && i.images.length) || i.image_norm).length;
+  openSheet('전체 초기화', `
+    <div class="note" style="background:#fdf1ee;border-color:#e6bcb0">
+      <b style="color:#a8503c">되돌리기 어려운 작업입니다.</b><br>
+      이 기기의 <b>${n}병</b>${buy ? ` · 구매 합계 <b>${wonShort(buy)}원</b>` : ''}${photos ? ` · 사진 ${photos}장` : ''} 기록이 모두 삭제됩니다.
+      ${syncOn() ? `<br><b style="color:#a8503c">동기화가 연결되어 있어 폰·PC 등 다른 기기에서도 함께 삭제됩니다.</b>` : ''}
+    </div>
+    <h4 class="sec">1단계 · 백업</h4>
+    <div class="stack">
+      <button class="btn" id="wpBackup">백업 파일 내려받기 (권장)</button>
+    </div>
+    <label class="hint" style="display:flex;gap:7px;align-items:center;margin-top:9px;cursor:pointer">
+      <input type="checkbox" id="wpNoBackup"> 백업 없이 진행합니다 (복구 불가를 이해합니다)
+    </label>
+    <h4 class="sec">2단계 · 확인 입력</h4>
+    <div class="f wide">
+      <label>아래 칸에 <b>초기화</b> 를 그대로 입력하세요</label>
+      <input id="wpWord" placeholder="초기화" autocomplete="off" autocapitalize="off">
+    </div>
+    <p class="hint" id="wpHint" style="margin-top:10px">두 단계를 모두 마치면 삭제 버튼이 활성화됩니다.</p>
+    <p class="hint">삭제 후 <b>${TRASH_DAYS}일간</b> 이 기기에서 되돌리기가 가능합니다
+      (⚙️ 하단의 <b>초기화 되돌리기</b>).</p>`,
+    `<button class="btn" data-act="cancel">취소</button>
+     <button class="btn dgr" id="wpGo" style="flex:1;width:auto" disabled>영구 삭제</button>`);
+
+  let backedUp = false;
+  const sync = () => {
+    const ok = (backedUp || $('#wpNoBackup').checked) && $('#wpWord').value.trim() === '초기화';
+    $('#wpGo').disabled = !ok;
+    $('#wpHint').innerHTML = ok
+      ? '<b style="color:#a8503c">삭제 버튼이 활성화되었습니다.</b>'
+      : (!(backedUp || $('#wpNoBackup').checked)
+          ? '1단계: 백업을 받거나 "백업 없이 진행"을 선택하세요.'
+          : '2단계: <b>초기화</b> 를 정확히 입력하세요.');
   };
+  $('#wpBackup').onclick = () => {
+    download(`whisky-backup-${today()}.json`, JSON.stringify(DB, null, 1), 'application/json');
+    backedUp = true; $('#wpBackup').textContent = '✅ 백업을 내려받았습니다'; sync();
+  };
+  $('#wpNoBackup').onchange = sync;
+  $('#wpWord').oninput = sync;
+  $('#shFoot').onclick = e => {
+    if (e.target.closest('[data-act=cancel]')) return openData();
+    if (e.target.id !== 'wpGo' || $('#wpGo').disabled) return;
+    const gone = DB.items;
+    const snap = JSON.stringify({items: gone, meta: DB.meta});
+    DB = {items: [], meta: {}}; tomb(gone);
+    save(); render();
+    /* 저장소를 비운 뒤에 스냅샷을 넣어 용량 초과를 피한다 */
+    try{ localStorage.setItem(LS_TRASH, JSON.stringify({at: nowISO(), n: gone.length, data: snap})); }
+    catch(err){ toast('⚠ 되돌리기 스냅샷 저장 실패 (용량 초과)'); }
+    closeSheet(); toast(`${gone.length}병을 삭제했습니다 · ${TRASH_DAYS}일간 되돌리기 가능`);
+  };
+}
+function restoreTrash(){
+  const t = trashInfo();
+  if (!t) return toast('되돌릴 스냅샷이 없습니다');
+  if (!confirm(`${t.n}병을 되돌립니다 (삭제 ${t.days}일 전).\n현재 기록과 합쳐집니다. 계속할까요?`)) return;
+  let old = null;
+  try{ old = JSON.parse(JSON.parse(localStorage.getItem(LS_TRASH)).data); }catch(e){}
+  if (!old || !Array.isArray(old.items)) return toast('스냅샷을 읽을 수 없습니다');
+  const now = nowISO();
+  const map = new Map(DB.items.map(i => [i.id, i]));
+  for (const raw of old.items){
+    const it = normalize(raw);
+    /* 삭제 기록보다 나중 시각으로 되살려야 동기화가 다시 지우지 않는다 */
+    it.updated_at = now;
+    map.set(it.id, it);
+    if (DB.meta.tombs) delete DB.meta.tombs[it.id];
+  }
+  DB.items = [...map.values()];
+  save(); render();
+  try{ localStorage.removeItem(LS_TRASH); }catch(e){}
+  openData(); toast(`${old.items.length}병을 되돌렸습니다`);
 }
 function setTheme(t){
   document.documentElement.dataset.theme = t;
