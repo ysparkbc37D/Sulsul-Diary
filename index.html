@@ -799,15 +799,31 @@ async function ghReadFile(path){
   if (meta.encoding === 'base64' && meta.content){
     try{ out.text = b64dec(meta.content); }catch(e){ out.text = ''; }
   }
-  if (!out.text){
-    /* 1MB 초과 파일 — raw 로 직접 받는다 (최대 100MB) */
-    const r = await fetch('https://api.github.com/repos/' + SYNC.repo + '/contents/' + path
-        + '?ref=' + encodeURIComponent(SYNC.branch), {
-      headers: {Authorization: 'Bearer ' + ghToken(), Accept: 'application/vnd.github.raw',
+  if (!out.text && meta.sha){
+    /* 1MB 초과 파일은 Blobs API 로 받는다 (최대 100MB).
+       contents 엔드포인트에 raw 미디어타입을 요청하면 서버가 무시하고
+       JSON 봉투를 돌려주는 경우가 있어, 그것을 파일 내용으로 오인하게 된다. */
+    const r = await fetch('https://api.github.com/repos/' + SYNC.repo + '/git/blobs/' + meta.sha, {
+      headers: {Authorization: 'Bearer ' + ghToken(), Accept: 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28'},
     });
-    if (r.ok){ out.text = await r.text(); out.via = 'raw'; }
-    else out.rawStatus = r.status;
+    if (r.ok){
+      const b = await r.json().catch(() => null);
+      if (b && b.encoding === 'base64' && b.content){
+        try{ out.text = b64dec(b.content); out.via = 'blob'; }catch(e){}
+      }
+      out.blobEncoding = b?.encoding || '';
+    } else out.rawStatus = r.status;
+  }
+  /* 그래도 API 봉투가 담겨 있으면 한 겹 더 벗긴다 (예전 버전이 잘못 저장한 경우) */
+  if (out.text){
+    try{
+      const j = JSON.parse(out.text);
+      if (j && !Array.isArray(j.items) && typeof j.content === 'string' && j.encoding === 'base64'){
+        out.text = b64dec(j.content);
+        out.via = (out.via ? out.via + '+' : '') + 'unwrap';
+      }
+    }catch(e){}
   }
   return out;
 }
@@ -2317,8 +2333,23 @@ function openData(){
           } else {
             try{
               const rem = JSON.parse(got.text);
-              rows.push(['원격 데이터 파일', `✅ ${(rem.items || []).length}병 · ${kb}KB${how}`
-                + ` · 갱신 ${esc(String(rem._updated || '?').slice(0, 19))}`]);
+              if (Array.isArray(rem.items)){
+                rows.push(['원격 데이터 파일', `✅ ${rem.items.length}병 · ${kb}KB${how}`
+                  + ` · 갱신 ${esc(String(rem._updated || '?').slice(0, 19))}`]);
+                if (rem.items.length > DB.items.length)
+                  rows.push(['⚠ 주의', `원격이 이 기기(${DB.items.length}병)보다 많습니다(${rem.items.length}병). `
+                    + '동기화하면 합쳐지며, <b>덮어쓰기는 누르지 마세요.</b>']);
+              } else {
+                /* JSON 이지만 우리 형식이 아닌 경우 — 무엇이 들었는지 보여준다 */
+                rows.push(['원격 데이터 파일',
+                  `⚠ items 배열이 없습니다 (${kb}KB${how})<br>`
+                  + `최상위 키: <b>${esc(Object.keys(rem).slice(0, 8).join(', ') || '(없음)')}</b><br>`
+                  + `<span style="color:var(--ink3)">앞 160자:</span> ${esc(got.text.slice(0, 160))}`]);
+                rows.push(['조치', '경로가 다른 파일을 가리키는지 확인하세요. 내용이 우리 형식이 아니면 '
+                  + '아래 <b>원격 덮어쓰기</b>로 이 기기 데이터를 올릴 수 있습니다 '
+                  + '(이 기기가 최신일 때만 누르세요).']);
+                rows.push(['복구', `<button class="mini am" id="syForce">원격 덮어쓰기 (이 기기 ${DB.items.length}병 → 원격)</button>`]);
+              }
             }catch(e2){
               rows.push(['원격 데이터 파일',
                 `❌ JSON 파싱 실패 (${kb}KB${how})<br>파일이 손상되었습니다. 아래 <b>원격 덮어쓰기</b>로 `
@@ -2337,6 +2368,11 @@ function openData(){
     /* 원격 파일이 손상된 경우의 복구 — 이 기기 내용으로 강제 덮어쓴다 */
     const fb = $('#syForce');
     if (fb) fb.onclick = async () => {
+      /* 갓 시드된 상태(예시 데이터만)로 원격을 밀어버리면 다른 기기의 기록이 날아간다 */
+      const onlySeed = DB.items.every(i => String(i.tags || '').includes('예시'));
+      if (onlySeed && !confirm(`⚠ 이 기기에는 예시 데이터 ${DB.items.length}병만 있습니다.\n`
+        + '이대로 덮어쓰면 다른 기기의 기록이 사라질 수 있습니다.\n'
+        + '정말 이 기기가 최신인가요?')) return;
       if (!confirm(`원격 파일을 이 기기의 ${DB.items.length}병으로 덮어씁니다.\n`
         + '다른 기기에만 있던 항목은 사라질 수 있습니다. 계속할까요?')) return;
       fb.disabled = true; fb.textContent = '덮어쓰는 중…';
