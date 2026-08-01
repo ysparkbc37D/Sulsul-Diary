@@ -2003,8 +2003,9 @@ const DONATE = {
   page: 'https://app.notion.com/chat?pvs=42&pm=c&t=3afa92fd35db8035b73100a930ddce91&wfv=chat&p=95c87169da6c44c59293e87d1fdee807',
   /* QR 로 만들 송금 링크(토스·카카오페이 등). 비어 있으면 아래 이미지를 쓴다 */
   transfer: '',
-  /* 직접 만든 QR 이미지를 쓸 때의 경로 (없으면 QR 영역을 숨긴다) */
-  image: './donate-qr.png',
+  /* 직접 만든 QR 이미지 경로. 저장할 때 확장자가 달라도 되도록 후보를 순서대로
+     시도한다 — 하나라도 로드되면 그것을 쓰고, 전부 없으면 QR 영역을 숨긴다 */
+  image: ['./donate-qr.png', './donate-qr.jpg', './donate-qr.jpeg', './donate-qr.webp'],
   /* 계좌를 글자로도 보여 준다 — QR 을 못 쓰는 상황의 대비책 */
   bank: '', account: '', holder: '',
 };
@@ -2027,13 +2028,18 @@ function openDonate(){
   if (DONATE.transfer && qrDraw(cv, DONATE.transfer, 'M')){
     cv.hidden = false;
     how.textContent = '폰 카메라로 QR 을 비추면 계좌이체로 연결됩니다';
-  } else if (DONATE.image){
-    /* 이미지가 없으면 onerror 로 조용히 숨긴다 — 깨진 아이콘을 보이지 않는다 */
+  } else if (DONATE.image && DONATE.image.length){
+    /* 후보를 차례로 시도하고, 전부 없으면 조용히 숨긴다 — 깨진 아이콘을 보이지 않는다 */
+    const cands = [].concat(DONATE.image);
+    let k = 0;
     img.onload = () => { img.hidden = false;
       how.textContent = '폰 카메라로 QR 을 비추면 계좌이체로 연결됩니다'; };
-    img.onerror = () => { how.textContent = acct
-      ? '아래 계좌로 이체해 주세요' : '아래 링크에서 후원 방법을 확인해 주세요'; };
-    img.src = DONATE.image;
+    img.onerror = () => {
+      if (++k < cands.length){ img.src = cands[k]; return; }
+      how.textContent = acct
+        ? '아래 계좌로 이체해 주세요' : '아래 링크에서 후원 방법을 확인해 주세요';
+    };
+    img.src = cands[0];
   } else {
     how.textContent = acct ? '아래 계좌로 이체해 주세요' : '아래 링크에서 후원 방법을 확인해 주세요';
   }
