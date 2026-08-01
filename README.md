@@ -100,7 +100,7 @@ DB에 없으면 **구글 · 데일리샷 · Whiskybase 검색 링크**를 제시
 ## 4. GitHub Pages 배포 (최초 1회)
 
 ### 4-1. 저장소 만들기
-GitHub 웹에서 새 저장소 생성 — 이름 예: `whisky-collector`, **Public**, README 생성 안 함.
+GitHub 웹에서 새 저장소 생성 — 이름: `Sulsul-Diary`, **Public**, README 생성 안 함.
 
 ### 4-2. 이 폴더를 올리기
 `LG MVP/Whisky-Collector` 폴더에서 터미널을 열고:
@@ -110,7 +110,7 @@ git init && git add . && git commit -m "Whisky Collector PWA"
 ```
 
 ```bash
-git branch -M main && git remote add origin https://github.com/<내아이디>/whisky-collector.git && git push -u origin main
+git branch -M main && git remote add origin https://github.com/<내아이디>/Sulsul-Diary.git && git push -u origin main
 ```
 
 > Public이면 소스가 공개되지만 **컬렉션 데이터는 저장소에 올라가지 않습니다**(폰 브라우저에만 저장).
@@ -118,7 +118,7 @@ git branch -M main && git remote add origin https://github.com/<내아이디>/wh
 
 ### 4-3. Pages 켜기
 저장소 → **Settings → Pages** → Source `Deploy from a branch` → Branch `main` / `/ (root)` → Save.
-1~2분 후 주소가 발급됩니다: `https://<내아이디>.github.io/whisky-collector/`
+1~2분 후 주소가 발급됩니다: `https://<내아이디>.github.io/Sulsul-Diary/`
 
 ### 4-4. 폰에 설치
 * **Android(Chrome):** 주소 접속 → 메뉴 `⋮` → **앱 설치 / 홈 화면에 추가**
