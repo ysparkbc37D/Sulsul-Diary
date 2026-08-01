@@ -677,9 +677,14 @@ pre.csv{
 @media(hover:hover){ .donate:hover{background:var(--surface2);border-color:var(--accent)} }
 /* QR — 흰 바탕이 필수(다크 테마에서 반전되면 스캐너가 못 읽는다) */
 .qrbox{display:flex;flex-direction:column;align-items:center;gap:12px;padding:4px 0 2px}
-.qrbox canvas{
-  width:216px;height:216px;image-rendering:pixelated;background:#fff;
+.qrbox canvas, .qrbox img{
+  width:216px;height:216px;image-rendering:pixelated;background:#fff;object-fit:contain;
   padding:12px;border-radius:12px;border:1px solid var(--line);box-shadow:var(--sh1);
+}
+.qrbox canvas[hidden], .qrbox img[hidden]{display:none}
+.qacct{
+  font-family:var(--serif);font-size:14.5px;color:var(--ink);margin:0;
+  text-align:center;letter-spacing:-.01em;word-break:keep-all;
 }
 .qrbox .qcap{font-size:12px;color:var(--ink2);text-align:center;line-height:1.6}
 .qrbox .qurl{
@@ -1989,34 +1994,58 @@ window.addEventListener('popstate', () => {
   pushGuard('root');
 });
 
-/* 후원 링크 — 바꿀 일이 생기면 이 한 곳만 고치면 된다 */
-const DONATE_URL = 'https://app.notion.com/chat?pvs=42&pm=c&t=3afa92fd35db8035b73100a930ddce91&wfv=chat&p=95c87169da6c44c59293e87d1fdee807';
-/** 후원 시트 — QR 은 그 자리에서 생성한다(외부 QR API 를 쓰면 오프라인에서 빈칸) */
+/* 후원 정보 — 바꿀 일이 생기면 이 한 곳만 고치면 된다.
+   QR 과 '링크 열기' 는 목적이 다르므로 값을 분리해 둔다:
+   QR 은 계좌이체(송금)로, 링크 열기는 소개 페이지로 간다. 둘을 같은 값으로
+   두면 QR 을 찍어도 버튼과 똑같은 곳으로 가서 QR 이 있을 이유가 없어진다. */
+const DONATE = {
+  /* '링크 열기' 전용 — 후원 안내 페이지 */
+  page: 'https://app.notion.com/chat?pvs=42&pm=c&t=3afa92fd35db8035b73100a930ddce91&wfv=chat&p=95c87169da6c44c59293e87d1fdee807',
+  /* QR 로 만들 송금 링크(토스·카카오페이 등). 비어 있으면 아래 이미지를 쓴다 */
+  transfer: '',
+  /* 직접 만든 QR 이미지를 쓸 때의 경로 (없으면 QR 영역을 숨긴다) */
+  image: './donate-qr.png',
+  /* 계좌를 글자로도 보여 준다 — QR 을 못 쓰는 상황의 대비책 */
+  bank: '', account: '', holder: '',
+};
+/** 후원 시트. QR 은 그 자리에서 생성한다 — 외부 QR API 는 오프라인에서 빈칸이 된다 */
 function openDonate(){
+  const acct = DONATE.bank && DONATE.account
+    ? `${DONATE.bank} ${DONATE.account}${DONATE.holder ? ' · ' + DONATE.holder : ''}` : '';
   openSheet('술술다이어리 후원', `
     <div class="qrbox">
-      <canvas id="qrCv" width="29" height="29" role="img"
-        aria-label="후원 링크 QR 코드"></canvas>
+      <canvas id="qrCv" hidden role="img" aria-label="계좌이체 QR 코드"></canvas>
+      <img id="qrImg" hidden alt="계좌이체 QR 코드">
       <p class="qcap">코바의 술술다이어리 후원<br>
-        <span style="color:var(--ink3);font-size:11px">폰 카메라로 QR 을 비추거나 아래 버튼을 누르세요</span></p>
-      <p class="qurl" id="qrUrl"></p>
+        <span id="qrHow" style="color:var(--ink3);font-size:11px"></span></p>
+      ${acct ? `<p class="qacct" id="qrAcct">${esc(acct)}</p>
+        <button class="mini" id="acctCopy">계좌번호 복사</button>` : ''}
     </div>`,
     `<button class="btn" id="qrCopy">링크 복사</button>
      <button class="btn gold" id="qrOpen">링크 열기</button>`);
-  const cv = $('#qrCv');
-  const q = qrDraw(cv, DONATE_URL, 'M');
-  if (!q){
-    cv.remove();
-    $('#qrUrl').textContent = DONATE_URL;
-    toast('QR 을 만들지 못했습니다 — 링크로 열어 주세요');
+  const cv = $('#qrCv'), img = $('#qrImg'), how = $('#qrHow');
+  if (DONATE.transfer && qrDraw(cv, DONATE.transfer, 'M')){
+    cv.hidden = false;
+    how.textContent = '폰 카메라로 QR 을 비추면 계좌이체로 연결됩니다';
+  } else if (DONATE.image){
+    /* 이미지가 없으면 onerror 로 조용히 숨긴다 — 깨진 아이콘을 보이지 않는다 */
+    img.onload = () => { img.hidden = false;
+      how.textContent = '폰 카메라로 QR 을 비추면 계좌이체로 연결됩니다'; };
+    img.onerror = () => { how.textContent = acct
+      ? '아래 계좌로 이체해 주세요' : '아래 링크에서 후원 방법을 확인해 주세요'; };
+    img.src = DONATE.image;
   } else {
-    $('#qrUrl').textContent = DONATE_URL;
+    how.textContent = acct ? '아래 계좌로 이체해 주세요' : '아래 링크에서 후원 방법을 확인해 주세요';
   }
-  $('#qrCopy').onclick = async () => {
-    try{ await navigator.clipboard.writeText(DONATE_URL); toast('후원 링크를 복사했습니다'); }
-    catch(e){ toast('복사에 실패했습니다 — 아래 주소를 길게 눌러 복사하세요'); }
+  if (acct) $('#acctCopy').onclick = async () => {
+    try{ await navigator.clipboard.writeText(DONATE.account); toast('계좌번호를 복사했습니다'); }
+    catch(e){ toast('복사에 실패했습니다 — 계좌번호를 길게 눌러 복사하세요'); }
   };
-  $('#qrOpen').onclick = () => window.open(DONATE_URL, '_blank', 'noopener');
+  $('#qrCopy').onclick = async () => {
+    try{ await navigator.clipboard.writeText(DONATE.page); toast('후원 링크를 복사했습니다'); }
+    catch(e){ toast('복사에 실패했습니다'); }
+  };
+  $('#qrOpen').onclick = () => window.open(DONATE.page, '_blank', 'noopener');
 }
 function openSheet(title, body, foot){
   $('#shTitle').textContent = title;
