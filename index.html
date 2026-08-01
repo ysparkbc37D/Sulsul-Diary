@@ -236,15 +236,11 @@ header.top{
   display:grid;place-items:center;border-bottom:1px solid var(--line);
 }
 /* 절대 위치로 빼야 원본 이미지의 내재 높이가 3:4 프레임을 밀어내지 못한다.
-   카드는 풀블리드 — cover 로 프레임을 채우고, 정규화 썸네일은 THUMB_FILL(0.9) 만큼
-   위아래 흰 띠가 구워져 있으므로 1/FILL 만큼 확대해 병이 프레임 높이를 꽉 채우게 한다.
-   --thumb-fill 은 부팅 시 JS가 THUMB_FILL 값으로 덮어써 상수와 어긋나지 않는다. */
-.thumb img{
-  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
-  transform:scale(calc(1 / var(--thumb-fill, .9)));
-}
-/* 정규화되지 않은 원본은 여백이 얼마인지 알 수 없다 → 확대 없이 cover 만 */
-.thumb.raw img{inset:0;transform:none}
+   채우기는 normalizeThumb 이 캔버스에 구워 넣는다(사진은 cover, 병 컷은 높이 98%).
+   CSS 확대 보정을 쓰지 않으므로 저장된 그림과 보이는 그림이 같다. */
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+/* 정규화 실패(CORS)한 원본은 여백을 알 수 없다 → cover 로 프레임만 채운다 */
+.thumb.raw img{inset:0}
 .ph{
   position:absolute;inset:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:4px;
@@ -656,6 +652,31 @@ pre.csv{
   box-shadow:var(--sh2);max-width:88vw;text-align:center;
 }
 .toast.on{opacity:1;transform:translate(-50%,0)}
+/* ══════════════ 푸터 ══════════════ */
+.foot{
+  margin-top:34px;padding:20px 0 6px;border-top:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;gap:11px;text-align:center;
+}
+.foot small{font-size:10.5px;color:var(--ink3);letter-spacing:.01em;word-break:keep-all}
+.donate{
+  display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 15px;
+  border-radius:10px;font-size:12.5px;font-weight:600;letter-spacing:-.01em;
+  background:var(--accent-bg);border:1px solid var(--accent-line);color:var(--accent);
+  transition:.15s;
+}
+.donate:active{transform:scale(.96)}
+@media(hover:hover){ .donate:hover{background:var(--surface2);border-color:var(--accent)} }
+/* QR — 흰 바탕이 필수(다크 테마에서 반전되면 스캐너가 못 읽는다) */
+.qrbox{display:flex;flex-direction:column;align-items:center;gap:12px;padding:4px 0 2px}
+.qrbox canvas{
+  width:216px;height:216px;image-rendering:pixelated;background:#fff;
+  padding:12px;border-radius:12px;border:1px solid var(--line);box-shadow:var(--sh1);
+}
+.qrbox .qcap{font-size:12px;color:var(--ink2);text-align:center;line-height:1.6}
+.qrbox .qurl{
+  font-size:10.5px;color:var(--ink3);word-break:break-all;max-width:300px;
+  text-align:center;line-height:1.5;
+}
 </style>
 </head>
 <body>
@@ -719,6 +740,10 @@ pre.csv{
   </div>
   <div class="grid" id="grid"></div>
   <div id="emptyBox"></div>
+  <footer class="foot">
+    <button class="donate" id="btnDonate">☕ 술술다이어리 후원</button>
+    <small>Copyright © 2026 CoBa's Sulsul Diary. All rights reserved.</small>
+  </footer>
 </div>
 
 <div class="scrim" id="scrim"></div>
@@ -1955,6 +1980,35 @@ window.addEventListener('popstate', () => {
   pushGuard('root');
 });
 
+/* 후원 링크 — 바꿀 일이 생기면 이 한 곳만 고치면 된다 */
+const DONATE_URL = 'https://app.notion.com/chat?pvs=42&pm=c&t=3afa92fd35db8035b73100a930ddce91&wfv=chat&p=95c87169da6c44c59293e87d1fdee807';
+/** 후원 시트 — QR 은 그 자리에서 생성한다(외부 QR API 를 쓰면 오프라인에서 빈칸) */
+function openDonate(){
+  openSheet('술술다이어리 후원', `
+    <div class="qrbox">
+      <canvas id="qrCv" width="29" height="29" role="img"
+        aria-label="후원 링크 QR 코드"></canvas>
+      <p class="qcap">코바의 술술다이어리 후원<br>
+        <span style="color:var(--ink3);font-size:11px">폰 카메라로 QR 을 비추거나 아래 버튼을 누르세요</span></p>
+      <p class="qurl" id="qrUrl"></p>
+    </div>`,
+    `<button class="btn" id="qrCopy">링크 복사</button>
+     <button class="btn gold" id="qrOpen">링크 열기</button>`);
+  const cv = $('#qrCv');
+  const q = qrDraw(cv, DONATE_URL, 'M');
+  if (!q){
+    cv.remove();
+    $('#qrUrl').textContent = DONATE_URL;
+    toast('QR 을 만들지 못했습니다 — 링크로 열어 주세요');
+  } else {
+    $('#qrUrl').textContent = DONATE_URL;
+  }
+  $('#qrCopy').onclick = async () => {
+    try{ await navigator.clipboard.writeText(DONATE_URL); toast('후원 링크를 복사했습니다'); }
+    catch(e){ toast('복사에 실패했습니다 — 아래 주소를 길게 눌러 복사하세요'); }
+  };
+  $('#qrOpen').onclick = () => window.open(DONATE_URL, '_blank', 'noopener');
+}
 function openSheet(title, body, foot){
   $('#shTitle').textContent = title;
   $('#shBody').innerHTML = body;
@@ -2578,7 +2632,7 @@ function openEdit(id, draft){
     o.images = shots.slice(0, MAX_SHOTS);
     o.image_norm = o.images[0] || '';
     o.image_data = '';
-    o.thumb_ar = THUMB_AR;              // 방금 현재 규격으로 만든 사진이므로 이관 대상이 아니다
+    o.thumb_ar = THUMB_FIT;              // 방금 현재 규격으로 만든 사진이므로 이관 대상이 아니다
     o.image_credit = o.image_url ? credit : '';
     ['purchase_price','market_low','market_high'].forEach(k => o[k] = parsePrice(o[k]));
     if (!o.name_ko && !o.name_en){ toast('제품명은 필수입니다'); return; }
@@ -2596,11 +2650,14 @@ function openEdit(id, draft){
 
    규격은 3:4 (336×448). 4:5(360×450) 에서 옮겨온 값이며, 448×0.9=403px 은
    옛 규격의 병 높이(450×0.9=405px)와 거의 같아 이관 시 확대 없이 재배치된다.
-   THUMB_AR 은 항목별 이관 표식으로 쓴다 — retrofitThumbs 참조. */
+   THUMB_FIT 은 항목별 이관 표식이다 — 맞춤 규칙을 바꾸면 이 값을 올려야
+   retrofitThumbs 가 기존 썸네일을 다시 맞춘다(THUMB_AR 은 화면 표시용 이름). */
 const THUMB_AR = '3:4';
-const THUMB_W = 336, THUMB_H = 448, THUMB_FILL = 0.9;
-/* 카드의 풀블리드 확대율(1/FILL)이 이 상수를 따라가도록 CSS 로 넘긴다 */
-document.documentElement.style.setProperty('--thumb-fill', String(THUMB_FILL));
+const THUMB_FIT = '3:4/fill';
+/* FILL 을 0.98 로 둔 이유: 병을 프레임 높이에 거의 꽉 채우되, trimBox 의
+   경계 판정이 1px 어긋나도 마개가 잘리지 않도록 위아래 1% 만 남긴다.
+   흰 캔버스 위의 1% 는 눈에 보이지 않으므로 CSS 확대 보정이 필요 없다. */
+const THUMB_W = 336, THUMB_H = 448, THUMB_FILL = 0.98;
 const MAX_SHOTS = 5;                 // 병당 사진 최대 장수
 /* 2번째 이후 사진은 조금 작게 저장해 용량을 아낀다. 본 사진과 같은 3:4 여야
    추가 사진 프레임(.cand/.exs/.prev)에서 위아래 흰 띠가 생기지 않는다 */
@@ -2644,11 +2701,15 @@ function trimBox(d, w, h){
       }
     }
   }
-  if (x1 < 0) return {x:0, y:0, w, h};
+  /* 배경색을 함께 돌려준다 — 잘라낸 뒤 남는 여백을 이 색으로 칠해야
+     어두운 사진에서 병만 오려낸 경우에 흰 띠가 생기지 않는다.
+     투명 배경(PNG)은 흰색이 맞다. */
+  const fill = bgA < 60 ? '#ffffff' : `rgb(${bg[0]},${bg[1]},${bg[2]})`;
+  if (x1 < 0) return {x:0, y:0, w, h, fill};
   const pad = Math.round(Math.max(w, h) * 0.012);
   x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad);
   x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
-  return {x:x0, y:y0, w:x1 - x0 + 1, h:y1 - y0 + 1};
+  return {x:x0, y:y0, w:x1 - x0 + 1, h:y1 - y0 + 1, fill};
 }
 /** src(URL 또는 data URI) → 정규화된 3:4 썸네일 data URI. 실패 시 null
     W/H 를 넘기면 그 규격으로 만든다(추가 사진은 조금 작게 저장)
@@ -2677,28 +2738,270 @@ async function normalizeThumb(src, W, H, opt){
   let box;
   try{ box = trimBox(g0.getImageData(0, 0, w0, h0).data, w0, h0); }
   catch(e){ return null; }               // 타 도메인 CORS 차단 → 원본 URL 그대로 사용
-  /* 병은 세로로 길다 → '높이'를 기준으로 맞춰 모든 썸네일의 세로 존재감을 통일한다.
-     가로가 넘치면 좌우를 중앙 크롭하고, 지나치게 파노라마인 경우에만 폭 기준으로 축소한다. */
-  let sc = H * THUMB_FILL / box.h;
-  let sx = box.x, sy = box.y, sw = box.w, sh = box.h;
-  const need = box.w * sc;
-  if (need > W){
-    if (noCrop || need > W * 1.9){
-      sc = W * THUMB_FILL / box.w;               // 폭 기준 → 전체가 들어간다(잘라내지 않음)
-    } else {
-      const keep = W / sc;                       // 원본에서 유지할 가로 폭
-      sx = box.x + (box.w - keep) / 2; sw = keep;
+  /* 채우기 방식을 내용의 형태로 가른다.
+     · 병만 오려낸 이미지(배경이 흰색이라 trimBox 가 병 자체를 잡아낸 경우)는
+       세로로 길다 — h/w 가 2 이상. 높이에 맞추고 좌우에 흰 여백을 두어도
+       카드 배경이 흰색이라 티가 나지 않으며, 병을 자르지 않는 편이 낫다.
+     · 배경이 있는 사진은 h/w 가 2 미만이다. 여기에 같은 처리를 하면 좌우에
+       흰 띠가 남아 "내가 등록한 사진만 안 꽉 찬다"로 보였다 → 프레임을 채우고
+       넘치는 쪽만 중앙 크롭한다(cover). 사진은 가장자리에 여유가 있어 안전하다. */
+  const tall = box.h / box.w >= 2;
+  let sc, sx = box.x, sy = box.y, sw = box.w, sh = box.h;
+  if (!tall && !noCrop){
+    sc = Math.max(W / box.w, H / box.h);
+    const keepW = Math.min(box.w, W / sc), keepH = Math.min(box.h, H / sc);
+    sx = box.x + (box.w - keepW) / 2; sw = keepW;
+    sy = box.y + (box.h - keepH) / 2; sh = keepH;
+  } else {
+    sc = H * THUMB_FILL / box.h;
+    const need = box.w * sc;
+    if (need > W){
+      if (noCrop || need > W * 1.9){
+        sc = W * THUMB_FILL / box.w;             // 폭 기준 → 전체가 들어간다(잘라내지 않음)
+      } else {
+        const keep = W / sc;                     // 원본에서 유지할 가로 폭
+        sx = box.x + (box.w - keep) / 2; sw = keep;
+      }
     }
   }
   const dw = Math.max(1, Math.round(sw * sc)), dh = Math.max(1, Math.round(sh * sc));
   const c1 = document.createElement('canvas');
   c1.width = W; c1.height = H;
   const g1 = c1.getContext('2d');
-  g1.fillStyle = '#fff'; g1.fillRect(0, 0, W, H);
+  g1.fillStyle = box.fill || '#fff'; g1.fillRect(0, 0, W, H);
   g1.imageSmoothingEnabled = true; g1.imageSmoothingQuality = 'high';
   g1.drawImage(c0, sx, sy, sw, sh,
     Math.round((W - dw) / 2), Math.round((H - dh) / 2), dw, dh);
   try{ return c1.toDataURL('image/jpeg', (opt && opt.q) || 0.8); }catch(e){ return null; }
+}
+
+/* ══════════════════════════════════════════
+   QR 코드 생성 (ISO/IEC 18004 의 최소 부분)
+   외부 의존성 금지가 이 앱의 전제이므로 직접 구현한다 — CDN 라이브러리나
+   QR 이미지 API 를 쓰면 오프라인·file:// 에서 후원 QR 이 뜨지 않는다.
+   바이트 모드만 쓴다(URL 이므로 숫자·영숫자 모드가 이득이 없다).
+   버전 1~10 · ECC L/M 까지 지원 — 후원 링크(118자)는 M 레벨 7 버전에 들어간다.
+   ══════════════════════════════════════════ */
+/* GF(256), 원시다항식 0x11d */
+const GF_EXP = new Uint8Array(512), GF_LOG = new Uint8Array(256);
+(() => {
+  let x = 1;
+  for (let i = 0; i < 255; i++){ GF_EXP[i] = x; GF_LOG[x] = i; x <<= 1; if (x & 0x100) x ^= 0x11d; }
+  for (let i = 255; i < 512; i++) GF_EXP[i] = GF_EXP[i - 255];
+})();
+const gfMul = (a, b) => (a && b) ? GF_EXP[GF_LOG[a] + GF_LOG[b]] : 0;
+/** 리드-솔로몬 생성다항식 ∏(x - α^i), 최고차항 먼저 */
+function rsGen(n){
+  let g = [1];
+  for (let i = 0; i < n; i++){
+    const ng = new Array(g.length + 1).fill(0);
+    for (let j = 0; j < g.length; j++){ ng[j] ^= g[j]; ng[j + 1] ^= gfMul(g[j], GF_EXP[i]); }
+    g = ng;
+  }
+  return g;
+}
+function rsEncode(data, ecLen){
+  const g = rsGen(ecLen);
+  const res = new Uint8Array(data.length + ecLen);
+  res.set(data);
+  for (let i = 0; i < data.length; i++){
+    const f = res[i]; if (!f) continue;
+    for (let j = 0; j < g.length; j++) res[i + j] ^= gfMul(g[j], f);
+  }
+  return res.slice(data.length);
+}
+/* 버전별 블록 구성 — {ec: 블록당 ECC 코드워드, g1n/g1d, g2n/g2d} */
+const QR_CAP = {
+  1:  {L:{ec:7,  g1n:1,g1d:19, g2n:0,g2d:0}, M:{ec:10, g1n:1,g1d:16, g2n:0,g2d:0}},
+  2:  {L:{ec:10, g1n:1,g1d:34, g2n:0,g2d:0}, M:{ec:16, g1n:1,g1d:28, g2n:0,g2d:0}},
+  3:  {L:{ec:15, g1n:1,g1d:55, g2n:0,g2d:0}, M:{ec:26, g1n:1,g1d:44, g2n:0,g2d:0}},
+  4:  {L:{ec:20, g1n:1,g1d:80, g2n:0,g2d:0}, M:{ec:18, g1n:2,g1d:32, g2n:0,g2d:0}},
+  5:  {L:{ec:26, g1n:1,g1d:108,g2n:0,g2d:0}, M:{ec:24, g1n:2,g1d:43, g2n:0,g2d:0}},
+  6:  {L:{ec:18, g1n:2,g1d:68, g2n:0,g2d:0}, M:{ec:16, g1n:4,g1d:27, g2n:0,g2d:0}},
+  7:  {L:{ec:20, g1n:2,g1d:78, g2n:0,g2d:0}, M:{ec:18, g1n:4,g1d:31, g2n:0,g2d:0}},
+  8:  {L:{ec:24, g1n:2,g1d:97, g2n:0,g2d:0}, M:{ec:22, g1n:2,g1d:38, g2n:2,g2d:39}},
+  9:  {L:{ec:30, g1n:2,g1d:116,g2n:0,g2d:0}, M:{ec:22, g1n:3,g1d:36, g2n:2,g2d:37}},
+  10: {L:{ec:18, g1n:2,g1d:68, g2n:2,g2d:69},M:{ec:26, g1n:4,g1d:43, g2n:1,g2d:44}},
+};
+const QR_ALIGN = {1:[], 2:[6,18], 3:[6,22], 4:[6,26], 5:[6,30],
+  6:[6,34], 7:[6,22,38], 8:[6,24,42], 9:[6,26,46], 10:[6,28,50]};
+/** 포맷 정보 15비트 (BCH 15,5 + 마스킹) */
+function qrFormat(ecl, mask){
+  const d = (({L:1, M:0, Q:3, H:2})[ecl] << 3) | mask;
+  let rem = d << 10;
+  for (let i = 4; i >= 0; i--) if (rem & (1 << (i + 10))) rem ^= 0x537 << i;
+  return ((d << 10) | (rem & 0x3ff)) ^ 0x5412;
+}
+/** 버전 정보 18비트 (버전 7 이상) */
+function qrVerBits(ver){
+  let rem = ver;
+  for (let i = 0; i < 12; i++) rem = (rem << 1) ^ ((rem >>> 11) * 0x1f25);
+  return ((ver << 12) | (rem & 0xfff));
+}
+const QR_MASKS = [
+  (r,c) => (r + c) % 2 === 0,
+  (r,c) => r % 2 === 0,
+  (r,c) => c % 3 === 0,
+  (r,c) => (r + c) % 3 === 0,
+  (r,c) => ((r >> 1) + Math.floor(c / 3)) % 2 === 0,
+  (r,c) => (r * c) % 2 + (r * c) % 3 === 0,
+  (r,c) => ((r * c) % 2 + (r * c) % 3) % 2 === 0,
+  (r,c) => ((r + c) % 2 + (r * c) % 3) % 2 === 0,
+];
+/** 마스크 벌점 (표준 4개 규칙) — 낮을수록 스캐너가 잘 읽는다 */
+function qrPenalty(m, N){
+  let p = 0;
+  const line = get => {
+    for (let a = 0; a < N; a++){
+      let run = 1, prev = get(a, 0);
+      for (let b = 1; b < N; b++){
+        const v = get(a, b);
+        if (v === prev) run++;
+        else { if (run >= 5) p += 3 + (run - 5); run = 1; prev = v; }
+      }
+      if (run >= 5) p += 3 + (run - 5);
+    }
+  };
+  line((r, c) => m[r][c]); line((c, r) => m[r][c]);
+  for (let r = 0; r < N - 1; r++) for (let c = 0; c < N - 1; c++)
+    if (m[r][c] === m[r][c+1] && m[r][c] === m[r+1][c] && m[r][c] === m[r+1][c+1]) p += 3;
+  const PAT = [1,0,1,1,1,0,1];
+  const findPat = get => {
+    for (let a = 0; a < N; a++) for (let b = 0; b <= N - 7; b++){
+      let hit = true;
+      for (let k = 0; k < 7; k++) if (get(a, b + k) !== PAT[k]) { hit = false; break; }
+      if (!hit) continue;
+      const before = [];
+      for (let k = b - 4; k < b; k++) before.push(k < 0 ? 0 : get(a, k));
+      const after = [];
+      for (let k = b + 7; k < b + 11; k++) after.push(k >= N ? 0 : get(a, k));
+      if (before.every(v => v === 0) || after.every(v => v === 0)) p += 40;
+    }
+  };
+  findPat((r, c) => m[r][c]); findPat((c, r) => m[r][c]);
+  let dark = 0;
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) dark += m[r][c];
+  p += 10 * Math.floor(Math.abs(dark * 100 / (N * N) - 50) / 5);
+  return p;
+}
+/** text → {N, m} 모듈 격자(1=검정). 담을 수 없으면 null */
+function qrEncode(text, ecl){
+  ecl = ecl || 'M';
+  const bytes = new TextEncoder().encode(text);
+  let ver = 0, cap = null, total = 0;
+  for (let v = 1; v <= 10; v++){
+    const c = QR_CAP[v][ecl];
+    const t = c.g1n * c.g1d + c.g2n * c.g2d;
+    if (4 + (v <= 9 ? 8 : 16) + bytes.length * 8 <= t * 8){ ver = v; cap = c; total = t; break; }
+  }
+  if (!ver) return null;
+
+  /* ── 데이터 비트열 ── */
+  const bits = [];
+  const push = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+  push(4, 4);                                    // 바이트 모드
+  push(bytes.length, ver <= 9 ? 8 : 16);
+  bytes.forEach(b => push(b, 8));
+  for (let i = 0; i < 4 && bits.length < total * 8; i++) bits.push(0);
+  while (bits.length % 8) bits.push(0);
+  for (let i = 0; bits.length < total * 8; i++) push([0xec, 0x11][i % 2], 8);
+  const dat = new Uint8Array(total);
+  for (let i = 0; i < total; i++){
+    let v = 0; for (let j = 0; j < 8; j++) v = (v << 1) | bits[i * 8 + j];
+    dat[i] = v;
+  }
+  /* ── 블록 분할 · RS · 인터리브 ── */
+  const blocks = []; let p = 0;
+  for (let i = 0; i < cap.g1n; i++){ blocks.push(dat.slice(p, p + cap.g1d)); p += cap.g1d; }
+  for (let i = 0; i < cap.g2n; i++){ blocks.push(dat.slice(p, p + cap.g2d)); p += cap.g2d; }
+  const ecs = blocks.map(b => rsEncode(b, cap.ec));
+  const out = [];
+  const maxD = Math.max(...blocks.map(b => b.length));
+  for (let i = 0; i < maxD; i++) blocks.forEach(b => { if (i < b.length) out.push(b[i]); });
+  for (let i = 0; i < cap.ec; i++) ecs.forEach(e => out.push(e[i]));
+
+  /* ── 기능 패턴 ── */
+  const N = 17 + ver * 4;
+  const m = Array.from({length: N}, () => new Int8Array(N).fill(0));
+  const fn = Array.from({length: N}, () => new Int8Array(N).fill(0));
+  const put = (r, c, v) => { m[r][c] = v; fn[r][c] = 1; };
+  const finder = (r0, c0) => {
+    for (let i = -1; i <= 7; i++) for (let j = -1; j <= 7; j++){
+      const r = r0 + i, c = c0 + j;
+      if (r < 0 || r >= N || c < 0 || c >= N) continue;
+      const d = Math.max(Math.abs(i - 3), Math.abs(j - 3));
+      put(r, c, (d === 1 || d > 3) ? 0 : 1);
+    }
+  };
+  finder(0, 0); finder(0, N - 7); finder(N - 7, 0);
+  for (let i = 8; i < N - 8; i++){ put(6, i, i % 2 === 0 ? 1 : 0); put(i, 6, i % 2 === 0 ? 1 : 0); }
+  const ac = QR_ALIGN[ver], last = ac[ac.length - 1];
+  ac.forEach(r => ac.forEach(c => {
+    if ((r === 6 && c === 6) || (r === 6 && c === last) || (r === last && c === 6)) return;
+    for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++)
+      put(r + i, c + j, Math.max(Math.abs(i), Math.abs(j)) === 1 ? 0 : 1);
+  }));
+  /* 포맷·버전 정보 자리를 먼저 잡아 데이터가 침범하지 않게 한다 */
+  for (let i = 0; i <= 8; i++){ if (!fn[8][i]) put(8, i, 0); if (!fn[i][8]) put(i, 8, 0); }
+  for (let i = N - 8; i < N; i++){ if (!fn[8][i]) put(8, i, 0); if (!fn[i][8]) put(i, 8, 0); }
+  if (ver >= 7) for (let i = 0; i < 18; i++){
+    const a = N - 11 + i % 3, b = Math.floor(i / 3);
+    put(b, a, 0); put(a, b, 0);
+  }
+  /* ── 데이터 배치 (지그재그, 오른쪽에서 왼쪽으로) ── */
+  let bi = 0;
+  const bitAt = k => (k >> 3) < out.length ? (out[k >> 3] >> (7 - (k & 7))) & 1 : 0;
+  let up = true;
+  for (let col = N - 1; col >= 1; col -= 2){
+    if (col === 6) col = 5;                      // 세로 타이밍 열은 건너뛴다
+    for (let k = 0; k < N; k++){
+      const r = up ? N - 1 - k : k;
+      for (let d = 0; d < 2; d++){
+        const c = col - d;
+        if (fn[r][c]) continue;
+        m[r][c] = bitAt(bi++);
+      }
+    }
+    up = !up;
+  }
+  /* ── 마스크 8개를 실제로 그려 보고 벌점이 가장 낮은 것을 고른다 ── */
+  let best = null;
+  for (let mk = 0; mk < 8; mk++){
+    const t = m.map(row => Int8Array.from(row));
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++)
+      if (!fn[r][c] && QR_MASKS[mk](r, c)) t[r][c] ^= 1;
+    const fmt = qrFormat(ecl, mk);
+    const bit = i => (fmt >> i) & 1;
+    for (let i = 0; i <= 5; i++) t[i][8] = bit(i);
+    t[7][8] = bit(6); t[8][8] = bit(7); t[8][7] = bit(8);
+    for (let i = 9; i < 15; i++) t[8][14 - i] = bit(i);
+    for (let i = 0; i < 8; i++) t[8][N - 1 - i] = bit(i);
+    for (let i = 8; i < 15; i++) t[N - 15 + i][8] = bit(i);
+    t[N - 8][8] = 1;                             // 항상 검정인 모듈
+    if (ver >= 7){
+      const vb = qrVerBits(ver);
+      for (let i = 0; i < 18; i++){
+        const b = (vb >> i) & 1, a = N - 11 + i % 3, q = Math.floor(i / 3);
+        t[q][a] = b; t[a][q] = b;
+      }
+    }
+    const pen = qrPenalty(t, N);
+    if (!best || pen < best.pen) best = {pen, m: t};
+  }
+  return {N, m: best.m, ver, ecl};
+}
+/** 격자를 canvas 에 그린다 (여백 4모듈은 표준 필수) */
+function qrDraw(cv, text, ecl){
+  const q = qrEncode(text, ecl);
+  if (!q) return null;
+  const quiet = 4, side = q.N + quiet * 2;
+  cv.width = side; cv.height = side;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, side, side);
+  g.fillStyle = '#000';
+  for (let r = 0; r < q.N; r++) for (let c = 0; c < q.N; c++)
+    if (q.m[r][c]) g.fillRect(c + quiet, r + quiet, 1, 1);
+  return q;
 }
 
 /* ── export / import ──────────────────────── */
@@ -2998,6 +3301,7 @@ function openData(){
     <h4 class="sec">앱</h4>
     <div class="stack">
       <button class="btn" id="btnTheme">${dark ? '☀️ 밝은 테마로' : '🌙 어두운 테마로'}</button>
+      <button class="btn" id="btnDonate2">☕ 술술다이어리 후원하기</button>
       <button class="btn" id="btnInstall">홈 화면에 추가</button>
       <button class="btn" id="rmExamples">예시 데이터 삭제</button>
       <button class="btn dgr" id="wipe" style="width:auto">전체 초기화</button>
@@ -3202,6 +3506,7 @@ function openData(){
     if (!ok && !fixed) toast('출처 제한으로 맞출 수 없었습니다 — 원본을 그대로 표시합니다');
   };
   $('#btnTheme').onclick = () => { setTheme(dark ? 'light' : 'dark'); openData(); };
+  $('#btnDonate2').onclick = openDonate;
   $('#btnInstall').onclick = () => {
     if (installEvt){ installEvt.prompt(); installEvt = null; }
     else toast('브라우저 메뉴 → "홈 화면에 추가"를 눌러 주세요');
@@ -3331,6 +3636,7 @@ const onCatClick = e => {
 };
 $('#catSegs').onclick = onCatClick;
 $('#sideCats').onclick = onCatClick;
+$('#btnDonate').onclick = openDonate;
 $('#typeChips').onclick = e => {
   const c = e.target.closest('[data-type]'); if (!c) return;
   V.type = c.dataset.type; render();
@@ -3388,7 +3694,7 @@ async function normalizeMissing(list, opt){
   for (let i = 0; i < t.length; i++){
     if (talk) toast(`썸네일 규격 맞추는 중… ${i + 1}/${t.length}`);
     const n = await normalizeThumb(t[i].image_url || t[i].image_data);
-    if (n){ t[i].image_norm = n; t[i].images = [n]; t[i].image_data = ''; t[i].thumb_ar = THUMB_AR; ok++; }
+    if (n){ t[i].image_norm = n; t[i].images = [n]; t[i].image_data = ''; t[i].thumb_ar = THUMB_FIT; ok++; }
   }
   if (ok){ save(); render(); }
   if (talk) toast(`썸네일 ${ok}장 정리 완료${t.length - ok ? ` · ${t.length - ok}장은 출처 제한` : ''}`);
@@ -3397,7 +3703,7 @@ async function normalizeMissing(list, opt){
 /* 부팅은 시작을 늦추지 않도록 8장만 (나머지는 가져오기 직후·설정에서 일괄 처리) */
 const autoNormalize = () => normalizeMissing(DB.items.slice(0, 8));
 
-const needsRetrofit = it => it.thumb_ar !== THUMB_AR && !!(it.image_norm || it.images?.length);
+const needsRetrofit = it => it.thumb_ar !== THUMB_FIT && !!(it.image_norm || it.images?.length);
 /** 저장 규격 이관 (4:5 → 3:4).
     이미 저장된 썸네일 자체를 원본으로 삼는다 — 네트워크가 필요 없고, 원격 원본을
     다시 받는 것보다 확실하다. noCrop 이라 어떤 사진도 잘려 나가지 않는다:
@@ -3423,7 +3729,7 @@ async function retrofitThumbs(opt){
     }
     it.images = out.filter(Boolean);
     it.image_norm = it.images[0] || '';
-    it.thumb_ar = THUMB_AR;
+    it.thumb_ar = THUMB_FIT;
     /* 중간에 끊겨도 진행분이 남도록 나눠 저장한다 */
     if (++done % 8 === 0){
       save();
@@ -3460,7 +3766,7 @@ render();
   await retrofitThumbs({progress: true});
   await autoNormalize();
   /* 이관 결과를 다른 기기로 넘긴다 (updated_at 을 올리지 않았으므로 편집 충돌은 없다) */
-  if (syncOn() && DB.items.some(i => i.thumb_ar === THUMB_AR)) syncSoon();
+  if (syncOn() && DB.items.some(i => i.thumb_ar === THUMB_FIT)) syncSoon();
 })();
 /* 주기적 자동 동기화는 쓰지 않는다.
    동기화 시점은 ① 앱을 열 때 한 번 ② 추가·편집·삭제가 생겼을 때 ③ 지금 동기화 버튼, 세 가지뿐이다.
