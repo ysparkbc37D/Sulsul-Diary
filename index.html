@@ -382,15 +382,24 @@ header.top{
     font-size:11.5px;color:var(--ink3);padding:0 8px}
   .side-foot .sk b{font-family:var(--serif);font-size:15px;color:var(--ink);font-weight:600}
 
+  /* 넓은 화면에서는 폭을 묶지 않는다 — max-width 를 두면 사이드바 오른쪽에
+     빈 띠가 남고 열 수가 고정된다(1180px 상한에서는 늘 5열이었다).
+     카드 최소폭(minmax)이 크기를 지키므로 열 수만 화면에 맞춰 늘어난다.
+     헤더 콘텐츠 시작점(236+24)과 .wrap 의 콘텐츠 시작점을 일치시켜 둔다. */
   header.top{padding-left:calc(236px + 24px);padding-right:24px}
-  .top-in{max-width:1180px}
+  .top-in{max-width:none}
   /* 워드마크는 사이드바로 옮겼다. 병 수(#hdCnt)는 상단바에 남겨 둔다 */
   .brand .wm, .brand .wm2{display:none}
   .brand .cnt{font-size:13px}
-  .wrap{max-width:1180px;margin-left:236px;padding-left:24px;padding-right:24px}
+  .wrap{max-width:none;margin-left:236px;padding-left:24px;padding-right:24px}
   #catSegs{display:none}                    /* 주종 전환은 사이드바가 담당 */
-  .grid{grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:16px}
-  .sheet{margin-left:236px}
+  /* 176px 은 임의값이 아니다 — auto-fill 은 남는 폭을 열에 나눠 주므로 하한이
+     높으면 열 수가 하나 줄면서 카드가 확 넓어진다. 176 은 1280~2560px 구간에서
+     카드 폭을 183~190px 로 붙잡아 화면 크기와 무관하게 같아 보이게 하는 값이다. */
+  .grid{grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:16px}
+  /* left 로 밀어야 margin:0 auto 가 사이드바 오른쪽 영역 안에서 중앙을 잡는다.
+     margin-left 로 밀면 auto 중앙정렬이 깨져 시트가 왼쪽에 붙는다. */
+  .sheet{left:236px}
   .scrim{left:236px}
 }
 .sh-head{
@@ -2825,6 +2834,24 @@ const QR_CAP = {
 };
 const QR_ALIGN = {1:[], 2:[6,18], 3:[6,22], 4:[6,26], 5:[6,30],
   6:[6,34], 7:[6,22,38], 8:[6,24,42], 9:[6,26,46], 10:[6,28,50]};
+/* 파인더·정렬 패턴은 규격 그림을 그대로 적는다(1=검정). 계산식으로 만들면
+   고리가 뒤집혀도 눈에 띄지 않는다 — 실제로 그렇게 한 번 깨졌다. */
+const QR_FINDER = [
+  [1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,1],
+  [1,0,1,1,1,0,1],
+  [1,0,1,1,1,0,1],
+  [1,0,1,1,1,0,1],
+  [1,0,0,0,0,0,1],
+  [1,1,1,1,1,1,1],
+];
+const QR_ALIGN_PAT = [
+  [1,1,1,1,1],
+  [1,0,0,0,1],
+  [1,0,1,0,1],
+  [1,0,0,0,1],
+  [1,1,1,1,1],
+];
 /** 포맷 정보 15비트 (BCH 15,5 + 마스킹) */
 function qrFormat(ecl, mask){
   const d = (({L:1, M:0, Q:3, H:2})[ecl] << 3) | mask;
@@ -2925,12 +2952,15 @@ function qrEncode(text, ecl){
   const m = Array.from({length: N}, () => new Int8Array(N).fill(0));
   const fn = Array.from({length: N}, () => new Int8Array(N).fill(0));
   const put = (r, c, v) => { m[r][c] = v; fn[r][c] = 1; };
+  /* 패턴은 계산식 대신 그림 그대로 둔다 — 예전에 max() 식으로 만들었다가
+     흰 고리와 검은 고리를 뒤집어 스캐너가 코드를 아예 찾지 못했다.
+     분리자(패턴 밖 한 줄)는 흰색이므로 -1..7 범위를 돌며 0 으로 채운다. */
   const finder = (r0, c0) => {
     for (let i = -1; i <= 7; i++) for (let j = -1; j <= 7; j++){
       const r = r0 + i, c = c0 + j;
       if (r < 0 || r >= N || c < 0 || c >= N) continue;
-      const d = Math.max(Math.abs(i - 3), Math.abs(j - 3));
-      put(r, c, (d === 1 || d > 3) ? 0 : 1);
+      const inside = i >= 0 && i <= 6 && j >= 0 && j <= 6;
+      put(r, c, inside ? QR_FINDER[i][j] : 0);
     }
   };
   finder(0, 0); finder(0, N - 7); finder(N - 7, 0);
@@ -2939,7 +2969,7 @@ function qrEncode(text, ecl){
   ac.forEach(r => ac.forEach(c => {
     if ((r === 6 && c === 6) || (r === 6 && c === last) || (r === last && c === 6)) return;
     for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++)
-      put(r + i, c + j, Math.max(Math.abs(i), Math.abs(j)) === 1 ? 0 : 1);
+      put(r + i, c + j, QR_ALIGN_PAT[i + 2][j + 2]);
   }));
   /* 포맷·버전 정보 자리를 먼저 잡아 데이터가 침범하지 않게 한다 */
   for (let i = 0; i <= 8; i++){ if (!fn[8][i]) put(8, i, 0); if (!fn[i][8]) put(i, 8, 0); }
