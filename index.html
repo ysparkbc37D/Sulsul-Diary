@@ -232,10 +232,10 @@ header.top{
 .card:active{transform:scale(.982)}
 @media(hover:hover){ .card:hover{box-shadow:var(--sh2);transform:translateY(-2px)} }
 .thumb{
-  position:relative;aspect-ratio:4/5;background:var(--shot);overflow:hidden;
+  position:relative;aspect-ratio:3/4;background:var(--shot);overflow:hidden;
   display:grid;place-items:center;border-bottom:1px solid var(--line);
 }
-/* 절대 위치로 빼야 원본 이미지의 내재 높이가 4:5 프레임을 밀어내지 못한다.
+/* 절대 위치로 빼야 원본 이미지의 내재 높이가 3:4 프레임을 밀어내지 못한다.
    카드는 풀블리드 — cover 로 프레임을 채우고, 정규화 썸네일은 THUMB_FILL(0.9) 만큼
    위아래 흰 띠가 구워져 있으므로 1/FILL 만큼 확대해 병이 프레임 높이를 꽉 채우게 한다.
    --thumb-fill 은 부팅 시 JS가 THUMB_FILL 값으로 덮어써 상수와 어긋나지 않는다. */
@@ -266,7 +266,7 @@ header.top{
   background:var(--surface);border:1px solid var(--line);border-radius:13px;box-shadow:var(--sh1);
 }
 .rowi:active{background:var(--surface2)}
-.rowi .th{width:38px;height:47px;border-radius:7px;overflow:hidden;flex:none;
+.rowi .th{width:36px;height:48px;border-radius:7px;overflow:hidden;flex:none;
   background:var(--shot);border:1px solid var(--line);position:relative}
 /* 38×47 타일에서 5% 흰 띠는 2px 남짓이라 확대 없이 cover 만으로 충분하다 */
 .rowi .th img{width:100%;height:100%;object-fit:cover;display:block}
@@ -352,7 +352,7 @@ header.top{
 /* ══════════════ record card ══════════════ */
 .hero{display:flex;gap:14px;margin-bottom:6px}
 .hero .im{
-  width:104px;flex:none;aspect-ratio:4/5;border-radius:12px;overflow:hidden;position:relative;
+  width:104px;flex:none;aspect-ratio:3/4;border-radius:12px;overflow:hidden;position:relative;
   background:var(--shot);border:1px solid var(--line);
 }
 .hero .im.raw img{inset:6px}
@@ -494,7 +494,7 @@ pre.csv{
   background:var(--accent-bg);box-shadow:inset 2px 0 0 var(--accent2)}
 .imgb{display:flex;gap:12px}
 .imgb .prev{
-  width:88px;flex:none;aspect-ratio:4/5;border-radius:11px;overflow:hidden;position:relative;
+  width:88px;flex:none;aspect-ratio:3/4;border-radius:11px;overflow:hidden;position:relative;
   background:var(--shot);border:1px solid var(--line);
 }
 .imgb .prev.raw img{inset:5px}
@@ -510,7 +510,7 @@ pre.csv{
 .cands{display:flex;gap:7px;overflow-x:auto;padding:2px;scrollbar-width:none}
 .cands::-webkit-scrollbar{display:none}
 .cand{
-  flex:none;width:58px;aspect-ratio:4/5;border-radius:9px;overflow:hidden;
+  flex:none;width:58px;aspect-ratio:3/4;border-radius:9px;overflow:hidden;
   background:var(--surface);border:1px solid var(--line);padding:3px;
 }
 .cand.on{border-color:var(--accent2);box-shadow:0 0 0 2px var(--accent-bg)}
@@ -571,7 +571,7 @@ pre.csv{
 /* 상세 화면 사진 묶음 */
 .shots{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
 .shot{
-  width:52px;aspect-ratio:4/5;border-radius:9px;overflow:hidden;
+  width:52px;aspect-ratio:3/4;border-radius:9px;overflow:hidden;
   background:var(--shot);border:1px solid var(--line);flex:none;
 }
 .shot{position:relative}
@@ -943,6 +943,9 @@ function normalize(o){
   it.images = Array.isArray(o.images) ? o.images.filter(Boolean).slice(0, MAX_SHOTS) : [];
   if (!it.images.length && it.image_norm) it.images = [it.image_norm];
   if (it.images.length) it.image_norm = it.images[0];
+  /* 썸네일이 어느 규격으로 저장됐는지 — 없거나 다르면 retrofitThumbs 가 다시 맞춘다.
+     KEYS/EXTRA 밖의 필드라 여기서 명시적으로 옮겨야 동기화에서 살아남는다 */
+  it.thumb_ar = o.thumb_ar || '';
   it.type ||= 'Single Malt';
   it.cat = CATS.includes(o.cat) ? o.cat
          : (CAT_MIGRATE[o.cat] || guessCat(it));
@@ -2255,7 +2258,7 @@ function openEdit(id, draft){
           <div class="shots" id="shotList"></div>
           <p class="hint">후보를 탭하거나 URL을 넣으면 <b>목록에 추가</b>됩니다 (최대 ${MAX_SHOTS}장).
             첫 번째 사진이 대표로 쓰이고, 사진을 탭하면 대표로 지정·다시 탭하면 삭제됩니다.<br>
-            적용된 사진은 <b>여백을 잘라 4:5 규격</b>으로 자동 맞춤됩니다.</p>
+            적용된 사진은 <b>여백을 잘라 ${THUMB_AR} 규격</b>으로 자동 맞춤됩니다.</p>
           <input type="file" id="fileIn" accept="image/*" multiple hidden>
         </div>
       </div>
@@ -2303,7 +2306,7 @@ function openEdit(id, draft){
     if (n){
       if (!shots.includes(n)) shots.push(n);
       rawFallback = '';
-      if (!quiet) toast(`사진을 4:5 규격으로 맞췄습니다 (${shots.length}/${MAX_SHOTS})`);
+      if (!quiet) toast(`사진을 ${THUMB_AR} 규격으로 맞췄습니다 (${shots.length}/${MAX_SHOTS})`);
     } else {
       rawFallback = source;
       if (!quiet) toast('이 출처는 자동 크기 조절이 제한됩니다 (원본 사용)');
@@ -2425,6 +2428,7 @@ function openEdit(id, draft){
     o.images = shots.slice(0, MAX_SHOTS);
     o.image_norm = o.images[0] || '';
     o.image_data = '';
+    o.thumb_ar = THUMB_AR;              // 방금 현재 규격으로 만든 사진이므로 이관 대상이 아니다
     o.image_credit = o.image_url ? credit : '';
     ['purchase_price','market_low','market_high'].forEach(k => o[k] = parsePrice(o[k]));
     if (!o.name_ko && !o.name_en){ toast('제품명은 필수입니다'); return; }
@@ -2438,9 +2442,13 @@ function openEdit(id, draft){
 }
 /* ══════════════════════════════════════════
    썸네일 정규화 — 모든 병 사진을 같은 크기·같은 비율로
-   ① 배경 여백 자동 트리밍 → ② 4:5 흰 캔버스 중앙 배치 → ③ 동일 배율
-   ══════════════════════════════════════════ */
-const THUMB_W = 360, THUMB_H = 450, THUMB_FILL = 0.9;
+   ① 배경 여백 자동 트리밍 → ② 3:4 흰 캔버스 중앙 배치 → ③ 동일 배율
+
+   규격은 3:4 (336×448). 4:5(360×450) 에서 옮겨온 값이며, 448×0.9=403px 은
+   옛 규격의 병 높이(450×0.9=405px)와 거의 같아 이관 시 확대 없이 재배치된다.
+   THUMB_AR 은 항목별 이관 표식으로 쓴다 — retrofitThumbs 참조. */
+const THUMB_AR = '3:4';
+const THUMB_W = 336, THUMB_H = 448, THUMB_FILL = 0.9;
 /* 카드의 풀블리드 확대율(1/FILL)이 이 상수를 따라가도록 CSS 로 넘긴다 */
 document.documentElement.style.setProperty('--thumb-fill', String(THUMB_FILL));
 const MAX_SHOTS = 5;                 // 병당 사진 최대 장수
@@ -2490,10 +2498,13 @@ function trimBox(d, w, h){
   x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
   return {x:x0, y:y0, w:x1 - x0 + 1, h:y1 - y0 + 1};
 }
-/** src(URL 또는 data URI) → 정규화된 4:5 썸네일 data URI. 실패 시 null
-    W/H 를 넘기면 그 규격으로 만든다(추가 사진은 조금 작게 저장) */
-async function normalizeThumb(src, W, H){
+/** src(URL 또는 data URI) → 정규화된 3:4 썸네일 data URI. 실패 시 null
+    W/H 를 넘기면 그 규격으로 만든다(추가 사진은 조금 작게 저장)
+    opt.noCrop: 가로가 넘쳐도 잘라내지 않고 폭 기준으로 줄여 전체를 담는다
+    opt.q: JPEG 품질(기본 0.8) */
+async function normalizeThumb(src, W, H, opt){
   W = W || THUMB_W; H = H || THUMB_H;
+  const noCrop = !!(opt && opt.noCrop);
   if (!src) return null;
   const local = src.startsWith('data:') || src.startsWith(location.origin);
   let im = null;
@@ -2520,11 +2531,11 @@ async function normalizeThumb(src, W, H){
   let sx = box.x, sy = box.y, sw = box.w, sh = box.h;
   const need = box.w * sc;
   if (need > W){
-    if (need <= W * 1.9){
+    if (noCrop || need > W * 1.9){
+      sc = W * THUMB_FILL / box.w;               // 폭 기준 → 전체가 들어간다(잘라내지 않음)
+    } else {
       const keep = W / sc;                       // 원본에서 유지할 가로 폭
       sx = box.x + (box.w - keep) / 2; sw = keep;
-    } else {
-      sc = W * THUMB_FILL / box.w;               // 초광각 → 폭 기준
     }
   }
   const dw = Math.max(1, Math.round(sw * sc)), dh = Math.max(1, Math.round(sh * sc));
@@ -2535,7 +2546,7 @@ async function normalizeThumb(src, W, H){
   g1.imageSmoothingEnabled = true; g1.imageSmoothingQuality = 'high';
   g1.drawImage(c0, sx, sy, sw, sh,
     Math.round((W - dw) / 2), Math.round((H - dh) / 2), dw, dh);
-  try{ return c1.toDataURL('image/jpeg', 0.8); }catch(e){ return null; }
+  try{ return c1.toDataURL('image/jpeg', (opt && opt.q) || 0.8); }catch(e){ return null; }
 }
 
 /* ── export / import ──────────────────────── */
@@ -2759,6 +2770,7 @@ function openData(){
   const photos = DB.items.filter(i => i.image_norm || i.image_data).length;
   const drafts = DB.items.filter(i => i.draft === '1').length;
   const raws = DB.items.filter(i => !i.image_norm && (i.image_url || i.image_data)).length;
+  const olds = DB.items.filter(needsRetrofit).length;   // 옛 4:5 규격으로 저장된 병
   let bytes = 0;
   try{ bytes = new Blob([localStorage.getItem(LS) || '']).size; }catch(e){}
   const dark = document.documentElement.dataset.theme === 'dark';
@@ -2825,10 +2837,11 @@ function openData(){
 
     <h4 class="sec">썸네일</h4>
     <div class="stack">
-      <button class="btn" id="normAll">등록된 사진 크기 일괄 맞춤 (${raws}병 대상)</button>
+      <button class="btn" id="normAll">등록된 사진 크기 일괄 맞춤 (${raws + olds}병 대상)</button>
     </div>
-    <p class="hint" style="margin-top:8px">여백을 잘라내고 4:5 규격(${THUMB_W}×${THUMB_H})으로 중앙 정렬합니다.
-      외부 사이트가 이미지 접근을 제한하면 원본이 그대로 표시됩니다.</p>
+    <p class="hint" style="margin-top:8px">여백을 잘라내고 ${THUMB_AR} 규격(${THUMB_W}×${THUMB_H})으로 중앙 정렬합니다.
+      외부 사이트가 이미지 접근을 제한하면 원본이 그대로 표시됩니다.${olds
+        ? `<br>옛 4:5 규격으로 저장된 <b>${olds}병</b>이 있습니다 — 잘라내지 않고 다시 맞춥니다.` : ''}</p>
 
     <h4 class="sec">앱</h4>
     <div class="stack">
@@ -3028,11 +3041,13 @@ function openData(){
   $('#expQuick').onclick = () => copy(DB.items.map(quickCSV).join('\r\n'));
   $('#normAll').onclick = async () => {
     const targets = DB.items.filter(i => !i.image_norm && (i.image_url || i.image_data));
-    if (!targets.length) return toast('맞출 대상이 없습니다');
+    if (!targets.length && !DB.items.some(needsRetrofit)) return toast('맞출 대상이 없습니다');
     const b = $('#normAll'); b.disabled = true; b.textContent = '맞추는 중…';
-    const ok = await normalizeMissing(targets, {progress: true});
+    /* 옛 규격 재맞춤이 먼저다 — 뒤에 오는 normalizeMissing 이 새 규격으로 채운다 */
+    const fixed = await retrofitThumbs({progress: true});
+    const ok = targets.length ? await normalizeMissing(targets, {progress: true}) : 0;
     openData();
-    if (!ok) toast('출처 제한으로 맞출 수 없었습니다 — 원본을 그대로 표시합니다');
+    if (!ok && !fixed) toast('출처 제한으로 맞출 수 없었습니다 — 원본을 그대로 표시합니다');
   };
   $('#btnTheme').onclick = () => { setTheme(dark ? 'light' : 'dark'); openData(); };
   $('#btnInstall').onclick = () => {
@@ -3218,7 +3233,7 @@ async function normalizeMissing(list, opt){
   for (let i = 0; i < t.length; i++){
     if (talk) toast(`썸네일 규격 맞추는 중… ${i + 1}/${t.length}`);
     const n = await normalizeThumb(t[i].image_url || t[i].image_data);
-    if (n){ t[i].image_norm = n; t[i].image_data = ''; ok++; }
+    if (n){ t[i].image_norm = n; t[i].images = [n]; t[i].image_data = ''; t[i].thumb_ar = THUMB_AR; ok++; }
   }
   if (ok){ save(); render(); }
   if (talk) toast(`썸네일 ${ok}장 정리 완료${t.length - ok ? ` · ${t.length - ok}장은 출처 제한` : ''}`);
@@ -3226,6 +3241,44 @@ async function normalizeMissing(list, opt){
 }
 /* 부팅은 시작을 늦추지 않도록 8장만 (나머지는 가져오기 직후·설정에서 일괄 처리) */
 const autoNormalize = () => normalizeMissing(DB.items.slice(0, 8));
+
+const needsRetrofit = it => it.thumb_ar !== THUMB_AR && !!(it.image_norm || it.images?.length);
+/** 저장 규격 이관 (4:5 → 3:4).
+    이미 저장된 썸네일 자체를 원본으로 삼는다 — 네트워크가 필요 없고, 원격 원본을
+    다시 받는 것보다 확실하다. noCrop 이라 어떤 사진도 잘려 나가지 않는다:
+    3:4 에 가로가 넘치면 폭 기준으로 줄여 위아래를 흰 여백으로 남긴다.
+    실패한 장은 기존 것을 그대로 두어 사진을 잃지 않는다.
+
+    updated_at 은 일부러 올리지 않는다. 파생 데이터 갱신일 뿐인데 시각을 올리면
+    mergeSnapshot 이 이 항목을 '더 새것'으로 보고 다른 기기의 최근 편집을 덮어쓴다.
+    대신 표식(thumb_ar)이 없는 항목을 매번 찾으므로, 동기화가 옛 썸네일을
+    되돌려도 다음 부팅에 스스로 복구된다. */
+async function retrofitThumbs(opt){
+  const t = DB.items.filter(needsRetrofit);
+  if (!t.length) return 0;
+  const talk = opt?.progress && t.length > 3;
+  let ok = 0, keep = 0, done = 0;
+  for (const it of t){
+    const src = it.images?.length ? it.images : [it.image_norm];
+    const out = [];
+    for (let k = 0; k < src.length; k++){
+      const n = await normalizeThumb(src[k], k ? EXTRA_W : THUMB_W, k ? EXTRA_H : THUMB_H,
+        {noCrop: true, q: 0.86});     // 재인코딩 손실을 줄이려 품질을 조금 올린다
+      if (n){ out.push(n); ok++; } else { out.push(src[k]); keep++; }
+    }
+    it.images = out.filter(Boolean);
+    it.image_norm = it.images[0] || '';
+    it.thumb_ar = THUMB_AR;
+    /* 중간에 끊겨도 진행분이 남도록 나눠 저장한다 */
+    if (++done % 8 === 0){
+      save();
+      if (talk) toast(`썸네일 3:4 규격으로 맞추는 중… ${done}/${t.length}`);
+    }
+  }
+  save(); render();
+  if (talk) toast(`썸네일 ${ok}장을 3:4 로 맞췄습니다${keep ? ` · ${keep}장은 기존 유지` : ''}`);
+  return ok;
+}
 
 /* ── boot ─────────────────────────────────── */
 try{ const t = localStorage.getItem(LS_THEME); if (t) setTheme(t); }catch(e){}
@@ -3238,11 +3291,22 @@ load();
   if (c['위스키'] && Object.keys(c).length > 1) V.cat = '위스키';
 }
 render();
-setTimeout(autoNormalize, 700);
-if (syncOn()){
-  syncBadge('busy');
-  setTimeout(() => syncNow(true), 300);
-}
+/* 순서가 중요하다: 규격 이관은 반드시 첫 동기화가 끝난 뒤에 한다.
+   먼저 이관하면 곧바로 들어오는 원격 스냅샷이 옛 썸네일로 되돌려 헛일이 된다. */
+(async () => {
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  if (syncOn()){
+    syncBadge('busy');
+    await wait(300);
+    try{ await syncNow(true); }catch(e){}
+  } else {
+    await wait(700);
+  }
+  await retrofitThumbs({progress: true});
+  await autoNormalize();
+  /* 이관 결과를 다른 기기로 넘긴다 (updated_at 을 올리지 않았으므로 편집 충돌은 없다) */
+  if (syncOn() && DB.items.some(i => i.thumb_ar === THUMB_AR)) syncSoon();
+})();
 /* 주기적 자동 동기화는 쓰지 않는다.
    동기화 시점은 ① 앱을 열 때 한 번 ② 추가·편집·삭제가 생겼을 때 ③ 지금 동기화 버튼, 세 가지뿐이다.
    아래는 "대기 중인 업로드"를 놓치지 않기 위한 처리이며 새로 동기화를 유발하지 않는다.
