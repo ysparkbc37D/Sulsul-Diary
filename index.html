@@ -152,6 +152,22 @@ header.top{
 }
 .sline{font-size:11.5px;color:var(--ink3);white-space:nowrap;padding-left:2px}
 .sline:empty{display:none}
+/* 필터 버튼 — 적용된 개수를 배지로 보여준다 */
+.fbtn{background-image:none;padding:0 12px;font-weight:600;color:var(--ink)}
+.fbtn b{color:var(--accent);margin-left:5px;font-size:11.5px}
+.fbtn b:empty{display:none}
+.fbtn.on{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent)}
+/* 리스트/그리드 전환 */
+.viewtg{
+  width:33px;height:33px;border-radius:9px;flex:none;margin-left:auto;
+  background:var(--surface);border:1px solid var(--line);color:var(--ink2);
+  display:grid;place-items:center;font-size:14px;
+}
+.viewtg:active{background:var(--surface2)}
+/* 활성 필터 칩 */
+#activeChips:empty{display:none}
+#activeChips .chip{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent);font-weight:600}
+#activeChips .chip i{font-style:normal;margin-left:5px;color:var(--accent2)}
 
 /* ══════════════ grid ══════════════ */
 .grid{display:grid;gap:12px;margin-top:16px;grid-template-columns:repeat(auto-fill,minmax(152px,1fr))}
@@ -172,10 +188,38 @@ header.top{
 .thumb.raw img{inset:9px}
 .ph{
   position:absolute;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:4px;background:var(--surface2);
+  align-items:center;justify-content:center;gap:4px;
+  background:linear-gradient(170deg, var(--phA, #f3efe8), var(--phB, #e9e2d6));
 }
-.ph span{font-family:var(--serif);font-size:25px;color:var(--accent2);letter-spacing:.03em}
-.ph small{font-size:9.5px;color:var(--ink3);letter-spacing:.06em}
+.ph span{font-family:var(--serif);font-size:22px;color:var(--phT, #a98b52);letter-spacing:.03em;
+  position:relative;z-index:1}
+.ph small{font-size:9.5px;color:var(--ink3);letter-spacing:.06em;position:relative;z-index:1}
+/* 병 실루엣 — 사진 없는 카드가 단조롭지 않게 */
+.ph svg{position:absolute;width:46%;max-width:70px;opacity:.16;color:var(--phT, #a98b52)}
+/* 잔량 게이지 (오픈한 병) */
+.lvl{height:3px;border-radius:2px;background:var(--surface2);overflow:hidden;margin-top:7px}
+.lvl i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent))}
+.lvlx{font-size:10.5px;color:var(--ink3);margin-left:auto}
+/* 리스트 뷰 */
+.listv{display:flex;flex-direction:column;gap:7px;margin-top:16px}
+.rowi{
+  display:flex;align-items:center;gap:11px;padding:9px 11px;text-align:left;
+  background:var(--surface);border:1px solid var(--line);border-radius:13px;box-shadow:var(--sh1);
+}
+.rowi:active{background:var(--surface2)}
+.rowi .th{width:38px;height:47px;border-radius:7px;overflow:hidden;flex:none;
+  background:#fff;border:1px solid var(--line);position:relative}
+.rowi .th img{width:100%;height:100%;object-fit:contain;display:block}
+.rowi .ph span{font-size:13px}
+.rowi .ph small{display:none}
+.rowi .ph svg{width:52%}
+.rowi .mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rowi .nm{font-size:13.5px;font-weight:600;letter-spacing:-.015em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rowi .sub{font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rowi .rt{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:none}
+/* 리스트 행의 잔량 바는 짧게 — 넓으면 구분선처럼 보인다 */
+.rowi .lvl{max-width:110px}
 .dot{position:absolute;top:9px;right:9px;width:7px;height:7px;border-radius:50%}
 .s-sealed{background:var(--ok)} .s-open{background:var(--warn)} .s-empty{background:var(--off)}
 .s-tried{background:transparent;border:2px solid var(--accent2);width:9px;height:9px}
@@ -268,6 +312,23 @@ h4.sec{
   text-transform:uppercase;display:flex;align-items:center;gap:10px;
 }
 h4.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+/* 핵심 4개 스탯 스트립 — 11행 표를 매번 훑지 않게 한다 */
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.strip > div{
+  background:var(--surface2);border-radius:11px;padding:9px 6px;text-align:center;min-width:0;
+}
+.strip span{display:block;font-size:9.5px;letter-spacing:.08em;color:var(--ink3);text-transform:uppercase}
+.strip b{display:block;font-family:var(--serif);font-size:15px;margin-top:3px;letter-spacing:-.01em}
+.caskline{margin:10px 0 0;font-size:12.5px;color:var(--ink2);line-height:1.55}
+.caskline span{font-size:9.5px;letter-spacing:.1em;color:var(--ink3);text-transform:uppercase;margin-right:6px}
+.more{margin-top:12px}
+.more summary{
+  cursor:pointer;font-size:12.5px;color:var(--accent);padding:8px 0;
+  list-style:none;display:flex;align-items:center;gap:5px;
+}
+.more summary::-webkit-details-marker{display:none}
+.more summary::after{content:'▾';font-size:10px}
+.more[open] summary::after{content:'▴'}
 table.spec{width:100%;border-collapse:collapse;font-size:13.5px}
 table.spec th,table.spec td{padding:9px 2px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 table.spec th{width:98px;color:var(--ink3);font-weight:500;white-space:nowrap;font-size:12.5px}
@@ -288,6 +349,22 @@ table.spec tr:last-child th,table.spec tr:last-child td{border-bottom:none}
 .rlist{margin-top:12px;display:flex;flex-direction:column;gap:7px}
 .rlist div{display:flex;font-size:12.5px;gap:10px}
 .rlist b{width:92px;flex:none;color:var(--ink3);font-weight:500}
+/* 잔량 패널 */
+.lvlbig{margin-bottom:14px}
+.lvlbar{height:8px;border-radius:4px;background:var(--surface2);overflow:hidden}
+.lvlbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent))}
+.lvlrow{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;
+  font-size:12.5px;color:var(--ink2)}
+.lvlrow b{color:var(--accent)}
+.lvlbtns{display:flex;gap:5px;margin-left:auto}
+/* 시음 기록 */
+.sess{display:flex;flex-direction:column;gap:8px}
+.sitem{background:var(--surface2);border-radius:12px;padding:10px 12px}
+.sitem .sh{display:flex;align-items:center;gap:8px}
+.sitem .sh b{font-size:12.5px;color:var(--ink)}
+.sitem .sdel{margin-left:auto;color:var(--ink3);font-size:12px;width:22px;height:22px;border-radius:6px}
+.sitem .sm{font-size:11.5px;color:var(--ink3);margin-top:3px}
+.sitem p{margin:6px 0 0;font-size:13px;line-height:1.6;color:var(--ink2)}
 pre.csv{
   background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:11px;
   font-size:11px;overflow-x:auto;white-space:pre;color:var(--ink2);margin:0;
@@ -344,6 +421,13 @@ pre.csv{
   padding:10px 11px;font-size:14px;
 }
 .f textarea{min-height:62px;resize:vertical;line-height:1.55}
+/* 잔량 슬라이더 */
+.rng{display:flex;align-items:center;gap:9px}
+.rng input[type=range]{flex:1;accent-color:var(--accent);padding:0;background:none;border:none}
+.rng output{font-size:12.5px;color:var(--accent);font-weight:700;min-width:38px;text-align:right}
+/* 맛 프로필 칩 입력 */
+.fchips{padding:2px 0}
+.fchips .chip.on{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent);font-weight:600}
 .f input:focus,.f select:focus,.f textarea:focus{
   outline:none;border-color:var(--accent-line);box-shadow:0 0 0 3px var(--accent-bg)}
 .f.drafted input,.f.drafted textarea,.f.drafted select{
@@ -470,16 +554,7 @@ pre.csv{
     </div>
     <div class="chips" id="typeChips"></div>
     <div class="rowf">
-      <select class="sel" id="statusSel">
-        <option value="all">상태 전체</option>
-        <option value="__owned">보유만</option>
-        <option value="미개봉">미개봉</option>
-        <option value="오픈">오픈</option>
-        <option value="비움">비움</option>
-        <option value="경험">유경험</option>
-        <option value="__draft">초안</option>
-      </select>
-      <select class="sel" id="ageSel"></select>
+      <button class="sel fbtn" id="btnFilter">필터<b id="fCount"></b></button>
       <select class="sel" id="sortSel">
         <option value="recent">최근 등록순</option>
         <option value="bought">구입일순</option>
@@ -487,9 +562,13 @@ pre.csv{
         <option value="score">평점순</option>
         <option value="price">가격순</option>
         <option value="abv">도수순</option>
+        <option value="left">잔량순</option>
+        <option value="opened">개봉일순</option>
       </select>
       <span class="sline" id="statLine"></span>
+      <button class="viewtg" id="btnView" aria-label="보기 전환"></button>
     </div>
+    <div class="chips" id="activeChips"></div>
   </div>
   <div class="grid" id="grid"></div>
   <div id="emptyBox"></div>
@@ -547,9 +626,9 @@ const CAT_RULES = [
   /* '토탈와인'(판매처) · '레드와인 캐스크'처럼 다른 낱말에 붙은 와인은 제외한다 */
   [/(?<![가-힣])와인(?![가-힣])|\bwine\b(?!.*cask)|샴페인|champagne/i, '와인'],
   [/리큐르|liqueur|캄파리|칸파리|campari|예거|jager|우메슈|매실|애플|apple|베일리스|깔루아|네그로니|말리부|malibu/i, '리큐르'],
-  [/꼬냑|코냑|cognac|아르마냑|armagnac|브랜디|brandy|하디|hardy|vsop|\bxo\b/i, '기타주류'],
-  [/\b럼\b|럼주|\brum\b|바카디|bacardi|캡틴모건/i, '기타주류'],
-  [/\b진\b|\bgin\b|봄베이|bombay|헨드릭|hendrick|탱커레이|비피터/i, '기타주류'],
+  [/꼬냑|코냑|cognac|아르마냑|armagnac|브랜디|brandy|(?<![가-힣])하디(?![가-힣])|\bhardy\b|vsop|\bxo\b/i, '기타주류'],
+  [/(?<![가-힣])럼(?![가-힣])|럼주|\brum\b|바카디|bacardi|캡틴모건/i, '기타주류'],
+  [/(?<![가-힣])진(?![가-힣])|\bgin\b|봄베이|bombay|헨드릭|hendrick|탱커레이|비피터/i, '기타주류'],
   [/보드카|vodka|앱솔루트|스미노프/i, '기타주류'],
   [/사케|정종|준마이|다이긴조|청주|막걸리|약주|증류식소주|안동소주|청명주|백화수복/i, '기타주류'],
   [/위스키|whisky|whiskey|버번|bourbon|몰트|malt|스카치|scotch|\b라이\b|\brye\b/i, '위스키'],
@@ -578,9 +657,29 @@ function guessCat(it){
   if (/malt|bourbon|rye|irish|whisk|grain|tennessee/i.test(it.type || '')) return '위스키';
   return '위스키';   // 이 앱의 기본값
 }
-/* '경험'은 구매하지 않고 마셔본 위스키 — 보유 병수·구매액 집계에서 제외된다 */
-const STATUS = ['미개봉','오픈','비움','경험'];
+/* '경험'은 구매하지 않고 마셔본 것, '위시'는 아직 사지 않은 것 —
+   둘 다 보유 병수·구매액 집계에서 제외된다 */
+const STATUS = ['미개봉','오픈','비움','경험','위시'];
 const OWNED = ['미개봉','오픈','비움'];
+
+/* 맛 프로필 — 스프레드시트의 '부종류' 분류를 그대로 쓴다 */
+const FLAVORS = ['피트','셰리','과일','버번','와인','라이'];
+const FLAVOR_RULES = [
+  ['피트', /피트|피티드|peat|스모크|스모키|smoky|smokehead|아일라|islay|아드벡|ardbeg|라프로익|laphroaig|라가불린|lagavulin|쿨일라|caol ?ila|탈리스커|talisker|레댁|ledaig|포트샬롯|port charlotte|옥토모어|octomore|킬호만|kilchoman|빅피트|big peat|요이치|yoichi|아드모어|ardmore|일리악|ileach/i],
+  ['셰리', /셰리|쉐리|sherry|\bpx\b|페드로|올로로소|oloroso|아모로소|amoroso|아몬틸라도|amontillado|마데이라|madeira|만자니야|manzanilla/i],
+  ['와인', /와인|wine|포트|\bport\b|타니|tawny|무스캇|muscat|샤도네이|chardonnay|소테른|sauternes|모스카텔|moscatel|퀸타|quinta/i],
+  /* 한글에는 \b 가 동작하지 않는다(\w 가 ASCII 기준) → 앞뒤 한글 여부로 경계를 만든다 */
+  ['라이',  /(?<![가-힣])라이(?![가-힣])|\brye\b|호밀/i],
+  /* '엑스버번 캐스크'는 스카치 대부분이 쓰므로 버번 맛이 아니다 → 숙성 표기는 제외 */
+  ['버번', /(?<![가-힣])버번(?!\s*(?:캐스크|배럴|통))|(?<!ex[- ]?)(?<!리필\s?)\bbourbon\b(?!\s*(?:cask|barrel))|테네시|tennessee|켄터키|kentucky|배럴\s?프루프|barrel\s?proof/i],
+];
+/** 캐스크·이름·타입에서 맛 프로필을 추정한다 (없으면 과일) */
+function guessFlavors(it){
+  const hay = [it.name_ko, it.name_en, it.cask, it.type, it.tags, it.nose, it.taste, it.region]
+    .filter(Boolean).join(' ');
+  const out = FLAVOR_RULES.filter(([, re]) => re.test(hay)).map(([f]) => f);
+  return (out.length ? out : ['과일']).join(',');
+}
 /* 숙성 년수 필터 구간 */
 const AGE_BANDS = [
   ['all','숙성 전체', () => true],
@@ -616,7 +715,10 @@ const FIELDS = [
   ['rating_wb','Whiskybase','text'],
   ['rating_my','내 점수(100점)','number'],
   ['status','상태','select',0,STATUS],
-  ['remaining_pct','잔량(%)','number'],
+  ['opened_at','개봉일','date'],
+  ['remaining_pct','잔량(%)','range'],
+  ['storage','보관 위치','text'],
+  ['flavors','맛 프로필','flavors',1],
   ['tags','태그(쉼표 구분)','text',1],
   ['notes','메모','textarea',1],
 ];
@@ -626,7 +728,8 @@ const QUICK = ['name_ko','type','abv','cask','purchase_date','purchase_price',
   '__market','nose','taste','finish','__rating','image_url'];
 
 let DB = {items:[], meta:{}};
-let V = {q:'', cat:'all', type:'all', status:'all', age:'all', sort:'recent'};
+let V = {q:'', cat:'all', type:'all', status:'all', age:'all', flavor:'all',
+         sort:'recent', view:'grid'};
 let installEvt = null;
 
 /* 추천 정렬용 우선도 — 테이스팅 노트를 직접 정리한 증류소, 제품 라인업이 있는 증류소를 앞세운다 */
@@ -786,6 +889,16 @@ function normalize(o){
     if (st && (!it.type || TYPES.includes(it.type) || it.type === '기타')) it.type = st;
   }
   it.status = STATUS.includes(it.status) ? it.status : '미개봉';
+  /* 맛 프로필 — 없으면 캐스크·이름에서 추정 */
+  it.flavors = String(o.flavors || '').split(',').map(s => s.trim()).filter(Boolean).join(',')
+    || guessFlavors(it);
+  it.opened_at = o.opened_at || '';
+  it.storage = o.storage || '';
+  /* 시음 세션 로그 — [{at, place, mate, score, note}] */
+  it.sessions = Array.isArray(o.sessions) ? o.sessions.filter(s => s && s.at) : [];
+  /* 오픈 상태면 잔량 기본 100, 비움이면 0 */
+  if (it.status === '비움') it.remaining_pct = '0';
+  else if (it.status === '오픈' && it.remaining_pct === '') it.remaining_pct = '100';
   it.created_at = o.created_at || nowISO();
   it.updated_at = o.updated_at || it.created_at;
   return it;
@@ -1432,6 +1545,7 @@ function visible(){
     else if (V.status === '__owned'){ if (!OWNED.includes(it.status)) return false; }
     else if (V.status !== 'all' && it.status !== V.status) return false;
     if (!band[2](ageNum(it))) return false;
+    if (V.flavor !== 'all' && !String(it.flavors || '').split(',').includes(V.flavor)) return false;
     if (!q) return true;
     return ['name_ko','name_en','distillery','cask','region','country','tags','type','notes']
       .some(k => String(it[k] ?? '').toLowerCase().includes(q));
@@ -1443,6 +1557,8 @@ function visible(){
     score:  (x, y) => bestScore(y) - bestScore(x),
     price:  (x, y) => marketMid(y) - marketMid(x),
     abv:    (x, y) => (Number(y.abv) || 0) - (Number(x.abv) || 0),
+    left:   (x, y) => (Number(x.remaining_pct) || 0) - (Number(y.remaining_pct) || 0),
+    opened: (x, y) => (y.opened_at || '').localeCompare(x.opened_at || ''),
   };
   return a.sort(S[V.sort] || S.recent);
 }
@@ -1472,41 +1588,97 @@ function render(){
         t === 'all' ? '전체' : esc(t)}<b>${t === 'all' ? inCat.length : inCat.filter(i => i.type === t).length}</b></button>`).join('')
     : '';
 
-  /* 개수는 검색·상태·숙성 필터를 쓸 때만 표시한다.
-     주종 탭·타입 칩에는 이미 개수가 붙어 있어 중복이고, 폰에서 필터 줄을 밀어낸다. */
-  const filtering = V.q.trim() || V.status !== 'all' || V.age !== 'all';
-  $('#statLine').textContent = filtering ? items.length + '병' : '';
+  /* 적용된 필터 개수를 버튼 배지로, 각 필터를 지울 수 있는 칩으로 보여준다 */
+  const act = [];
+  if (V.status !== 'all') act.push(['status', (STATUS_OPTS.find(o => o[0] === V.status) || [, V.status])[1]]);
+  if (V.age !== 'all')    act.push(['age', (AGE_BANDS.find(b => b[0] === V.age) || [, V.age])[1]]);
+  if (V.flavor !== 'all') act.push(['flavor', V.flavor]);
+  $('#fCount').textContent = act.length || '';
+  $('#btnFilter').classList.toggle('on', act.length > 0);
+  $('#activeChips').innerHTML = act.map(([k, t]) =>
+    `<button class="chip" data-clr="${k}">${esc(t)}<i>✕</i></button>`).join('');
+  $('#statLine').textContent = (V.q.trim() || act.length) ? items.length + '병' : '';
+  $('#btnView').textContent = V.view === 'grid' ? '☰' : '▦';
+  $('#btnView').title = V.view === 'grid' ? '리스트로 보기' : '그리드로 보기';
 
-  $('#grid').innerHTML = items.map(cardHTML).join('');
+  $('#grid').className = V.view === 'list' ? 'listv' : 'grid';
+  $('#grid').innerHTML = items.map(V.view === 'list' ? rowHTML : cardHTML).join('');
   $('#emptyBox').innerHTML = items.length ? '' : (DB.items.length
     ? `<div class="empty"><h3>검색 결과가 없습니다</h3><p>다른 키워드나 필터를 시도해 보세요.</p></div>`
     : `<div class="empty"><h3>첫 병을 등록해 보세요</h3>
        <p>우측 상단 <b>＋ 추가</b>에 이름만 입력하면<br>사양·테이스팅 노트 초안이 자동으로 채워집니다.</p></div>`);
 }
+/* 주종별 플레이스홀더 색조 — 사진 없는 카드가 단조롭지 않게 */
+const PH_TONE = {
+  '위스키': ['#f5f0e6','#e8dfcd','#a9853f'],
+  '리큐르': ['#f7eef0','#eddfe3','#b06277'],
+  '기타주류': ['#eef2f3','#dfe6e8','#5f8592'],
+  '와인': ['#f4edf1','#e6dae1','#8e5a72'],
+};
+const BOTTLE_SVG = `<svg viewBox="0 0 24 48" fill="currentColor" aria-hidden="true"><path d="M10 2h4v9c0 1.6 3.5 3.4 3.5 7.5V43a3 3 0 0 1-3 3h-5a3 3 0 0 1-3-3V18.5C6.5 14.4 10 12.6 10 11V2z"/></svg>`;
+function phHTML(it, small){
+  const [a, b, t] = PH_TONE[it.cat] || PH_TONE['위스키'];
+  return `<div class="ph" style="--phA:${a};--phB:${b};--phT:${t}">${BOTTLE_SVG}
+    <span>${esc(initials(it))}</span>${small ? '' : '<small>이미지 없음</small>'}</div>`;
+}
+/** 오픈한 병의 잔량 (0~100) — 표시 대상이 아니면 null */
+const levelOf = it => (it.status === '오픈' && it.remaining_pct !== '' && !isNaN(it.remaining_pct))
+  ? Math.max(0, Math.min(100, Number(it.remaining_pct))) : null;
+
+function badges(it, sc){
+  return `${sc ? `<span class="sc">${sc}</span>` : ''}`
+    + `${it.status === '경험' ? `<span class="trd">경험</span>` : ''}`
+    + `${it.status === '위시' ? `<span class="trd">위시</span>` : ''}`
+    + `${it.draft === '1' ? `<span class="dr">초안</span>` : ''}`;
+}
 function cardHTML(it){
   const src = imgOf(it);
-  const sc = bestScore(it), price = marketMid(it);
+  const sc = bestScore(it), price = marketMid(it), lv = levelOf(it);
   const sub = [it.type, it.age && it.age !== 'NAS' ? it.age + 'Y' : ''].filter(Boolean).join(' · ');
   return `<button class="card" data-open="${it.id}">
     <div class="thumb${isRaw(it) ? ' raw' : ''}">
       ${src
         ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async"
              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-           <div class="ph" style="display:none"><span>${esc(initials(it))}</span><small>이미지 없음</small></div>`
-        : `<div class="ph"><span>${esc(initials(it))}</span><small>이미지 없음</small></div>`}
+           ${phHTML(it).replace('<div class="ph"', '<div class="ph" style="display:none;')}`
+        : phHTML(it)}
       <span class="dot ${statusCls(it.status)}" title="${esc(it.status)}"></span>
     </div>
     <div class="cbody">
       <div class="ctype">${esc(sub)}</div>
       <h3>${esc(fullName(it))}</h3>
       <div class="cfoot">
-        ${sc ? `<span class="sc">${sc}</span>` : ''}
-        ${it.status === '경험' ? `<span class="trd">경험</span>` : ''}
-        ${it.draft === '1' ? `<span class="dr">초안</span>` : ''}
+        ${badges(it, sc)}
         ${!sc && it.abv ? `<span class="abv">${esc(it.abv)}%</span>` : ''}
-        ${price ? `<span class="pr">${wonShort(price)}</span>` : ''}
+        ${lv !== null ? `<span class="lvlx">잔량 ${lv}%</span>`
+          : price ? `<span class="pr">${wonShort(price)}</span>` : ''}
       </div>
+      ${lv !== null ? `<div class="lvl"><i style="width:${lv}%"></i></div>` : ''}
     </div>
+  </button>`;
+}
+/** 리스트 뷰 한 줄 — 133병을 훑을 때 그리드보다 빠르다 */
+function rowHTML(it){
+  const src = imgOf(it);
+  const sc = bestScore(it), price = marketMid(it), lv = levelOf(it);
+  const sub = [it.distillery || it.type, it.age && it.age !== 'NAS' ? it.age + '년' : '',
+    it.abv ? it.abv + '%' : '', it.flavors].filter(Boolean).join(' · ');
+  return `<button class="rowi" data-open="${it.id}">
+    <span class="th">${src
+      ? `<img src="${esc(src)}" alt="" loading="lazy" decoding="async"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+         ${phHTML(it, true).replace('<div class="ph"', '<div class="ph" style="display:none;')}`
+      : phHTML(it, true)}</span>
+    <span class="mid">
+      <span class="nm">${esc(fullName(it))}</span>
+      <span class="sub">${esc(sub)}</span>
+      ${lv !== null ? `<span class="lvl" style="margin-top:4px"><i style="width:${lv}%"></i></span>` : ''}
+    </span>
+    <span class="rt">
+      ${badges(it, sc)}
+      ${lv !== null ? `<span class="lvlx">${lv}%</span>`
+        : price ? `<span class="pr">${wonShort(price)}</span>` : ''}
+    </span>
   </button>`;
 }
 
@@ -1549,11 +1721,33 @@ function closeSheet(fromBack){
   if (!fromBack && history.state?.wc === 'sheet'){ try{ history.back(); }catch(e){} }
 }
 
+/* ── 시음 기록 ────────────────────────────── */
+const dayssince = d => {
+  if (!d) return '';
+  const n = Math.floor((Date.now() - new Date(d + 'T00:00:00')) / 86400000);
+  return n <= 0 ? '오늘' : n === 1 ? '어제' : n < 30 ? n + '일 경과'
+    : n < 365 ? Math.floor(n / 30) + '개월 경과' : (n / 365).toFixed(1) + '년 경과';
+};
+function sessionsHTML(it){
+  if (!it.sessions.length)
+    return `<p class="hint">아직 시음 기록이 없습니다 — 마신 날의 인상을 남겨 두면 나중에 비교하기 좋습니다.</p>`;
+  return [...it.sessions].sort((a, b) => (b.at || '').localeCompare(a.at || '')).map((s, i) => `
+    <div class="sitem">
+      <div class="sh">
+        <b>${esc(s.at || '')}</b>
+        ${s.score ? `<span class="sc">${esc(s.score)}</span>` : ''}
+        <button class="sdel" data-sdel="${esc(s.at)}|${esc(s.note || '').slice(0, 12)}" title="삭제">✕</button>
+      </div>
+      ${(s.place || s.mate) ? `<div class="sm">${[s.place, s.mate].filter(Boolean).map(esc).join(' · ')}</div>` : ''}
+      ${s.note ? `<p>${esc(s.note)}</p>` : ''}
+    </div>`).join('');
+}
 /* ── detail: 기록 카드 ────────────────────── */
 function openDetail(id){
   const it = byId(id); if (!it) return;
   const src = imgOf(it);
   const shots = shotsOf(it);
+  const lv = levelOf(it);
   const rows = [
     ['위스키 타입', it.type],
     ['원산지 / 증류소', [it.country, it.region, it.distillery].filter(Boolean).join(' / ')],
@@ -1596,7 +1790,18 @@ function openDetail(id){
     ${it.image_credit ? `<p class="credit">이미지 출처: ${esc(it.image_credit)}</p>` : ''}
 
     <h4 class="sec">1. 기본 사양 &amp; 구매 정보</h4>
-    <table class="spec">${rows}</table>
+    <div class="strip">
+      <div><span>도수</span><b>${it.abv ? Number(it.abv).toFixed(1) + '%' : '—'}</b></div>
+      <div><span>숙성</span><b>${it.age === 'NAS' ? 'NAS' : it.age ? it.age + '년' : '—'}</b></div>
+      <div><span>구매가</span><b>${it.purchase_price ? wonShort(it.purchase_price) : '—'}</b></div>
+      <div><span>시장가</span><b>${marketMid(it) ? wonShort(marketMid(it)) : '—'}</b></div>
+    </div>
+    ${it.cask ? `<p class="caskline"><span>캐스크</span> ${esc(it.cask)}</p>` : ''}
+    ${it.flavors ? `<div class="bdgs" style="margin-top:9px">${it.flavors.split(',').filter(Boolean)
+      .map(f => `<span class="bdg am">${esc(f)}</span>`).join('')}</div>` : ''}
+    <details class="more"><summary>전체 사양 보기</summary>
+      <table class="spec">${rows}</table>
+    </details>
 
     <h4 class="sec">2. 테이스팅 프로필</h4>
     <div class="tnote"><span class="lb">Nose · 향</span><p>${esc(it.nose) || '<span class="na">미기재</span>'}</p></div>
@@ -1607,6 +1812,22 @@ function openDetail(id){
     ${sc ? `<div class="rate"><div class="big">${sc}</div><div class="rm">${esc(ssrc)}<br>100점 기준</div></div>
             <div class="gauge"><i style="width:${Math.min(100, sc)}%"></i></div>` : ''}
     ${rl ? `<div class="rlist">${rl}</div>` : (sc ? '' : '<p class="hint">평점 정보가 없습니다.</p>')}
+
+    <h4 class="sec">4. 시음 기록 ${it.sessions.length ? `· ${it.sessions.length}회` : ''}</h4>
+    ${lv !== null ? `<div class="lvlbig">
+        <div class="lvlbar"><i style="width:${lv}%"></i></div>
+        <div class="lvlrow"><span>잔량 <b>${lv}%</b>${it.opened_at ? ` · ${it.opened_at} 개봉 (${dayssince(it.opened_at)})` : ''}</span>
+          <span class="lvlbtns">
+            <button class="mini" data-pour="30">한 잔 (-30ml)</button>
+            <button class="mini" data-pour="45">더블 (-45ml)</button>
+          </span></div></div>` : ''}
+    <div class="sess" id="sessList">${sessionsHTML(it)}</div>
+    <div class="lrow">
+      <button class="lnk" data-sess="add">＋ 시음 기록 추가</button>
+      ${it.status === '미개봉' ? `<button class="lnk" data-act2="open">개봉 처리</button>` : ''}
+      ${it.status === '위시' ? `<button class="lnk" data-act2="buy">구매로 전환</button>` : ''}
+      ${it.status === '오픈' ? `<button class="lnk" data-act2="empty">비움 처리</button>` : ''}
+    </div>
 
     ${it.notes ? `<h4 class="sec">메모</h4><p style="margin:0;font-size:13.5px;color:var(--ink2)">${esc(it.notes)}</p>` : ''}
     ${it.tags ? `<div class="bdgs" style="margin-top:12px">${it.tags.split(',').filter(Boolean)
@@ -1636,6 +1857,42 @@ function openDetail(id){
       openLightbox(shots, +z.dataset.zoom);
       return;
     }
+    /* 한 잔 / 더블 — 용량 기준으로 잔량을 깎는다 */
+    const p = e.target.closest('[data-pour]');
+    if (p){
+      const ml = Number(p.dataset.pour);
+      const size = Number(it.size_ml) || 700;
+      const cur = Number(it.remaining_pct) || 0;
+      const next = Math.max(0, Math.round((cur - ml / size * 100) * 10) / 10);
+      it.remaining_pct = String(next);
+      if (next <= 0){ it.status = '비움'; it.remaining_pct = '0'; }
+      it.updated_at = nowISO();
+      save(); render(); openDetail(it.id);
+      toast(next <= 0 ? '다 마셨습니다 — 비움으로 변경' : `잔량 ${next}%`);
+      return;
+    }
+    /* 상태 빠른 전환 */
+    const a2 = e.target.closest('[data-act2]');
+    if (a2){
+      const k = a2.dataset.act2;
+      if (k === 'open'){ it.status = '오픈'; it.opened_at = it.opened_at || today(); it.remaining_pct = '100'; }
+      if (k === 'empty'){ it.status = '비움'; it.remaining_pct = '0'; }
+      if (k === 'buy'){ it.status = '미개봉'; it.purchase_date = it.purchase_date || today(); }
+      it.updated_at = nowISO(); save(); render(); openDetail(it.id);
+      toast(k === 'open' ? '개봉 처리했습니다' : k === 'empty' ? '비움 처리했습니다' : '구매로 전환했습니다');
+      return;
+    }
+    /* 시음 기록 추가·삭제 */
+    if (e.target.closest('[data-sess=add]')){ openSession(it.id); return; }
+    const sd = e.target.closest('[data-sdel]');
+    if (sd){
+      if (!confirm('이 시음 기록을 삭제할까요?')) return;
+      const [at, head] = sd.dataset.sdel.split('|');
+      const i = it.sessions.findIndex(s => s.at === at && String(s.note || '').slice(0, 12) === head);
+      if (i >= 0) it.sessions.splice(i, 1);
+      it.updated_at = nowISO(); save(); render(); openDetail(it.id); toast('삭제했습니다');
+      return;
+    }
     const c = e.target.closest('[data-copy]'); if (!c) return;
     copy(c.dataset.copy === 'md' ? markdownCard(it) : quickCSV(it));
   };
@@ -1651,6 +1908,84 @@ function openDetail(id){
       DB.items = DB.items.filter(x => x.id !== it.id);
       tomb(it); save(); render(); closeSheet(); toast('삭제했습니다');
     }
+  };
+}
+
+/* ── 시음 기록 입력 ───────────────────────── */
+function openSession(id){
+  const it = byId(id); if (!it) return;
+  openSheet('시음 기록 · ' + fullName(it), `
+    <div class="fg">
+      <div class="f"><label>마신 날</label><input id="ssAt" type="date" value="${today()}"></div>
+      <div class="f"><label>내 점수 (100점)</label>
+        <input id="ssScore" type="number" min="0" max="100" inputmode="decimal" placeholder="예: 88"></div>
+      <div class="f"><label>장소</label><input id="ssPlace" placeholder="집 · 바 이름 등" autocomplete="off"></div>
+      <div class="f"><label>함께한 사람</label><input id="ssMate" placeholder="비워도 됩니다" autocomplete="off"></div>
+      <div class="f wide"><label>인상 · 메모</label>
+        <textarea id="ssNote" rows="3" placeholder="향·맛·여운, 그날의 상황 등"></textarea></div>
+    </div>
+    <label class="hint" style="display:flex;gap:7px;align-items:center;margin-top:11px;cursor:pointer">
+      <input type="checkbox" id="ssPour" checked> 기록과 함께 잔량에서 한 잔(30ml) 차감
+    </label>
+    <p class="hint">점수를 넣으면 <b>가장 최근 기록의 점수</b>가 목록의 평점으로 표시됩니다.</p>`,
+    `<button class="btn" data-act="cancel">취소</button>
+     <button class="btn pri" data-act="save">기록 저장</button>`);
+  $('#shFoot').onclick = e => {
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    if (a.dataset.act === 'cancel') return openDetail(it.id);
+    const s = {
+      at: $('#ssAt').value || today(),
+      score: $('#ssScore').value.trim(),
+      place: $('#ssPlace').value.trim(),
+      mate: $('#ssMate').value.trim(),
+      note: $('#ssNote').value.trim(),
+    };
+    if (!s.score && !s.note && !s.place){ toast('점수·메모·장소 중 하나는 입력해 주세요'); return; }
+    it.sessions.push(s);
+    /* 최근 기록의 점수를 내 점수로 반영 */
+    const latest = [...it.sessions].sort((x, y) => (y.at || '').localeCompare(x.at || ''))
+      .find(x => x.score);
+    if (latest) it.rating_my = latest.score;
+    /* 미개봉이었다면 자동 개봉 처리 */
+    if (it.status === '미개봉'){ it.status = '오픈'; it.opened_at = it.opened_at || s.at; it.remaining_pct = '100'; }
+    if ($('#ssPour').checked && it.status === '오픈'){
+      const size = Number(it.size_ml) || 700;
+      const next = Math.max(0, Math.round((Number(it.remaining_pct) || 0) - 30 / size * 100));
+      it.remaining_pct = String(next);
+      if (next <= 0){ it.status = '비움'; it.remaining_pct = '0'; }
+    }
+    it.updated_at = nowISO();
+    save(); render(); openDetail(it.id); toast('시음 기록을 저장했습니다');
+  };
+}
+
+/* ── 필터 시트 ────────────────────────────── */
+const STATUS_OPTS = [['all','상태 전체'],['__owned','보유만'],['미개봉','미개봉'],['오픈','오픈'],
+  ['비움','비움'],['경험','유경험'],['위시','위시리스트'],['__draft','초안 확인 필요']];
+function openFilter(){
+  const grp = (label, key, opts) => `
+    <h4 class="sec">${label}</h4>
+    <div class="chips" style="flex-wrap:wrap">${opts.map(([v, t]) =>
+      `<button class="chip${V[key] === v ? ' on' : ''}" data-f="${key}" data-v="${esc(v)}">${esc(t)}</button>`).join('')}</div>`;
+  openSheet('필터',
+    grp('상태', 'status', STATUS_OPTS)
+    + grp('숙성 년수', 'age', AGE_BANDS.map(b => [b[0], b[1]]))
+    + grp('맛 프로필', 'flavor', [['all','맛 전체'], ...FLAVORS.map(f => [f, f])]),
+    `<button class="btn" data-act="reset">초기화</button>
+     <button class="btn pri" data-act="close">적용</button>`);
+  $('#shBody').onclick = e => {
+    const b = e.target.closest('[data-f]'); if (!b) return;
+    V[b.dataset.f] = b.dataset.v;
+    [...$('#shBody').querySelectorAll(`[data-f="${b.dataset.f}"]`)].forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    render();
+  };
+  $('#shFoot').onclick = e => {
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    if (a.dataset.act === 'reset'){
+      V.status = 'all'; V.age = 'all'; V.flavor = 'all'; render(); openFilter(); return;
+    }
+    closeSheet();
   };
 }
 
@@ -1672,7 +2007,8 @@ function openWizard(){
       <div class="wlog" id="wlog"></div>
     </div>`,
     `<button class="btn" data-act="manual">빈 양식</button>
-     <button class="btn gold" data-act="go">✨ 초안 자동 작성</button>`);
+     <button class="btn" data-act="wish" style="flex:0 0 auto;width:80px">위시</button>
+     <button class="btn gold" data-act="go">✨ 초안</button>`);
 
   const inp = $('#wname');
   setTimeout(() => inp.focus(), 260);
@@ -1729,12 +2065,19 @@ function openWizard(){
   $('#shFoot').onclick = e => {
     const a = e.target.closest('[data-act]'); if (!a) return;
     if (a.dataset.act === 'manual') openEdit(null);
+    else if (a.dataset.act === 'wish') go({wish: true});
     else go();
   };
-  function go(){
+  function go(opt){
     const v = inp.value.trim();
     if (!v){ toast('위스키 이름을 입력해 주세요'); inp.focus(); return; }
     const d = draftFrom(v);
+    if (opt?.wish){
+      /* 위시리스트는 구매 정보를 비우고 상태만 위시로 둔다 */
+      d.fields.status = '위시'; d.keys.add('status');
+      d.fields.purchase_date = ''; d.fields.purchase_price = ''; d.fields.remaining_pct = '';
+      d.lines.push('<b>위시리스트</b>로 추가합니다 — 구매하면 상세에서 <b>구매로 전환</b>을 누르세요.');
+    }
     const q = encodeURIComponent(v);
     $('#wlog').innerHTML = `<div class="hitbox">
       <div class="t">${d.brand ? '초안을 만들었습니다' : '증류소를 찾지 못했습니다'}</div>
@@ -1768,6 +2111,14 @@ function openEdit(id, draft){
     else if (t === 'textarea') ctl = `<textarea name="${k}" rows="2">${esc(v)}</textarea>`;
     else if (t === 'price')
       ctl = `<input name="${k}" value="${esc(v)}" inputmode="numeric" placeholder="120000 또는 12만">`;
+    else if (t === 'range')
+      ctl = `<div class="rng"><input name="${k}" type="range" min="0" max="100" step="5"
+          value="${esc(v === '' ? '100' : v)}"><output>${esc(v === '' ? '100' : v)}%</output></div>`;
+    else if (t === 'flavors')
+      ctl = `<div class="chips fchips" data-flav style="flex-wrap:wrap">${FLAVORS.map(f =>
+          `<button type="button" class="chip${String(v).split(',').includes(f) ? ' on' : ''}"
+            data-flav="${esc(f)}">${esc(f)}</button>`).join('')}
+          <input type="hidden" name="${k}" value="${esc(v)}"></div>`;
     else ctl = `<input name="${k}" type="${t}" value="${esc(v)}"${t === 'number' ? ' inputmode="decimal" step="any"' : ''}>`;
     return `<div class="f${wide ? ' wide' : ''}${dk.has(k) ? ' drafted' : ''}" data-fk="${k}">
       <label>${lbl}${dk.has(k) ? '<i class="dpill">초안</i>' : ''}</label>${ctl}</div>`;
@@ -1818,7 +2169,7 @@ function openEdit(id, draft){
       <h4 class="sec">평점</h4>
       ${G(['rating_bible','rating_wb','rating_my'])}
       <h4 class="sec">관리</h4>
-      ${G(['status','remaining_pct','tags','notes'])}
+      ${G(['status','opened_at','remaining_pct','storage','flavors','tags','notes'])}
     </form>`,
     `<button class="btn" data-act="cancel">취소</button>
      <button class="btn pri" data-act="save">저장</button>`);
@@ -1899,6 +2250,21 @@ function openEdit(id, draft){
     credit = '';
     if (u) applyImage(u);
   };
+  /* 잔량 슬라이더 값 표시 · 맛 프로필 칩 토글 */
+  f.addEventListener('input', e => {
+    if (e.target.type === 'range'){
+      const o = e.target.parentElement.querySelector('output');
+      if (o) o.textContent = e.target.value + '%';
+    }
+  });
+  f.addEventListener('click', e => {
+    const c = e.target.closest('[data-flav]');
+    if (!c || c.tagName !== 'BUTTON') return;
+    c.classList.toggle('on');
+    const box = c.closest('[data-flav]') === c ? c.parentElement : c.parentElement;
+    const on = [...box.querySelectorAll('button.on')].map(b => b.dataset.flav);
+    box.querySelector('input[type=hidden]').value = on.join(',');
+  });
   /* 초안 표시 해제 */
   f.oninput = e => {
     const box = e.target.closest('.f[data-fk]');
@@ -2231,7 +2597,43 @@ function openStats(){
       <div class="kpi"><div class="k">평균 도수</div><div class="v">${avgAbv}${avgAbv === '—' ? '' : '<u>%</u>'}</div>
         <div class="s">${withAbv.length ? '최고 ' + Math.max(...withAbv.map(i => Number(i.abv))).toFixed(1) + '%' : '도수 미기재'}</div></div>
     </div>
+    ${(() => {
+      const open = a.filter(i => i.status === '오픈');
+      const sess = a.reduce((s, i) => s + (i.sessions?.length || 0), 0);
+      const dist = new Set(a.map(i => i.distillery).filter(Boolean)).size;
+      const avg = priced.length ? Math.round(buy / priced.length) : 0;
+      return `<div class="kpis" style="margin-top:10px">
+        <div class="kpi"><div class="k">개봉 중</div><div class="v">${open.length}<u>병</u></div>
+          <div class="s">${open.length ? '평균 잔량 ' + Math.round(open.reduce((s,i)=>s+(Number(i.remaining_pct)||0),0)/open.length) + '%' : '개봉한 병 없음'}</div></div>
+        <div class="kpi"><div class="k">시음 기록</div><div class="v">${sess}<u>회</u></div>
+          <div class="s">${a.filter(i=>i.sessions?.length).length}병에 기록</div></div>
+        <div class="kpi"><div class="k">증류소 다양성</div><div class="v">${dist}<u>곳</u></div>
+          <div class="s">${n ? (n / Math.max(dist,1)).toFixed(1) + '병/증류소' : ''}</div></div>
+        <div class="kpi"><div class="k">평균 구매가</div><div class="v">${wonShort(avg) || 0}<u>원</u></div>
+          <div class="s">${priced.length}병 기준</div></div>
+      </div>`;
+    })()}
+    ${(() => {
+      /* 연도별 구매 추이 */
+      const m = {};
+      priced.forEach(i => { const y = String(i.purchase_date || '').slice(0, 4);
+        if (y.length === 4){ m[y] = m[y] || {n:0, sum:0}; m[y].n++; m[y].sum += Number(i.purchase_price); } });
+      const ys = Object.keys(m).sort();
+      if (!ys.length) return '';
+      const mx = Math.max(...ys.map(y => m[y].sum));
+      return `<h4 class="sec">연도별 구매</h4><div class="bars">${ys.map(y =>
+        `<div class="bar"><span class="nm">${y}년 · ${m[y].n}병</span>
+         <span class="tr"><i style="width:${m[y].sum / mx * 100}%"></i></span>
+         <span class="n" style="width:52px">${wonShort(m[y].sum)}</span></div>`).join('')}</div>`;
+    })()}
     <h4 class="sec">주종별</h4><div class="bars">${bars(cnt('cat'))}</div>
+    <h4 class="sec">맛 프로필</h4><div class="bars">${(() => {
+      const m = {};
+      a.forEach(i => String(i.flavors || '').split(',').filter(Boolean)
+        .forEach(f => m[f] = (m[f] || 0) + 1));
+      const e = Object.entries(m).sort((x, y) => y[1] - x[1]);
+      return bars(e);
+    })()}</div>
     ${(() => {
       /* 주종별 지출 분해 — 전체 합산과 함께 보여준다 */
       const m = {};
@@ -2662,9 +3064,18 @@ $('#typeChips').onclick = e => {
 };
 $('#q').oninput = e => { V.q = e.target.value; $('#qClr').hidden = !V.q; render(); };
 $('#qClr').onclick = () => { V.q = ''; $('#q').value = ''; $('#qClr').hidden = true; render(); };
-$('#statusSel').onchange = e => { V.status = e.target.value; render(); };
-$('#ageSel').innerHTML = AGE_BANDS.map(b => `<option value="${b[0]}">${b[1]}</option>`).join('');
-$('#ageSel').onchange = e => { V.age = e.target.value; render(); };
+$('#btnFilter').onclick = openFilter;
+$('#btnView').onclick = () => {
+  V.view = V.view === 'grid' ? 'list' : 'grid';
+  try{ localStorage.setItem('wc.view', V.view); }catch(e){}
+  render();
+};
+$('#activeChips').onclick = e => {
+  const c = e.target.closest('[data-clr]'); if (!c) return;
+  V[c.dataset.clr] = 'all';
+  if (c.dataset.clr === 'q'){ V.q = ''; $('#q').value = ''; $('#qClr').hidden = true; }
+  render();
+};
 $('#sortSel').onchange = e => { V.sort = e.target.value; render(); };
 $('#btnAdd').onclick = openWizard;
 $('#btnStats').onclick = openStats;
