@@ -1,0 +1,126 @@
+/* 술술다이어리 문서 페이지 공용 스타일.
+   앱과 같은 토큰을 쓰되 문서용으로 단순화했다. 세 문서가 공유하므로
+   여기만 고치면 전부 따라온다. 앱의 테마 선택(wc.theme)을 읽어 맞춘다. */
+:root{
+  --bg:#faf8f5; --surface:#ffffff; --surface2:#f4f1ea;
+  --line:#e8e3d8; --line2:#d9d2c4;
+  --ink:#1c1a17; --ink2:#4a453d; --ink3:#8a8378;
+  --accent:#8a6a2f; --accent2:#b0812a;
+  --accent-bg:#fdf8ec; --accent-line:#e5d5ae;
+  --warn:#b0812a; --danger:#a8422f; --ok:#4d7a55;
+  --serif:'Cormorant Garamond',"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",
+    "Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121214; --surface:#1C1C1F; --surface2:#232327;
+  --line:#2C2C31; --line2:#3A3A41;
+  --ink:#FFFFFF; --ink2:#C9C9CE; --ink3:#8E8E93;
+  --accent:#C58B43; --accent2:#D4AF37;
+  --accent-bg:#241B10; --accent-line:#4A3620;
+  --warn:#D4AF37; --danger:#c0503c; --ok:#6FBF7A;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.72;letter-spacing:-.011em;
+  /* 한글은 어절 단위로 끊어야 읽힌다 */
+  word-break:keep-all;overflow-wrap:break-word;
+  -webkit-text-size-adjust:100%;
+  padding:0 20px calc(64px + env(safe-area-inset-bottom));
+}
+.doc{max-width:720px;margin:0 auto}
+
+/* 머리말 */
+.dhead{padding:34px 0 22px;border-bottom:1px solid var(--line);margin-bottom:30px}
+.wm{font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:-.005em;
+  display:block;text-decoration:none;color:var(--ink)}
+.wm b{color:var(--accent);font-weight:600}
+.wm2{font-size:9.5px;letter-spacing:.16em;color:var(--ink3);font-weight:600;
+  display:block;margin-top:4px}
+h1{font-family:var(--serif);font-size:29px;font-weight:600;letter-spacing:-.02em;
+  line-height:1.28;margin:22px 0 8px}
+.sub{color:var(--ink3);font-size:13px;margin:0}
+
+h2{font-family:var(--serif);font-size:21px;font-weight:600;letter-spacing:-.015em;
+  margin:38px 0 12px;padding-top:16px;border-top:1px solid var(--line)}
+h2:first-of-type{border-top:0;padding-top:0}
+h3{font-size:15px;font-weight:700;margin:24px 0 8px;color:var(--ink)}
+p{margin:0 0 13px;color:var(--ink2)}
+strong,b{color:var(--ink);font-weight:700}
+a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+ul,ol{margin:0 0 14px;padding-left:21px;color:var(--ink2)}
+li{margin-bottom:7px}
+li::marker{color:var(--ink3)}
+code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.87em;
+  background:var(--surface2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;
+  word-break:break-all;
+}
+
+/* 강조 박스 — 종류를 색으로만 구분하지 않고 제목 글자로도 구분한다 */
+.box{
+  background:var(--surface);border:1px solid var(--line);border-radius:13px;
+  padding:15px 17px;margin:0 0 18px;
+}
+.box > :last-child{margin-bottom:0}
+.box.warn{background:var(--accent-bg);border-color:var(--accent-line)}
+.box.stop{background:var(--surface);border-color:var(--danger);border-width:1.5px}
+.box .bt{font-weight:700;color:var(--ink);display:block;margin-bottom:6px;font-size:14px}
+.box.stop .bt{color:var(--danger)}
+
+/* 단계 목록 */
+.steps{counter-reset:s;list-style:none;padding:0;margin:0 0 20px}
+.steps > li{
+  counter-increment:s;position:relative;padding:0 0 18px 38px;margin:0;
+  border-left:1px solid var(--line);
+}
+.steps > li:last-child{border-left-color:transparent;padding-bottom:0}
+.steps > li::before{
+  content:counter(s);position:absolute;left:-13px;top:-2px;
+  width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  background:var(--accent-bg);border:1px solid var(--accent-line);
+  color:var(--accent);font-size:12px;font-weight:700;
+}
+.steps > li > b:first-child{display:block;color:var(--ink);margin-bottom:5px}
+
+table{border-collapse:collapse;width:100%;margin:0 0 18px;font-size:13.5px}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);
+  color:var(--ink2);vertical-align:top}
+th{color:var(--ink3);font-weight:600;font-size:11.5px;letter-spacing:.06em;
+  text-transform:uppercase;white-space:nowrap}
+td b{color:var(--ink)}
+.tw{overflow-x:auto;margin:0 0 18px}
+.tw table{margin:0}
+
+/* 표식 견본 — 카드에 뜨는 것과 같은 모양 */
+.flag{
+  display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--line2);
+  font-size:8.5px;font-weight:700;color:var(--ink2);vertical-align:-3px;
+}
+.fdot{display:inline-block;width:7px;height:7px;border-radius:50%}
+.f-sealed{background:var(--ok)} .f-open{background:var(--warn)}
+.f-empty{background:var(--ink3)}
+.f-ring{background:transparent;border:2px solid var(--accent2);width:9px;height:9px}
+.f-ring2{background:transparent;border:2px solid var(--ink3);width:9px;height:9px}
+
+.dfoot{
+  margin-top:44px;padding-top:20px;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;
+  font-size:12px;color:var(--ink3);
+}
+.dfoot a{color:var(--ink3)}
+.dfoot .cr{width:100%;font-size:11px;letter-spacing:.01em}
+.adultmark{
+  display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink3);
+  border:1px solid var(--line2);border-radius:999px;padding:3px 10px 3px 6px;
+}
+.adultmark span{
+  width:17px;height:17px;border-radius:50%;display:grid;place-items:center;
+  background:var(--surface2);border:1px solid var(--line2);
+  font-size:8.5px;font-weight:700;color:var(--ink2);
+}
+@media(min-width:760px){ body{font-size:15.5px} h1{font-size:33px} }

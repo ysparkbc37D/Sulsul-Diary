@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>사용 가이드 — 술술다이어리</title>
+<meta name="theme-color" content="#faf8f5">
+<meta name="description" content="술술다이어리 사용 가이드 — 설치부터 병 등록, 사진, 상태 관리, 백업까지.">
+<link rel="icon" href="./icons/favicon-64.png" sizes="64x64">
+<link rel="stylesheet" href="./docs.css">
+<script>
+  try{ var t = localStorage.getItem('wc.theme');
+    if (t === 'dark'){ document.documentElement.dataset.theme = 'dark';
+      document.querySelector('meta[name=theme-color]').content = '#121214'; } }catch(e){}
+</script>
+</head>
+<body>
+<div class="doc">
+
+<header class="dhead">
+  <a class="wm" href="./">Sulsul <b>Diary</b></a>
+  <span class="wm2">술술다이어리</span>
+  <h1>사용 가이드</h1>
+  <p class="sub">이름만 입력하면 초안이 채워지는 개인 위스키 기록장</p>
+</header>
+
+<div class="box warn">
+  <span class="bt">이 앱의 사용법을 한 문단으로</span>
+  <p><b>＋ 추가</b>를 누르고 위스키 이름만 적습니다. 타입·증류소·캐스크·테이스팅 노트
+  초안이 자동으로 채워지고 사진 후보까지 제안됩니다. 틀린 부분만 고쳐서 저장하면
+  끝입니다. 기록은 <b>내 기기에만</b> 저장되니 <b>가끔 JSON 백업</b>만 받아 두세요.</p>
+</div>
+
+<h2>1. 앱으로 설치하기</h2>
+<p>브라우저로도 쓸 수 있지만, <b>설치하면 세 가지가 좋아집니다</b> — 주소창 없이
+전체화면으로 열리고, 오프라인에서도 동작하고, <b>저장한 기록이 보호됩니다</b>
+(브라우저가 저장 공간을 정리할 때 지우지 않습니다).</p>
+
+<ol class="steps">
+  <li><b>iPhone · iPad</b>
+    사파리에서 열고 아래쪽 <b>공유 버튼</b>(↑) → 목록을 내려 <b>홈 화면에 추가</b> →
+    오른쪽 위 <b>추가</b>. 아이폰은 이 방법만 가능합니다.</li>
+  <li><b>Android</b>
+    크롬 메뉴 → <b>앱 설치</b> 또는 <b>홈 화면에 추가</b>. 설정(⚙) 안의
+    <b>홈 화면에 추가</b> 버튼을 눌러도 됩니다.</li>
+  <li><b>PC (크롬 · 엣지)</b>
+    주소창 오른쪽의 <b>설치 아이콘</b>, 또는 메뉴 → <b>앱 설치</b>.
+    작업표시줄에 고정해 두면 프로그램처럼 쓸 수 있습니다.</li>
+</ol>
+
+<h2>2. 병 등록하기</h2>
+<ol class="steps">
+  <li><b>이름을 적습니다</b>
+    <b>＋ 추가</b> → 이름 칸에 <code>글렌드로낙 15</code> 처럼 적습니다.
+    한글 표기로도 찾습니다 — <code>아벨라워아부나흐</code>, <code>쿨일라</code>,
+    <code>맥캘란</code> 모두 인식합니다. 붙여 써도 됩니다.</li>
+  <li><b>초안을 확인합니다</b>
+    타입·국가·증류소·캐스크·도수·테이스팅 노트·평점이 채워집니다.
+    자동으로 채운 칸에는 <b>초안</b> 표시가 붙고, 그 칸을 고치면 표시가 사라집니다.</li>
+  <li><b>구매 정보를 넣습니다</b>
+    구매가·구매일·구매처는 자동으로 알 수 없으니 직접 넣습니다.
+    나중에 통계와 시세 비교에 쓰입니다.</li>
+  <li><b>저장합니다</b>
+    사진이 있으면 자동으로 <b>3:4 규격</b>에 맞춰집니다.</li>
+</ol>
+
+<div class="box">
+  <span class="bt">초안 표시는 "확인이 필요하다"는 뜻입니다</span>
+  <p>초안은 내부 데이터와 위키백과를 조합한 <b>추정치</b>입니다. 특히
+  단일 캐스크·캐스크 스트렝스·면세판처럼 병마다 값이 다른 제품은 <b>도수와 평점이
+  실제 라벨과 다를 수 있습니다.</b> 라벨을 보고 확인해 주세요.</p>
+</div>
+
+<h2>3. 사진 넣기</h2>
+<ul>
+  <li><b>사진 다시 찾기</b> — 위키미디어에서 후보를 다시 검색합니다.</li>
+  <li><b>직접 촬영</b> — 가장 정확합니다. 내 병의 실제 모습이 남습니다.</li>
+  <li><b>이미지 URL</b> — 주소를 붙여 넣어 추가합니다.</li>
+  <li><b>구글 · 네이버 · Whiskybase</b> — 새 탭에서 찾아본 뒤 이미지 주소를 가져옵니다.</li>
+</ul>
+<p>한 병에 <b>최대 5장</b>까지 넣을 수 있고, 첫 장이 대표 사진이 됩니다.
+사진을 탭하면 대표로 지정되고, 다시 탭하면 삭제됩니다. 상세 화면에서 사진을
+탭하면 크게 볼 수 있습니다.</p>
+
+<h2>4. 카드 읽는 법</h2>
+<p>모든 카드는 <b>정확히 네 줄</b>로 같은 자리에 같은 정보를 보여줍니다.</p>
+<div class="tw">
+<table>
+  <thead><tr><th>줄</th><th>내용</th></tr></thead>
+  <tbody>
+    <tr><td><b>1</b></td><td>타입 · 숙성년수 &nbsp;<code>SINGLE MALT · 16Y</code></td></tr>
+    <tr><td><b>2</b></td><td>제품명</td></tr>
+    <tr><td><b>3</b></td><td>평점 · 도수 · 시세 &nbsp;<code>89&nbsp;&nbsp;43%&nbsp;&nbsp;17.5만</code></td></tr>
+    <tr><td><b>4</b></td><td>잔량 바</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>사진 위의 표식</h3>
+<p>왼쪽 위에는 <b>경험 · 위시 · 초안</b>이, 오른쪽 위에는 <b>상태와 19세 표기</b>가
+붙습니다.</p>
+<div class="tw">
+<table>
+  <tbody>
+    <tr><td><span class="flag"><span class="fdot f-sealed"></span></span></td>
+      <td><b>미개봉</b> — 아직 열지 않은 병. 잔량 100%</td></tr>
+    <tr><td><span class="flag"><span class="fdot f-open"></span></span></td>
+      <td><b>오픈</b> — 마시고 있는 병. 기록한 잔량이 바에 표시됩니다</td></tr>
+    <tr><td><span class="flag"><span class="fdot f-empty"></span></span></td>
+      <td><b>비움</b> — 다 마신 병. 잔량 0%</td></tr>
+    <tr><td><span class="flag"><span class="fdot f-ring"></span></span></td>
+      <td><b>경험</b> — 보유하지 않았지만 마셔 본 병. 바는 비어 있고 <code>—</code></td></tr>
+    <tr><td><span class="flag"><span class="fdot f-ring2"></span></span></td>
+      <td><b>위시</b> — 사고 싶은 병. 바는 비어 있고 <code>—</code></td></tr>
+    <tr><td><span class="flag">19</span></td>
+      <td><b>19세 이상 이용</b> — 주류를 다루므로 모든 카드에 붙습니다</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2>5. 찾기와 정렬</h2>
+<ul>
+  <li><b>검색</b> — 제품명·증류소·캐스크·태그를 함께 찾습니다.</li>
+  <li><b>주종 탭</b> — 위스키 · 와인 · 리큐르 · 기타주류.
+    PC 에서는 왼쪽 사이드바에 있습니다.</li>
+  <li><b>타입 칩</b> — 고른 주종 안에서 Single Malt, Bourbon 등으로 좁힙니다.</li>
+  <li><b>필터</b> — 상태 · 숙성년수 · 맛 프로필(피트 · 셰리 · 과일 · 버번 · 와인 · 라이).</li>
+  <li><b>정렬</b> — 최근 등록 · 구입일 · 이름 · 평점 · 가격 · 도수 · 잔량 · 개봉일.</li>
+  <li><b>보기 전환</b> — 오른쪽 버튼으로 그리드 ↔ 리스트. 병이 많으면 리스트가 빠릅니다.</li>
+</ul>
+
+<h2>6. 마시면서 기록하기</h2>
+<ul>
+  <li><b>개봉 처리</b> — 상세 화면에서 누르면 상태가 오픈으로 바뀌고 개봉일이 남습니다.</li>
+  <li><b>잔량</b> — 남은 양을 %로 적으면 카드의 4번째 줄 바에 반영됩니다.</li>
+  <li><b>시음 기록</b> — 마신 날의 인상을 여러 번 쌓을 수 있습니다.
+    같은 병이 시간에 따라 어떻게 변하는지 남습니다.</li>
+  <li><b>통계</b> — 상단 그래프 버튼. 보유 현황, 주종·타입 분포, 구매 합계,
+    시세 대비 평가 손익을 봅니다.</li>
+</ul>
+
+<h2>7. 백업 — 꼭 읽어 주세요</h2>
+<div class="box stop">
+  <span class="bt">기록은 이 기기에만 있습니다</span>
+  <p>기기를 바꾸거나 브라우저 데이터를 지우면 <b>사라집니다.</b>
+  서버에 사본이 없으므로 복구해 드릴 수 없습니다.
+  <b>병을 여러 개 등록했다면 지금 백업을 받아 두세요.</b></p>
+</div>
+<p>설정(⚙) → 데이터에서:</p>
+<ul>
+  <li><b>전체 백업 (JSON)</b> — 사진까지 포함한 완전한 사본입니다.
+    <b>이것이 기본 백업 수단입니다.</b> 다시 불러오면 그대로 복원됩니다.</li>
+  <li><b>전체 CSV</b> — 엑셀·구글시트에서 열어 보거나 가공할 때 씁니다.
+    사진은 포함되지 않습니다.</li>
+  <li><b>요약 CSV 복사</b> — 12개 항목만 클립보드로 복사합니다.</li>
+</ul>
+<p>불러오기는 <b>제품명</b>으로 맞춥니다 — 같은 이름은 갱신하고 새 이름은 추가합니다.</p>
+
+<h3>여러 기기에서 같은 목록을 보고 싶다면</h3>
+<p>기본 기능은 <b>기기 저장 + JSON 백업</b>입니다. 폰과 PC 에서 자동으로 같은 목록을
+보려면 <b>선택 기능</b>인 GitHub 동기화를 켤 수 있습니다. 무료이며, 본인의 비공개
+저장소를 씁니다. → <a href="./sync.html">GitHub 데이터 연동 가이드</a></p>
+
+<h2>8. 안전장치</h2>
+<ul>
+  <li><b>전체 초기화</b>는 2단계 확인을 거칩니다. 지운 직후에는
+    <b>초기화 되돌리기</b>로 복구할 수 있습니다.</li>
+  <li>폰에서 <b>뒤로 가기</b>를 눌러도 앱이 바로 닫히지 않습니다.</li>
+  <li>설정에 <b>저장소 보호</b> 상태가 표시됩니다. 꺼져 있으면 앱으로 설치해 주세요.</li>
+</ul>
+
+<h2>9. 자주 묻는 것</h2>
+<h3>이름을 넣었는데 못 찾습니다</h3>
+<p>표기를 조금 바꿔 보세요(<code>글렌드로낙</code> ↔ <code>글렌드로낙 15년</code>).
+그래도 안 되면 직접 입력해도 됩니다 — 초안은 편의 기능일 뿐 필수가 아닙니다.</p>
+
+<h3>도수가 비어 있습니다</h3>
+<p>단일 캐스크·캐스크 스트렝스는 병마다 도수가 달라 <b>일부러 추측하지 않습니다.</b>
+라벨을 보고 넣어 주세요.</p>
+
+<h3>사진이 병 대신 증류소 풍경입니다</h3>
+<p>위키미디어에 그 제품의 병 사진이 없는 경우입니다. <b>직접 촬영</b>을 권합니다.</p>
+
+<h3>오프라인에서도 되나요</h3>
+<p>됩니다. 앱과 사진이 기기에 저장되어 있어 비행기 모드에서도 열립니다.
+다만 <b>새 초안 생성과 사진 검색</b>은 인터넷이 필요합니다.</p>
+
+<footer class="dfoot">
+  <a href="./">앱으로 돌아가기</a>
+  <a href="./sync.html">GitHub 연동 가이드</a>
+  <a href="./privacy.html">개인정보처리방침</a>
+  <span class="adultmark"><span>19</span> 만 19세 이상 이용</span>
+  <span class="cr">Copyright © 2026 CoBa's Sulsul Diary. All rights reserved.</span>
+</footer>
+
+</div>
+</body>
+</html>

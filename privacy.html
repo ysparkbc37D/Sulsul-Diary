@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>개인정보처리방침 — 술술다이어리</title>
+<meta name="theme-color" content="#faf8f5">
+<meta name="description" content="술술다이어리 개인정보처리방침 — 모든 기록은 이용자 기기에만 저장되며 제작자는 어떤 정보도 수집하지 않습니다.">
+<link rel="icon" href="./icons/favicon-64.png" sizes="64x64">
+<link rel="stylesheet" href="./docs.css">
+<script>
+  /* 앱에서 고른 테마를 그대로 따른다 (같은 출처라 localStorage 를 읽을 수 있다) */
+  try{ var t = localStorage.getItem('wc.theme');
+    if (t === 'dark'){ document.documentElement.dataset.theme = 'dark';
+      document.querySelector('meta[name=theme-color]').content = '#121214'; } }catch(e){}
+</script>
+</head>
+<body>
+<div class="doc">
+
+<header class="dhead">
+  <a class="wm" href="./">Sulsul <b>Diary</b></a>
+  <span class="wm2">술술다이어리</span>
+  <h1>개인정보처리방침</h1>
+  <p class="sub">시행일 2026년 8월 2일 · 이 문서가 최신 방침입니다</p>
+</header>
+
+<div class="box warn">
+  <span class="bt">한 줄 요약</span>
+  <p>술술다이어리는 <b>서버가 없습니다.</b> 회원가입도, 로그인도 없습니다.
+  기록한 모든 내용은 <b>이용자의 기기 안에만</b> 저장되며 제작자에게 전송되지 않습니다.
+  제작자는 이용자의 어떤 개인정보도 수집·보관·열람하지 않습니다.</p>
+</div>
+
+<h2>1. 수집하는 개인정보</h2>
+<p><b>없습니다.</b> 이 앱은 이름·연락처·이메일·계정 등 어떤 개인정보도 요구하지 않고,
+회원가입 절차 자체가 없습니다. 분석 도구(Google Analytics 등), 광고 식별자, 추적
+쿠키를 <b>일절 사용하지 않습니다.</b></p>
+
+<h2>2. 이용자가 기록한 내용은 어디에 저장되나요</h2>
+<p>이용자가 등록한 위스키 정보(제품명·구매가·구매일·구매처·테이스팅 노트·사진·평점 등)는
+브라우저의 저장 영역(<code>localStorage</code>)에 저장됩니다. 이 영역은 <b>이용자의 기기
+안에만</b> 존재합니다.</p>
+
+<div class="tw">
+<table>
+  <thead><tr><th>저장 키</th><th>내용</th></tr></thead>
+  <tbody>
+    <tr><td><code>wc.v1</code></td><td>등록한 병 목록 전체(사진 포함)</td></tr>
+    <tr><td><code>wc.theme</code></td><td>밝은/어두운 테마 선택</td></tr>
+    <tr><td><code>wc.view</code></td><td>그리드/리스트 보기 선택</td></tr>
+    <tr><td><code>wc.trash</code></td><td>전체 초기화 되돌리기용 임시 사본</td></tr>
+    <tr><td><code>wc.sync</code></td><td>동기화를 켠 경우의 저장소 주소·경로</td></tr>
+    <tr><td><code>wc.token</code></td><td>동기화를 켠 경우의 GitHub 접근 토큰</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>기기를 바꾸거나 브라우저 데이터를 지우면 이 내용은 사라집니다. 그래서 앱은
+<b>JSON 백업</b>을 권장하며, 백업 파일은 이용자가 직접 보관합니다.</p>
+
+<h2>3. 외부로 나가는 통신</h2>
+<p>저장은 기기 안에서만 이루어지지만, 앱이 동작하는 과정에서 아래 외부 서비스와
+통신합니다. <b>정확한 고지를 위해 전부 밝힙니다.</b></p>
+
+<h3>3-1. 이용자의 조작 없이 발생하는 통신</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>대상</th><th>시점</th><th>전달되는 것</th></tr></thead>
+  <tbody>
+    <tr><td><b>GitHub Pages</b><br>ysparkbc37d.github.io</td>
+      <td>앱을 열 때</td>
+      <td>앱 파일을 내려받기 위한 접속. GitHub 의 서버 기록에 접속 IP·브라우저 정보가
+        남습니다(GitHub 의 정책에 따릅니다). 제작자는 이 기록을 열람할 수 없습니다.</td></tr>
+    <tr><td><b>Wikimedia Commons</b><br>commons.wikimedia.org</td>
+      <td>초안 생성·사진 검색 시</td>
+      <td>검색어로 <b>위스키 이름</b>이 전달됩니다. 구매가·구매처 등은 전달되지 않습니다.</td></tr>
+    <tr><td><b>Wikipedia</b><br>en.wikipedia.org</td>
+      <td>초안 생성 시</td>
+      <td>증류소·제품 항목을 찾기 위한 검색어</td></tr>
+    <tr><td><b>Wikimedia</b><br>upload.wikimedia.org</td>
+      <td>사진을 표시할 때</td>
+      <td>이미지 요청에 따른 접속 IP</td></tr>
+  </tbody>
+</table>
+</div>
+<p>초안·사진 검색을 쓰지 않고 <b>직접 입력과 직접 촬영만으로</b> 사용하면
+2·3·4번 통신은 발생하지 않습니다.</p>
+
+<h3>3-2. 이용자가 눌렀을 때만 발생하는 통신</h3>
+<p>아래는 새 탭으로 열리는 <b>링크</b>입니다. 누르지 않으면 통신하지 않습니다.
+이동 후에는 해당 사이트의 개인정보처리방침이 적용됩니다.</p>
+<ul>
+  <li>Google 이미지 검색 · Google 검색 (사진 찾기, 시세 조회)</li>
+  <li>네이버 쇼핑 (시세 조회)</li>
+  <li>Whiskybase (제품 정보 조회)</li>
+  <li>Notion (후원 안내 페이지)</li>
+</ul>
+
+<h2>4. 선택 기능 — GitHub 동기화</h2>
+<p>여러 기기에서 같은 목록을 보고 싶은 이용자를 위한 <b>선택 기능</b>입니다.
+기본값은 꺼져 있고, 켜지 않아도 앱의 모든 기능을 쓸 수 있습니다.</p>
+<ul>
+  <li>이용자가 <b>본인의 GitHub 비공개 저장소</b>를 지정하고, 앱이 그 저장소로 기록을
+    직접 올립니다. <b>제작자의 서버를 거치지 않으며</b> 제작자는 그 저장소에
+    접근할 수 없습니다.</li>
+  <li>접근 토큰은 이용자 기기의 <code>wc.token</code> 에만 저장됩니다.
+    <b>제작자에게 전송되지 않습니다.</b></li>
+  <li>토큰은 <b>암호화되지 않은 상태로</b> 저장됩니다. 기기나 브라우저 프로필에
+    접근할 수 있는 사람은 읽을 수 있으므로, 공용 PC 에서는 동기화를 켜지 마세요.</li>
+  <li>토큰은 <b>JSON·CSV 백업 파일에 포함되지 않습니다.</b> 백업은 병 목록만 담습니다.</li>
+</ul>
+<p>자세한 설정 방법과 주의사항은 <a href="./sync.html">GitHub 데이터 연동 가이드</a>를
+참고하세요.</p>
+
+<h2>5. 데이터의 삭제</h2>
+<p>이용자가 언제든 직접 지울 수 있습니다. 제작자가 대신 삭제할 수 있는 데이터는
+애초에 존재하지 않습니다.</p>
+<ul>
+  <li><b>앱 안에서</b> — 설정(⚙) → 전체 초기화. 실수를 막기 위해 2단계 확인을 거치며,
+    지운 직후에는 <b>초기화 되돌리기</b>로 복구할 수 있습니다.</li>
+  <li><b>브라우저에서</b> — 사이트 데이터 삭제. 저장된 모든 내용이 즉시 사라집니다.</li>
+  <li><b>동기화를 썼다면</b> — 본인의 GitHub 저장소에서 파일을 직접 삭제하고,
+    설정에서 토큰을 지운 뒤 GitHub 에서 해당 토큰을 폐기하세요.</li>
+</ul>
+
+<h2>6. 만 19세 이상 이용</h2>
+<p>이 앱은 <b>주류</b> 기록을 다룹니다. 만 19세 이상만 이용해 주세요.
+주류의 판매·중개·광고를 하지 않으며, 이용자가 이미 보유하거나 시음한 술을
+개인적으로 기록하는 도구입니다.</p>
+
+<h2>7. 사진과 저작권</h2>
+<p>초안 생성 시 제안되는 사진은 <b>Wikimedia Commons</b>에서 가져오며, 각 파일의
+라이선스(CC BY-SA 등)를 따릅니다. 앱은 초안 화면에 출처 링크를 함께 표시합니다.
+이용자가 직접 촬영한 사진의 권리는 이용자에게 있습니다.</p>
+
+<h2>8. 방침의 변경</h2>
+<p>방침이 바뀌면 이 페이지를 갱신하고 상단의 시행일을 고칩니다. 별도의 통지 수단이
+없으므로(연락처를 수집하지 않기 때문입니다) 중요한 변경은 앱 안에서 안내합니다.</p>
+
+<h2>9. 문의</h2>
+<p>문의는 <a href="https://app.notion.com/chat?pvs=42&amp;pm=c&amp;t=3afa92fd35db8035b73100a930ddce91&amp;wfv=chat&amp;p=95c87169da6c44c59293e87d1fdee807" target="_blank" rel="noopener">술술다이어리 안내 페이지</a>를
+통해 주세요.</p>
+
+<footer class="dfoot">
+  <a href="./">앱으로 돌아가기</a>
+  <a href="./guide.html">사용 가이드</a>
+  <a href="./sync.html">GitHub 연동 가이드</a>
+  <span class="adultmark"><span>19</span> 만 19세 이상 이용</span>
+  <span class="cr">Copyright © 2026 CoBa's Sulsul Diary. All rights reserved.</span>
+</footer>
+
+</div>
+</body>
+</html>
