@@ -255,10 +255,17 @@ header.top{
 .ph small{font-size:9.5px;color:var(--ink3);letter-spacing:.06em;position:relative;z-index:1}
 /* 앰버 글래스 병 실루엣 — SVG 자체가 알파를 가지므로 컨테이너는 거의 불투명하게 둔다 */
 .ph svg{position:absolute;width:54%;max-width:96px;height:auto;opacity:.92}
-/* 잔량 게이지 (오픈한 병) */
+/* 잔량 게이지 */
 .lvl{height:3px;border-radius:2px;background:var(--surface2);overflow:hidden;margin-top:7px}
 .lvl i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent))}
 .lvlx{font-size:10.5px;color:var(--ink3);margin-left:auto}
+/* 카드 4번째 줄 — 잔량 바는 어떤 병에도 그려진다(미개봉 100% / 비움 0%).
+   보유 중이 아닌 경험·위시는 빈 트랙을 흐리게 두어 0% 와 구분한다 */
+.lvlrow{display:flex;align-items:center;gap:6px;margin-top:8px}
+.lvlrow .lvl{flex:1;min-width:0;margin-top:0}
+.lvlrow .lvlx{flex:none;margin-left:0;min-width:26px;text-align:right;font-size:10px}
+.lvl.na{opacity:.38}
+.lvl.na + .lvlx, .lvlrow .lvl.na ~ .lvlx{opacity:.55}
 /* 리스트 뷰 */
 .listv{display:flex;flex-direction:column;gap:7px;margin-top:16px}
 .rowi{
@@ -290,7 +297,23 @@ header.top{
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .abv{font-size:11px;color:var(--ink3)}
 .cbody h3{margin:0;font-size:13.5px;line-height:1.35;letter-spacing:-.015em;font-weight:600}
-.cfoot{margin-top:auto;display:flex;align-items:center;gap:6px;padding-top:7px}
+/* 카드 3번째 줄 — 평점·기타 배지 / 도수 / 가격.
+   좁은 폭에서는 도수부터 줄어들게 하고 평점과 가격은 끝까지 남긴다.
+   값이 없어도 min-height 로 자리를 지켜야 카드끼리 줄이 맞는다. */
+.cfoot{margin-top:auto;display:flex;align-items:center;gap:4px;padding-top:7px;min-height:24px}
+.cbg{display:flex;align-items:center;gap:3px;flex:0 0 auto}
+.cbg .sc{padding:0 6px}          /* 좁은 카드에서 도수·가격에 폭을 양보한다 */
+/* 상태 표식 — 사진 좌상단. 사진이 밝으므로 반투명 판을 깔아 대비를 확보한다 */
+.cmark{
+  position:absolute;left:7px;top:7px;z-index:2;display:flex;gap:3px;
+  max-width:calc(100% - 30px);flex-wrap:wrap;
+}
+.cmark .trd, .cmark .dr{
+  background:color-mix(in srgb, var(--surface) 86%, transparent);
+  backdrop-filter:blur(3px);
+}
+.abv{font-size:11px;color:var(--ink3);flex:0 1 auto;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sc{
   font-family:var(--serif);font-size:12.5px;color:var(--accent);
   border:1px solid var(--accent-line);background:var(--accent-bg);
@@ -324,6 +347,55 @@ header.top{
 @media(min-width:760px){
   .sheet{max-width:700px;margin:0 auto;border-radius:20px;bottom:2vh;max-height:92dvh;
     border:1px solid var(--line);transform:translateY(calc(101% + 4vh))}
+}
+
+/* ══════════════ 데스크톱 좌측 사이드바 (1024px+) ══════════════
+   사이드바는 기본적으로 숨어 있고, 넓은 화면에서만 나타난다.
+   헤더는 그대로 두고 main 쪽으로 밀어 '컴팩트 상단바'로 재사용한다 —
+   검색·정렬·추가 버튼을 옮기지 않으므로 기존 핸들러가 전부 그대로 동작한다. */
+.side{display:none}
+@media(min-width:1024px){
+  .side{
+    display:flex;flex-direction:column;gap:18px;
+    position:fixed;left:0;top:0;bottom:0;width:236px;z-index:40;
+    padding:calc(var(--safe-t) + 22px) 18px calc(18px + var(--safe-b));
+    background:var(--surface);border-right:1px solid var(--line);overflow-y:auto;
+  }
+  .side-brand{display:flex;flex-direction:column;gap:3px;padding:0 6px}
+  .side-brand .wm{font-size:24px}
+  .side-brand .wm2{display:block}          /* 좁은 화면에서 숨긴 것을 여기선 되살린다 */
+  .side-nav{display:flex;flex-direction:column;gap:2px}
+  .side-nav .navsec{
+    font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);
+    font-weight:600;padding:6px 8px 4px;
+  }
+  .side-nav .seg{
+    display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+    padding:8px 10px;border-radius:10px;font-size:13.5px;font-weight:600;
+    color:var(--ink2);letter-spacing:-.01em;transition:.13s;
+  }
+  .side-nav .seg b{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--ink3)}
+  .side-nav .seg:hover{background:var(--surface2);color:var(--ink)}
+  .side-nav .seg.on{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-line)}
+  .side-nav .seg.on b{color:var(--accent2)}
+  /* 선택 항목에 테두리가 생기면서 1px 밀리는 것을 막는다 */
+  .side-nav .seg:not(.on){border:1px solid transparent}
+  .side-foot{margin-top:auto;display:flex;flex-direction:column;gap:7px;
+    padding-top:14px;border-top:1px solid var(--line)}
+  .side-foot .sk{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+    font-size:11.5px;color:var(--ink3);padding:0 8px}
+  .side-foot .sk b{font-family:var(--serif);font-size:15px;color:var(--ink);font-weight:600}
+
+  header.top{padding-left:calc(236px + 24px);padding-right:24px}
+  .top-in{max-width:1180px}
+  /* 워드마크는 사이드바로 옮겼다. 병 수(#hdCnt)는 상단바에 남겨 둔다 */
+  .brand .wm, .brand .wm2{display:none}
+  .brand .cnt{font-size:13px}
+  .wrap{max-width:1180px;margin-left:236px;padding-left:24px;padding-right:24px}
+  #catSegs{display:none}                    /* 주종 전환은 사이드바가 담당 */
+  .grid{grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:16px}
+  .sheet{margin-left:236px}
+  .scrim{left:236px}
 }
 .sh-head{
   position:relative;display:flex;align-items:center;gap:10px;flex:none;
@@ -588,6 +660,18 @@ pre.csv{
 </head>
 <body>
 
+<!-- 데스크톱(1024px+) 전용 좌측 사이드바. 모바일에서는 display:none 이므로
+     헤더의 주종 세그먼트가 그대로 쓰인다. 두 곳의 [data-cat] 버튼은 같은
+     핸들러를 공유한다(bindCats). -->
+<aside class="side" id="side">
+  <div class="side-brand">
+    <span class="wm">Sulsul <b>Diary</b></span>
+    <span class="wm2">술술다이어리</span>
+  </div>
+  <nav class="side-nav" id="sideCats"></nav>
+  <div class="side-foot" id="sideStats"></div>
+</aside>
+
 <header class="top">
   <div class="top-in">
     <div class="brand">
@@ -832,7 +916,12 @@ const won = n => (n === '' || n == null || isNaN(n)) ? '' : Number(n).toLocaleSt
 const wonShort = n => {
   if (n === '' || n == null || isNaN(n)) return '';
   const v = Number(n);
-  return v >= 10000 ? (v / 10000).toFixed(v % 10000 ? 1 : 0).replace(/\.0$/, '') + '만' : v.toLocaleString();
+  if (v < 10000) return v.toLocaleString();
+  const m = v / 10000;
+  /* 100만원 이상은 소수점을 버린다 — 0.5만(5천원)은 시세 추정에서 의미가 없고,
+     카드 3번째 줄에서 그 두 글자가 도수를 밀어내는 편이 손해다 */
+  return (m >= 100 ? String(Math.round(m))
+    : m.toFixed(v % 10000 ? 1 : 0).replace(/\.0$/, '')) + '만';
 };
 function marketStr(it){
   const l = it.market_low, h = it.market_high;
@@ -1110,47 +1199,67 @@ function snapshot(){
     items, meta: {tombs: DB.meta.tombs || {}, seeded: DB.meta.seeded},
   }, null, 1);
 }
-/** 원격을 읽어 병합하고, 달라졌으면 다시 올린다 */
+/** sha 충돌인가? GitHub 은 "<경로> does not match <sha>" 로 알려 준다 */
+const isShaConflict = m => /does not match|but expected|conflict/i.test(String(m));
+const SYNC_TRIES = 3;
+/** 원격을 읽어 병합하고, 달라졌으면 다시 올린다.
+    sha 충돌은 오류가 아니라 "그 사이 다른 기기가 먼저 올렸다"는 신호다.
+    다시 읽어 병합하고 재시도한다 — 실패로 두면 두 기기의 데이터가 영구히 갈라진다. */
 async function syncNow(quiet){
   if (!syncOn()) return null;
   if (syncing){ syncDirty = true; return null; }   // 진행 중 변경은 놓치지 않고 다시 돌린다
   syncing = true; syncDirty = false;
   syncBadge('busy');
   try{
-    const got = await ghReadFile(SYNC.path);
-    let remote = {items: [], meta: {}};
-    if (!got.missing){
-      SYNC.sha = got.sha;
-      if (!got.text) throw new Error(`원격 파일을 읽지 못했습니다 (${got.size}바이트, encoding=${got.encoding})`);
-      try{ remote = JSON.parse(got.text); }
-      catch(e){
-        throw new Error(`원격 파일 JSON 파싱 실패 (${got.size}바이트, 경로 ${SYNC.path})`
-          + ' — ⚙️ 진단에서 "원격 덮어쓰기"로 복구할 수 있습니다');
-      }
-      if (!Array.isArray(remote.items))
-        throw new Error('원격 파일에 items 배열이 없습니다 — 다른 파일을 가리키고 있는지 확인하세요');
-    }
-    const res = mergeSnapshot(remote);
-    save();
-    render();
-    const body = snapshot();
-    if (body.length > 5e6 && !quiet)
-      toast('⚠ 데이터가 ' + Math.round(body.length / 1e6) + 'MB입니다 — 사진이 많으면 동기화가 느려집니다');
-    const remoteBody = got.missing ? '' : (got.text || '');
     /* 시각 필드만 다른 경우는 올리지 않는다 (pretty-print 공백까지 감안해 제거) */
     const bare = s => String(s).replace(/"_updated":\s*"[^"]*"/, '');
-    if (bare(body) !== bare(remoteBody)){
-      const put = await gh(SYNC.path, {method:'PUT', body: JSON.stringify({
-        message: '컬렉션 동기화 (' + DB.items.length + '병)',
-        content: b64enc(body), branch: SYNC.branch,
-        ...(SYNC.sha ? {sha: SYNC.sha} : {}),
-      })});
-      SYNC.sha = put.content?.sha || SYNC.sha;
+    let res = null, size = 0, retried = 0;
+    for (let attempt = 1; ; attempt++){
+      const got = await ghReadFile(SYNC.path);
+      let remote = {items: [], meta: {}};
+      if (got.missing){
+        /* 원격에 파일이 없으면 sha 를 보내지 않는다 — 지난 세션에서 저장된
+           sha 를 그대로 붙이면 "does not match" 로 거절당한다 */
+        SYNC.sha = '';
+      } else {
+        SYNC.sha = got.sha;
+        if (!got.text) throw new Error(`원격 파일을 읽지 못했습니다 (${got.size}바이트, encoding=${got.encoding})`);
+        try{ remote = JSON.parse(got.text); }
+        catch(e){
+          throw new Error(`원격 파일 JSON 파싱 실패 (${got.size}바이트, 경로 ${SYNC.path})`
+            + ' — ⚙️ 진단에서 "원격 덮어쓰기"로 복구할 수 있습니다');
+        }
+        if (!Array.isArray(remote.items))
+          throw new Error('원격 파일에 items 배열이 없습니다 — 다른 파일을 가리키고 있는지 확인하세요');
+      }
+      res = mergeSnapshot(remote);
+      save();
+      render();
+      const body = snapshot();
+      size = Math.round(body.length / 1024);
+      if (body.length > 5e6 && !quiet && attempt === 1)
+        toast('⚠ 데이터가 ' + Math.round(body.length / 1e6) + 'MB입니다 — 사진이 많으면 동기화가 느려집니다');
+      if (bare(body) === bare(got.missing ? '' : (got.text || ''))) break;   // 올릴 것이 없다
+      try{
+        const put = await gh(SYNC.path, {method:'PUT', body: JSON.stringify({
+          message: '컬렉션 동기화 (' + DB.items.length + '병)',
+          content: b64enc(body), branch: SYNC.branch,
+          ...(SYNC.sha ? {sha: SYNC.sha} : {}),
+        })});
+        SYNC.sha = put.content?.sha || '';
+        break;
+      }catch(e){
+        if (attempt >= SYNC_TRIES || !isShaConflict(e.message || e)) throw e;
+        retried = attempt;
+        SYNC.sha = '';                                  // 다음 회차의 읽기로 새로 받는다
+        await new Promise(r => setTimeout(r, 500 * attempt));
+      }
     }
     SYNC.last = nowISO(); SYNC.err = ''; saveSync();
     syncBadge('ok');
-    if (!quiet) toast(`동기화 완료 — ${DB.items.length}병`);
-    return {ok: true, ...res, size: Math.round(body.length / 1024)};
+    if (!quiet) toast(`동기화 완료 — ${DB.items.length}병`
+      + (retried ? ` (다른 기기와 겹쳐 ${retried}회 재시도)` : ''));
+    return {ok: true, ...res, size, retried};
   }catch(e){
     const m = String(e.message || e);
     SYNC.err = m.slice(0, 200); saveSync();
@@ -1160,6 +1269,7 @@ async function syncNow(quiet){
       m.includes('Bad credentials') ? '토큰이 무효합니다'
       : m.includes('not accessible by personal access token') ? '토큰에 이 저장소 권한이 없습니다'
       : m.includes('Not Found') ? '저장소·브랜치를 확인하세요'
+      : isShaConflict(m) ? '다른 기기가 계속 먼저 올리고 있습니다 — 잠시 후 다시 시도하세요'
       : m).slice(0, 60) + ' · ⚙️ 진단을 확인하세요');
     return {ok: false, error: m};
   }finally{
@@ -1638,11 +1748,14 @@ function render(){
   const catCount = {};
   DB.items.forEach(i => { catCount[i.cat] = (catCount[i.cat] || 0) + 1; });
   const cats = CATS.filter(c => catCount[c]);
-  $('#catSegs').innerHTML = cats.length > 1
-    ? [...cats, 'all'].map(c =>
-      `<button class="seg${V.cat === c ? ' on' : ''}" data-cat="${esc(c)}">${
-        c === 'all' ? '전체' : esc(c)}<b>${c === 'all' ? DB.items.length : catCount[c]}</b></button>`).join('')
-    : '';
+  const segHTML = c =>
+    `<button class="seg${V.cat === c ? ' on' : ''}" data-cat="${esc(c)}">${
+      c === 'all' ? '전체' : esc(c)}<b>${c === 'all' ? DB.items.length : catCount[c]}</b></button>`;
+  $('#catSegs').innerHTML = cats.length > 1 ? [...cats, 'all'].map(segHTML).join('') : '';
+  /* 사이드바(데스크톱)는 주종이 하나뿐일 때도 '전체'를 보여 준다 — 화면이
+     비어 보이지 않도록, 그리고 병 수를 항상 읽을 수 있도록 */
+  $('#sideCats').innerHTML = '<div class="navsec">주종</div>'
+    + [...cats, 'all'].map(segHTML).join('');
   /* 선택된 주종이 사라졌으면 전체로 되돌린다 */
   if (V.cat !== 'all' && !catCount[V.cat]) V.cat = 'all';
   /* 타입 칩 — 선택된 주종 안에서만 집계한다 */
@@ -1664,6 +1777,16 @@ function render(){
   $('#activeChips').innerHTML = act.map(([k, t]) =>
     `<button class="chip" data-clr="${k}">${esc(t)}<i>✕</i></button>`).join('');
   $('#statLine').textContent = (V.q.trim() || act.length) ? items.length + '병' : '';
+
+  /* 사이드바 하단 요약 — 데스크톱에서만 보이지만 계산은 가벼우니 항상 갱신한다 */
+  const opened = DB.items.filter(i => i.status === '오픈').length;
+  const sealed = DB.items.filter(i => i.status === '미개봉').length;
+  const spent = DB.items.reduce((s, i) => s + (Number(i.purchase_price) || 0), 0);
+  $('#sideStats').innerHTML =
+      `<span class="sk">보유 <b>${DB.items.length}</b></span>`
+    + `<span class="sk">미개봉 <b>${sealed}</b></span>`
+    + `<span class="sk">오픈 <b>${opened}</b></span>`
+    + (spent ? `<span class="sk">구매 합계 <b>${Math.round(spent / 10000)}만</b></span>` : '');
   $('#btnView').textContent = V.view === 'grid' ? '☰' : '▦';
   $('#btnView').title = V.view === 'grid' ? '리스트로 보기' : '그리드로 보기';
 
@@ -1726,6 +1849,15 @@ function phHTML(it, small, hide){
 /** 오픈한 병의 잔량 (0~100) — 표시 대상이 아니면 null */
 const levelOf = it => (it.status === '오픈' && it.remaining_pct !== '' && !isNaN(it.remaining_pct))
   ? Math.max(0, Math.min(100, Number(it.remaining_pct))) : null;
+/** 카드 4번째 줄의 잔량 바 값. 상태에서 곧바로 정해지므로 어떤 병이든 값이 있다:
+    미개봉 100 / 비움 0 / 오픈은 기록된 잔량(미기록이면 100).
+    경험·위시는 보유 중이 아니라서 null — 빈 트랙으로 그려 줄 높이만 지킨다.
+    levelOf 는 정렬·리스트가 함께 쓰므로 의미를 바꾸지 않고 따로 둔다. */
+const barOf = it =>
+    it.status === '미개봉' ? 100
+  : it.status === '비움'   ? 0
+  : it.status === '오픈'   ? (levelOf(it) === null ? 100 : levelOf(it))
+  : null;
 
 function badges(it, sc){
   return `${sc ? `<span class="sc">${sc}</span>` : ''}`
@@ -1733,10 +1865,25 @@ function badges(it, sc){
     + `${it.status === '위시' ? `<span class="trd">위시</span>` : ''}`
     + `${it.draft === '1' ? `<span class="dr">초안</span>` : ''}`;
 }
+/** 카드용 표식(경험·위시·초안) — 사진 좌상단에 얹는다.
+    3번째 줄에 함께 두면 360px 기기에서 폭이 모자라 도수가 잘렸다:
+    평점 4자 + 칩 + 도수 5자 + 가격 5자 = 132px 를 넘는다(실측). 평점·도수·가격은
+    비교하며 읽는 값이라 줄에 남기고, 상태 표식만 여백이 있는 사진 위로 옮겼다. */
+function cardMarks(it){
+  const m = (it.status === '경험' ? '<span class="trd">경험</span>' : '')
+    + (it.status === '위시' ? '<span class="trd">위시</span>' : '')
+    + (it.draft === '1' ? '<span class="dr">초안</span>' : '');
+  return m ? `<span class="cmark">${m}</span>` : '';
+}
 function cardHTML(it){
   const src = imgOf(it);
-  const sc = bestScore(it), price = marketMid(it), lv = levelOf(it);
+  const sc = bestScore(it), price = marketMid(it);
+  /* 카드는 늘 네 줄이다 — 1) 타입·년산  2) 이름  3) 평점·기타·도수·가격
+     4) 잔량 바. 어느 줄도 조건부로 사라지지 않아야 카드끼리 줄이 맞는다.
+     3줄에 네 값이 다 들어가므로 폭이 빡빡하다: 넘칠 때는 도수부터 줄어들게
+     .cfoot 안의 우선순위를 flex-shrink 로 잡아 뒀다(가격·평점은 고정). */
   const sub = [it.type, it.age && it.age !== 'NAS' ? it.age + 'Y' : ''].filter(Boolean).join(' · ');
+  const bar = barOf(it);
   return `<button class="card" data-open="${it.id}">
     <div class="thumb${isRaw(it) ? ' raw' : ''}">
       ${src
@@ -1745,17 +1892,20 @@ function cardHTML(it){
            ${phHTML(it, false, true)}`
         : phHTML(it)}
       <span class="dot ${statusCls(it.status)}" title="${esc(it.status)}"></span>
+      ${cardMarks(it)}
     </div>
     <div class="cbody">
       <div class="ctype">${esc(sub)}</div>
       <h3>${esc(fullName(it))}</h3>
       <div class="cfoot">
-        ${badges(it, sc)}
-        ${!sc && it.abv ? `<span class="abv">${esc(it.abv)}%</span>` : ''}
-        ${lv !== null ? `<span class="lvlx">잔량 ${lv}%</span>`
-          : price ? `<span class="pr">${wonShort(price)}</span>` : ''}
+        <span class="cbg">${sc ? `<span class="sc">${sc}</span>` : ''}</span>
+        <span class="abv">${it.abv ? esc(it.abv) + '%' : ''}</span>
+        <span class="pr">${price ? wonShort(price) : ''}</span>
       </div>
-      ${lv !== null ? `<div class="lvl"><i style="width:${lv}%"></i></div>` : ''}
+      <div class="lvlrow" title="${bar === null ? '보유 중이 아님' : '잔량 ' + bar + '%'}">
+        <span class="lvl${bar === null ? ' na' : ''}"><i style="width:${bar === null ? 0 : bar}%"></i></span>
+        <span class="lvlx">${bar === null ? '—' : bar + '%'}</span>
+      </div>
     </div>
   </button>`;
 }
@@ -1778,8 +1928,8 @@ function rowHTML(it){
     </span>
     <span class="rt">
       ${badges(it, sc)}
-      ${lv !== null ? `<span class="lvlx">${lv}%</span>`
-        : price ? `<span class="pr">${wonShort(price)}</span>` : ''}
+      ${price ? `<span class="pr">${wonShort(price)}</span>` : ''}
+      ${lv !== null ? `<span class="lvlx">${lv}%</span>` : ''}
     </span>
   </button>`;
 }
@@ -2452,7 +2602,9 @@ const THUMB_W = 336, THUMB_H = 448, THUMB_FILL = 0.9;
 /* 카드의 풀블리드 확대율(1/FILL)이 이 상수를 따라가도록 CSS 로 넘긴다 */
 document.documentElement.style.setProperty('--thumb-fill', String(THUMB_FILL));
 const MAX_SHOTS = 5;                 // 병당 사진 최대 장수
-const EXTRA_W = 300, EXTRA_H = 375;  // 2번째 이후 사진은 조금 작게 저장해 용량을 아낀다
+/* 2번째 이후 사진은 조금 작게 저장해 용량을 아낀다. 본 사진과 같은 3:4 여야
+   추가 사진 프레임(.cand/.exs/.prev)에서 위아래 흰 띠가 생기지 않는다 */
+const EXTRA_W = 288, EXTRA_H = 384;
 
 function fileToDataURL(file){
   return new Promise((res, rej) => {
@@ -3171,11 +3323,14 @@ $('#grid').onclick = e => {
   const c = e.target.closest('[data-open]');
   if (c) openDetail(c.dataset.open);
 };
-$('#catSegs').onclick = e => {
+/* 주종 전환 — 모바일은 헤더 세그먼트, 데스크톱은 사이드바가 같은 버튼을 쓴다 */
+const onCatClick = e => {
   const c = e.target.closest('[data-cat]'); if (!c) return;
   V.cat = c.dataset.cat; V.type = 'all';   // 주종을 바꾸면 타입 필터는 초기화
   render();
 };
+$('#catSegs').onclick = onCatClick;
+$('#sideCats').onclick = onCatClick;
 $('#typeChips').onclick = e => {
   const c = e.target.closest('[data-type]'); if (!c) return;
   V.type = c.dataset.type; render();
