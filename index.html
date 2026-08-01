@@ -12,6 +12,18 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Sulsul Diary">
+<!-- 링크 공유 미리보기 (카카오톡·메신저·SNS).
+     og:image 는 반드시 절대 URL 이어야 한다 — 상대 경로는 크롤러가 못 읽는다. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="술술다이어리">
+<meta property="og:title" content="Sulsul Diary — 술술다이어리">
+<meta property="og:description" content="위스키 이름만 입력하면 사양·캐스크·테이스팅 노트 초안이 자동으로 채워지는 개인 컬렉션 앱. 설치하면 오프라인에서도 동작합니다.">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:url" content="https://ysparkbc37d.github.io/whisky-collector/">
+<meta property="og:image" content="https://ysparkbc37d.github.io/whisky-collector/shots/desktop-1.png">
+<meta property="og:image:width" content="1440">
+<meta property="og:image:height" content="900">
+<meta name="twitter:card" content="summary_large_image">
 <style>
 /* ══════════════ 임베드 서체 ══════════════
    Cormorant Garamond — 가변 woff2, 라틴 서브셋만.
@@ -682,6 +694,10 @@ pre.csv{
   padding:12px;border-radius:12px;border:1px solid var(--line);box-shadow:var(--sh1);
 }
 .qrbox canvas[hidden], .qrbox img[hidden]{display:none}
+/* 설치 안내의 단계 목록 */
+.guide{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:7px}
+.guide li{font-size:13px;color:var(--ink2);line-height:1.5}
+.guide li b{color:var(--ink)}
 .qacct{
   font-family:var(--serif);font-size:14.5px;color:var(--ink);margin:0;
   text-align:center;letter-spacing:-.01em;word-break:keep-all;
@@ -1029,9 +1045,10 @@ function drawLightbox(){
 const lbGo = d => { if (LB.list.length < 2) return;
   LB.i = (LB.i + d + LB.list.length) % LB.list.length; drawLightbox(); };
 
-function toast(msg){
+function toast(msg, ms){
   const t = $('#toast'); t.textContent = msg; t.classList.add('on');
-  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2200);
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('on'), ms || 2200);
 }
 async function copy(text){
   try{
@@ -3353,6 +3370,7 @@ function openData(){
       데이터는 이 브라우저 안(localStorage)에만 저장됩니다.
       <b>기기 변경·브라우저 정리 시 사라지므로</b> 주기적으로 JSON 백업을 받으세요.<br>
       마지막 내보내기 <b>${last}</b> · 저장 용량 ${(bytes / 1024).toFixed(0)}KB · 사진 ${photos}장${drafts ? ` · 초안 ${drafts}병` : ''}
+      <span id="persistLine"></span>
     </div>
 
     <h4 class="sec">썸네일</h4>
@@ -3570,11 +3588,44 @@ function openData(){
     openData();
     if (!ok && !fixed) toast('출처 제한으로 맞출 수 없었습니다 — 원본을 그대로 표시합니다');
   };
+  /* 저장소 보호 상태 — 비동기라 시트를 그린 뒤 채운다.
+     보호되지 않는 상태를 조용히 두면 안 된다: 이 앱의 데이터는 서버에 없다. */
+  (async () => {
+    const line = $('#persistLine'); if (!line) return;
+    const ok = await askPersist(), inf = await storageInfo();
+    const cap = inf && inf.quota ? ` · 한도 ${(inf.quota / 1048576).toFixed(0)}MB` : '';
+    line.innerHTML = ok === true
+      ? `<br>저장소 보호 <b style="color:var(--ok)">켜짐</b> — 공간 부족으로 지워지지 않습니다${cap}`
+      : ok === false
+      ? `<br>저장소 보호 <b style="color:var(--warn)">꺼짐</b> — <b>앱으로 설치하면</b> 보호가 켜집니다${cap}`
+      : `<br>이 브라우저는 저장소 보호를 지원하지 않습니다 — JSON 백업을 더 자주 받으세요${cap}`;
+  })();
   $('#btnTheme').onclick = () => { setTheme(dark ? 'light' : 'dark'); openData(); };
   $('#btnDonate2').onclick = openDonate;
   $('#btnInstall').onclick = () => {
-    if (installEvt){ installEvt.prompt(); installEvt = null; }
-    else toast('브라우저 메뉴 → "홈 화면에 추가"를 눌러 주세요');
+    if (installEvt){ installEvt.prompt(); installEvt = null; return; }
+    if (isInstalled()) return toast('이미 앱으로 설치되어 있습니다');
+    /* iOS 는 beforeinstallprompt 가 없다 — 공유 시트를 거쳐야만 설치된다.
+       "브라우저 메뉴"라고만 하면 아이폰 사용자는 찾지 못한다. */
+    openSheet('앱으로 설치하기', isIOS()
+      ? `<div class="stack">
+          <p class="hint">아이폰은 아래 순서로만 설치할 수 있습니다.</p>
+          <ol class="guide">
+            <li>사파리 아래쪽 <b>공유 버튼</b>(↑ 표시)을 누릅니다</li>
+            <li>목록을 내려 <b>홈 화면에 추가</b>를 누릅니다</li>
+            <li>오른쪽 위 <b>추가</b>를 누릅니다</li>
+          </ol>
+          <p class="hint">설치하면 주소창 없이 전체화면으로 열리고, 오프라인에서도
+            동작합니다. 저장한 기록이 사라지지 않도록 보호되기도 하므로
+            <b>설치를 권합니다.</b></p>
+        </div>`
+      : `<div class="stack">
+          <p class="hint">브라우저 주소창 오른쪽의 <b>설치 아이콘</b>, 또는
+            메뉴 → <b>앱 설치 / 홈 화면에 추가</b>를 눌러 주세요.</p>
+          <p class="hint">설치하면 창이 따로 열리고 오프라인에서도 동작합니다.</p>
+        </div>`,
+      `<button class="btn gold" id="insOk">알겠습니다</button>`);
+    $('#insOk').onclick = closeSheet;
   };
   $('#rmExamples').onclick = () => {
     const kill = DB.items.filter(i => String(i.tags || '').split(',').map(s => s.trim()).includes('예시'));
@@ -3723,6 +3774,16 @@ $('#activeChips').onclick = e => {
 $('#sortSel').onchange = e => { V.sort = e.target.value; render(); };
 $('#btnAdd').onclick = openWizard;
 $('#btnStats').onclick = openStats;
+/* manifest.shortcuts (아이콘 길게 누르기) 진입 — ?go=add / ?go=stats.
+   주소에 흔적을 남기지 않도록 처리 후 쿼리를 지운다. 그래야 새로고침이나
+   '홈 화면에 추가' 로 저장된 주소가 늘 목록 화면에서 시작한다. */
+(() => {
+  const go = new URLSearchParams(location.search).get('go');
+  if (!go) return;
+  history.replaceState(null, '', location.pathname);
+  if (go === 'add') setTimeout(openWizard, 60);
+  else if (go === 'stats') setTimeout(openStats, 60);
+})();
 $('#btnData').onclick = openData;
 $('#shClose').onclick = closeSheet;
 $('#scrim').onclick = closeSheet;
@@ -3841,8 +3902,54 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') syncFlush();
 });
 window.addEventListener('pagehide', syncFlush);
+/* ── 저장소 영구화 ─────────────────────────
+   브라우저는 저장 공간이 부족하면 localStorage 를 임의로 비울 수 있고,
+   iOS Safari 는 설치하지 않은 사이트를 7일간 열지 않으면 데이터를 지운다.
+   persist() 승인을 받으면 그 대상에서 제외된다 — 설치된 PWA 는 대개 자동 승인.
+   실패해도 앱은 그대로 동작하므로 조용히 넘어가고, 상태만 설정창에 보여 준다. */
+/* 설치 여부·기기 판별 — 안내 문구를 갈라 쓰기 위한 것.
+   navigator.standalone 은 iOS 전용, display-mode 는 그 외 브라우저용이다. */
+const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);   // iPadOS 13+
+const isInstalled = () => matchMedia('(display-mode: standalone)').matches
+  || matchMedia('(display-mode: fullscreen)').matches
+  || navigator.standalone === true;
+
+let persisted = null;                 // null = 아직 모름 / true / false
+async function askPersist(){
+  try{
+    if (!navigator.storage?.persist) return null;
+    persisted = await navigator.storage.persisted();
+    if (!persisted) persisted = await navigator.storage.persist();
+    return persisted;
+  }catch(e){ return null; }
+}
+/** 저장 용량 — 설정창에 "얼마나 썼는지"를 보여 주기 위한 값 */
+async function storageInfo(){
+  try{
+    if (!navigator.storage?.estimate) return null;
+    const {usage, quota} = await navigator.storage.estimate();
+    return {usage, quota};
+  }catch(e){ return null; }
+}
+askPersist();
+
 if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
-  addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+  addEventListener('load', async () => {
+    try{
+      const reg = await navigator.serviceWorker.register('./sw.js');
+      /* 새 버전 알림 — 코드가 network-first 라 다음 실행에 자동 반영되지만,
+         사용자가 그 사실을 모르면 옛 화면을 보고 있다고 오해한다.
+         이미 워커가 붙어 있을 때(=재방문)만 알린다. 첫 설치는 알릴 것이 없다. */
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing || reg.waiting;
+        if (!nw || !navigator.serviceWorker.controller) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed') toast('새 버전이 준비됐습니다 — 새로고침하면 적용됩니다', 6000);
+        });
+      });
+    }catch(e){}
+  });
 </script>
 </body>
 </html>
