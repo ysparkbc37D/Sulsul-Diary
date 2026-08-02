@@ -798,6 +798,24 @@ pre.csv{
 .guide li b{color:var(--ink)}
 /* 공유 아이콘을 문장 안에 넣어 '어떤 버튼인지'를 그림으로 보여 준다 */
 .ic.shr{width:14px;height:14px;vertical-align:-2px;color:var(--accent)}
+/* 인앱 브라우저 안내 배너 — 헤더 위에 붙어 스크롤과 함께 올라간다.
+   sticky 로 두면 좁은 화면에서 목록을 계속 가린다 */
+.inappbar{
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+  padding:calc(var(--safe-t) + 10px) 16px 10px;
+  background:var(--accent-bg);border-bottom:1px solid var(--accent-line);
+  font-size:12px;line-height:1.5;color:var(--ink2);
+}
+.inappbar[hidden]{display:none}
+.inappbar b{color:var(--ink)}
+.inappbar .txt{flex:1;min-width:150px;word-break:keep-all}
+.inappbar .go{
+  flex:none;height:31px;padding:0 13px;border-radius:9px;font-size:12px;font-weight:700;
+  background:var(--accent);color:#fff;border:0;text-decoration:none;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.inappbar .x{flex:none;width:26px;height:26px;border-radius:7px;color:var(--ink3);font-size:13px}
+@media(min-width:1024px){ .inappbar{padding-left:calc(236px + 24px);padding-right:24px} }
 .qacct{
   font-family:var(--serif);font-size:14.5px;color:var(--ink);margin:0;
   text-align:center;letter-spacing:-.01em;word-break:keep-all;
@@ -822,6 +840,10 @@ pre.csv{
   <nav class="sidebar-nav" id="sideCats"></nav>
   <div class="sidebar-foot" id="sideStats"></div>
 </aside>
+
+<!-- 인앱 브라우저(카카오톡 등) 안내 배너. 설치 경로가 아예 없는 환경이므로
+     ⚙️ 안의 버튼만으로는 아무도 찾지 못한다. JS 가 해당될 때만 채워 넣는다. -->
+<div class="inappbar" id="inappBar" hidden></div>
 
 <header class="top">
   <div class="top-in">
@@ -4299,6 +4321,28 @@ async function storageInfo(){
   }catch(e){ return null; }
 }
 askPersist();
+
+/* 인앱 브라우저 배너 — 카카오톡·블로그 링크로 들어온 사람이 가장 먼저 만나는 화면.
+   그 안에서는 설치가 불가능하므로 기본 브라우저로 나가는 길을 여기서 준다.
+   닫으면 그 세션에서는 다시 띄우지 않는다(플래그를 영속화하면 기기를 바꿔
+   들어온 사람에게 두 번째 기회가 없다). */
+(() => {
+  const app = inApp();
+  if (!app || isInstalled()) return;
+  const bar = $('#inappBar'); if (!bar) return;
+  const url = location.href.split('#')[0];
+  const intent = 'intent://' + url.replace(/^https?:\/\//, '')
+    + '#Intent;scheme=https;package=com.android.chrome;end';
+  bar.innerHTML = `<span class="txt"><b>${esc(app)} 안에서는 앱으로 설치할 수 없습니다.</b>
+      ${isIOS() ? 'Safari로 열면 홈 화면에 추가할 수 있습니다.'
+                : '크롬으로 열면 버튼 한 번으로 설치됩니다.'}</span>
+    ${isIOS() ? `<button class="go" id="iaHow">방법 보기</button>`
+              : `<a class="go" href="${esc(intent)}">크롬으로 열기</a>`}
+    <button class="x" id="iaX" aria-label="닫기">✕</button>`;
+  bar.hidden = false;
+  const how = $('#iaHow'); if (how) how.onclick = openInstall;
+  $('#iaX').onclick = () => { bar.hidden = true; };
+})();
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
   addEventListener('load', async () => {
