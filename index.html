@@ -734,6 +734,26 @@ pre.csv{
   padding:12px;border-radius:12px;border:1px solid var(--line);box-shadow:var(--sh1);
 }
 .qrbox canvas[hidden], .qrbox img[hidden]{display:none}
+/* 첫 실행 안내 */
+.intro{display:flex;flex-direction:column;gap:12px}
+.idots{display:flex;gap:5px;justify-content:center;padding:2px 0 4px}
+.idots i{width:6px;height:6px;border-radius:50%;background:var(--line2);transition:.2s}
+.idots i.on{background:var(--accent);width:18px;border-radius:3px}
+.intro .it{
+  font-family:var(--serif);font-size:20px;font-weight:600;letter-spacing:-.015em;
+  margin:0;line-height:1.32;color:var(--ink);text-align:center;
+}
+.intro .id{font-size:13.5px;color:var(--ink2);line-height:1.68;margin:0;text-align:center;
+  word-break:keep-all}
+.intro .id code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;
+  background:var(--surface2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;
+}
+.intro .ilink{
+  align-self:center;font-size:12px;color:var(--ink3);text-decoration:none;
+  border-bottom:1px solid var(--line2);padding-bottom:1px;margin-top:2px;
+}
+.intro .ilink:hover{color:var(--accent)}
 /* 설치 안내의 단계 목록 */
 .guide{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:7px}
 .guide li{font-size:13px;color:var(--ink2);line-height:1.5}
@@ -863,6 +883,8 @@ pre.csv{
    저장: localStorage(wc.v1) · 자동 초안: kb.js + Wikipedia/Commons
    ══════════════════════════════════════════════════════════ */
 const LS = 'wc.v1', LS_THEME = 'wc.theme', LS_SYNC = 'wc.sync', LS_TOK = 'wc.token';
+const LS_INTRO = 'wc.intro';   // 첫 실행 안내를 봤는지 (체크박스 대신 플래그 하나)
+const BLOG_GUIDE = 'https://blog.naver.com/ysparkbc37/224365845283';
 const LS_TRASH = 'wc.trash';          // 전체 초기화 되돌리기용 스냅샷
 const TRASH_DAYS = 14;                // 이 기간 안에는 복구 가능
 const TYPES = ['Single Malt','Blended Malt','Blended Scotch','Single Grain','Bourbon','Rye',
@@ -2433,6 +2455,85 @@ function openFilter(){
 }
 
 /* ── 등록 위저드 ──────────────────────────── */
+/* ── 첫 실행 안내 ─────────────────────────
+   체크박스("다시 보지 않기")를 두지 않는다 — 그것은 "체크하지 않으면 또 뜬다"는
+   뜻이어서, 한 번 보고 끝나야 하는 안내에 매번 뜨는 부담을 사용자에게 넘긴다.
+   플래그 하나로 '봤음'을 남기고, 다시 보려면 설정에서 열게 한다. */
+const INTRO = [
+  { t: '이름만 적으면 초안이 채워집니다',
+    d: `<b>＋ 추가</b>를 누르고 <code>글렌드로낙 15</code> 처럼 적으면
+        타입·증류소·캐스크·테이스팅 노트·평점이 자동으로 채워집니다.
+        한글 표기로도 찾고, 붙여 써도 됩니다.`,
+    n: `자동으로 채운 칸에는 <b>초안</b> 표시가 붙습니다 — 추정치라는 뜻이니
+        라벨을 보고 고쳐 주세요. 고치면 표시가 사라집니다.` },
+  { t: '사진은 찾아 주거나 직접 찍습니다',
+    d: `등록하면 병 사진 후보를 함께 제안합니다. 마음에 드는 것이 없으면
+        <b>직접 촬영</b>으로 내 병을 남기세요. 한 병에 5장까지 넣을 수 있습니다.`,
+    n: `사진은 모두 같은 3:4 규격으로 자동 정렬되어 목록이 흐트러지지 않습니다.` },
+  { t: '기록은 이 기기에만 저장됩니다',
+    d: `서버가 없어 <b>가입도 로그인도 없습니다.</b> 그래서 기기를 바꾸거나
+        브라우저 데이터를 지우면 사라지고, 복구해 드릴 방법이 없습니다.`,
+    n: `병이 쌓이면 설정에서 <b>전체 백업(JSON)</b>을 한 번 받아 두세요.
+        폰과 PC를 함께 쓰려면 무료 동기화도 켤 수 있습니다.` },
+];
+let introAt = 0;
+function openIntro(step){
+  /* 열리는 순간 '봤음'으로 남긴다 — X 나 뒤로가기로 닫아도 다시 뜨지 않는다.
+     실수로 닫았을 때는 설정 → 시작 안내 다시 보기 로 들어온다. */
+  introSeen();
+  introAt = Math.max(0, Math.min(INTRO.length - 1, step || 0));
+  const s = INTRO[introAt], last = introAt === INTRO.length - 1;
+  const onlySeed = DB.items.length && DB.items.every(i => String(i.tags || '').includes('예시'));
+  openSheet('술술다이어리 시작하기', `
+    <div class="intro">
+      <div class="idots">${INTRO.map((_, i) =>
+        `<i class="${i === introAt ? 'on' : ''}"></i>`).join('')}</div>
+      <h3 class="it">${s.t}</h3>
+      <p class="id">${s.d}</p>
+      <div class="note">${s.n}</div>
+      ${last && onlySeed ? `<p class="hint">지금 보이는 ${DB.items.length}병은 <b>예시</b>입니다.
+        설정에서 <b>예시 데이터 삭제</b>로 한 번에 지울 수 있습니다.</p>` : ''}
+      ${last ? `<a class="ilink" href="${BLOG_GUIDE}" target="_blank" rel="noopener">
+        자세한 사용법 보기 (블로그)</a>` : ''}
+    </div>`,
+    `${introAt ? '<button class="btn" id="iPrev">이전</button>' : ''}
+     <button class="btn ${last ? 'pri' : ''}" id="iNext">${
+       last ? '첫 병 등록하기' : '다음'}</button>`);
+  $('#iPrev') && ($('#iPrev').onclick = () => openIntro(introAt - 1));
+  $('#iNext').onclick = () => {
+    if (!last) return openIntro(introAt + 1);
+    introSeen();
+    closeSheet();
+    /* 앱을 쓰게 만드는 것이 먼저다 — 블로그는 보조 링크로만 둔다 */
+    setTimeout(openWizard, 260);
+  };
+}
+const introSeen = () => { try{ localStorage.setItem(LS_INTRO, '1'); }catch(e){} };
+
+/** 백업 재촉 — 서버가 없는 앱의 유일한 실패 모드가 '백업을 안 함' 이다.
+    조건을 좁게 잡는다: 병이 5개 이상이고, 30일 넘게 내보내지 않았고,
+    동기화도 꺼져 있을 때만. 동기화가 켜져 있으면 원격에 사본이 있으므로
+    재촉하지 않는다. 하루에 한 번을 넘지 않는다. */
+const LS_NAG = 'wc.nag';
+function backupNag(){
+  if (syncOn() || DB.items.length < 5) return;
+  const day = 86400000;
+  const exp = DB.meta.lastExport ? Date.now() - new Date(DB.meta.lastExport) : Infinity;
+  if (exp < 30 * day) return;
+  try{
+    const last = Number(localStorage.getItem(LS_NAG) || 0);
+    if (Date.now() - last < day) return;
+    localStorage.setItem(LS_NAG, String(Date.now()));
+  }catch(e){ return; }
+  const how = DB.meta.lastExport ? '30일 넘게 백업하지 않았습니다' : '아직 백업을 받지 않았습니다';
+  toast(`${how} — 설정에서 전체 백업(JSON)을 받아 두세요`, 6500);
+}
+/** 첫 실행인가 — 예시만 있거나 비어 있고, 아직 안내를 보지 않은 경우 */
+function needIntro(){
+  try{ if (localStorage.getItem(LS_INTRO)) return false; }catch(e){ return false; }
+  return !DB.items.length || DB.items.every(i => String(i.tags || '').includes('예시'));
+}
+
 function openWizard(){
   openSheet('새 위스키 등록', `
     <div class="wiz">
@@ -3465,6 +3566,8 @@ function openData(){
       <button class="btn" id="btnTheme">${dark ? ic('sun') + ' 밝은 테마로' : ic('moon') + ' 어두운 테마로'}</button>
       <button class="btn" id="btnDonate2">${ic('coffee')}술술다이어리 후원하기</button>
       <button class="btn" id="btnInstall">홈 화면에 추가</button>
+      <!-- '다시 보지 않기' 체크박스를 두지 않는 대신, 여기서 다시 열 수 있게 한다 -->
+      <button class="btn" id="btnIntro">시작 안내 다시 보기</button>
       <!-- 블로그 가이드가 본편이지만, 설치한 앱은 신호가 없는 곳에서도 열린다.
            오프라인 요약은 앱 안에 두어야 그때 읽을 수 있다. -->
       <a class="btn" href="./guide.html">사용 가이드 (오프라인)</a>
@@ -3684,6 +3787,7 @@ function openData(){
   })();
   $('#btnTheme').onclick = () => { setTheme(dark ? 'light' : 'dark'); openData(); };
   $('#btnDonate2').onclick = openDonate;
+  $('#btnIntro').onclick = () => openIntro(0);
   $('#btnInstall').onclick = () => {
     if (installEvt){ installEvt.prompt(); installEvt = null; return; }
     if (isInstalled()) return toast('이미 앱으로 설치되어 있습니다');
@@ -3975,6 +4079,10 @@ render();
   await autoNormalize();
   /* 이관 결과를 다른 기기로 넘긴다 (updated_at 을 올리지 않았으므로 편집 충돌은 없다) */
   if (syncOn() && DB.items.some(i => i.thumb_ar === THUMB_FIT)) syncSoon();
+  /* 첫 실행 안내는 동기화가 끝난 뒤에 판단한다 — 먼저 띄우면 원격에 기록이
+     있는 기기(다른 기기에서 이미 쓰던 사람)에도 안내가 뜬다 */
+  if (needIntro()) openIntro(0);
+  else backupNag();
 })();
 /* 주기적 자동 동기화는 쓰지 않는다.
    동기화 시점은 ① 앱을 열 때 한 번 ② 추가·편집·삭제가 생겼을 때 ③ 지금 동기화 버튼, 세 가지뿐이다.
