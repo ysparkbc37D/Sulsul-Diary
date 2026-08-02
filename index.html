@@ -446,6 +446,8 @@ header.top{
   background:var(--surface);border:1px solid var(--line2);color:var(--ink);transition:.15s;
 }
 .btn:active{transform:scale(.98)}
+/* 링크를 버튼처럼 쓸 때 — a 는 button 과 달리 내용이 가운데로 정렬되지 않는다 */
+a.btn{display:grid;place-items:center;text-decoration:none}
 .btn.pri{background:var(--ink);color:var(--bg);border:none}
 :root[data-theme="dark"] .btn.pri{background:var(--accent);color:#1a1409}
 .btn.gold{background:linear-gradient(180deg,#d7a643,#bd8a2a);color:#231803;border:none}
@@ -801,7 +803,8 @@ pre.csv{
   <footer class="foot">
     <button class="donate" id="btnDonate">☕ 술술다이어리 후원</button>
     <nav class="flinks">
-      <a href="./guide.html">사용 가이드</a>
+      <a href="https://blog.naver.com/ysparkbc37/224365845283"
+         target="_blank" rel="noopener">사용 가이드</a>
       <a href="./sync.html">기기 간 동기화</a>
       <a href="./privacy.html">개인정보처리방침</a>
     </nav>
@@ -2056,8 +2059,8 @@ window.addEventListener('popstate', () => {
    QR 은 계좌이체(송금)로, 링크 열기는 소개 페이지로 간다. 둘을 같은 값으로
    두면 QR 을 찍어도 버튼과 똑같은 곳으로 가서 QR 이 있을 이유가 없어진다. */
 const DONATE = {
-  /* '링크 열기' 전용 — 후원 안내 페이지 */
-  page: 'https://app.notion.com/chat?pvs=42&pm=c&t=3afa92fd35db8035b73100a930ddce91&wfv=chat&p=95c87169da6c44c59293e87d1fdee807',
+  /* '링크 열기' 전용 — 후원 안내 블로그 글 */
+  page: 'https://blog.naver.com/ysparkbc37/224365856849',
   /* QR 로 만들 송금 링크(토스·카카오페이 등). 비어 있으면 아래 이미지를 쓴다 */
   transfer: '',
   /* 직접 만든 QR 이미지 경로. 저장할 때 확장자가 달라도 되도록 후보를 순서대로
@@ -3371,7 +3374,7 @@ function openData(){
     </div>
     <div class="fg">
       <div class="f wide"><label>데이터 저장소 (owner/repo)</label>
-        <input id="syRepo" value="${esc(SYNC.repo)}" placeholder="ysparkbc37D/whisky-data" autocomplete="off"></div>
+        <input id="syRepo" value="${esc(SYNC.repo)}" placeholder="내계정/whisky-data" autocomplete="off"></div>
       <div class="f"><label>파일 경로</label>
         <input id="syPath" value="${esc(SYNC.path)}" placeholder="collection.json" autocomplete="off"></div>
       <div class="f"><label>브랜치</label>
@@ -3429,6 +3432,9 @@ function openData(){
       <button class="btn" id="btnTheme">${dark ? '☀️ 밝은 테마로' : '🌙 어두운 테마로'}</button>
       <button class="btn" id="btnDonate2">☕ 술술다이어리 후원하기</button>
       <button class="btn" id="btnInstall">홈 화면에 추가</button>
+      <!-- 블로그 가이드가 본편이지만, 설치한 앱은 신호가 없는 곳에서도 열린다.
+           오프라인 요약은 앱 안에 두어야 그때 읽을 수 있다. -->
+      <a class="btn" href="./guide.html">사용 가이드 (오프라인)</a>
       <button class="btn" id="rmExamples">예시 데이터 삭제</button>
       <button class="btn dgr" id="wipe" style="width:auto">전체 초기화</button>
     </div>
