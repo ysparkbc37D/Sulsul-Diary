@@ -796,6 +796,8 @@ pre.csv{
 .guide{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:7px}
 .guide li{font-size:13px;color:var(--ink2);line-height:1.5}
 .guide li b{color:var(--ink)}
+/* 공유 아이콘을 문장 안에 넣어 '어떤 버튼인지'를 그림으로 보여 준다 */
+.ic.shr{width:14px;height:14px;vertical-align:-2px;color:var(--accent)}
 .qacct{
   font-family:var(--serif);font-size:14.5px;color:var(--ink);margin:0;
   text-align:center;letter-spacing:-.01em;word-break:keep-all;
@@ -2242,6 +2244,86 @@ const dayssince = d => {
   return n <= 0 ? '오늘' : n === 1 ? '어제' : n < 30 ? n + '일 경과'
     : n < 365 ? Math.floor(n / 30) + '개월 경과' : (n / 365).toFixed(1) + '년 경과';
 };
+/** 설치 안내.
+    한 번 누르면 설치되는 버튼은 **Android·PC 크롬/엣지에서만** 가능하다
+    (beforeinstallprompt → prompt()). iOS 는 프로그램으로 설치를 띄우는 API 가
+    아예 없어 공유 시트를 거쳐야 한다 — 애플이 제공하지 않는다.
+    그리고 카카오톡 같은 인앱 브라우저에서는 **양쪽 다 불가능**하므로,
+    먼저 기본 브라우저로 나가게 만드는 것이 첫 단계다. */
+function openInstall(){
+  if (isInstalled()) return toast('이미 앱으로 설치되어 있습니다');
+  /* ① 한 번 탭 설치가 가능한 경우 — 다른 안내 없이 바로 띄운다 */
+  if (installEvt){
+    const e = installEvt; installEvt = null;
+    e.prompt();
+    e.userChoice?.then(r => {
+      if (r?.outcome === 'accepted') toast('설치했습니다 — 홈 화면에서 열어 보세요', 4000);
+      else toast('설치를 취소했습니다. 설정에서 다시 시도할 수 있습니다', 3500);
+    }).catch(() => {});
+    return;
+  }
+  const app = inApp();
+  const url = location.href.split('#')[0];
+  /* ② 인앱 브라우저 — 설치 경로가 없다. 기본 브라우저로 내보낸다. */
+  if (app){
+    /* Android 는 intent 로 크롬을 직접 열 수 있다. iOS 는 그런 수단이 없어
+       "Safari로 열기"를 직접 누르게 안내할 수밖에 없다. */
+    const intent = 'intent://' + url.replace(/^https?:\/\//, '')
+      + '#Intent;scheme=https;package=com.android.chrome;end';
+    openSheet('앱으로 설치하기', `
+      <div class="stack">
+        <div class="note">${esc(app)} 안에서 열려 있어 <b>설치할 수 없습니다.</b>
+          ${esc(app)}의 브라우저에는 홈 화면 추가 기능이 없습니다.
+          먼저 기본 브라우저로 열어 주세요.</div>
+        ${isIOS()
+          ? `<ol class="guide">
+              <li>오른쪽 아래(또는 위) <b>⋯ / 나침반</b> 아이콘을 누릅니다</li>
+              <li><b>Safari로 열기</b>를 누릅니다</li>
+              <li>다시 <b>설정 → 홈 화면에 추가</b>를 눌러 주세요</li>
+             </ol>`
+          : `<p class="hint">아래 버튼으로 크롬에서 열 수 있습니다.
+              열리지 않으면 ${esc(app)} 메뉴에서 <b>다른 브라우저로 열기</b>를 선택하세요.</p>`}
+        <button class="btn" id="insCopy">주소 복사</button>
+      </div>`,
+      isIOS() ? `<button class="btn gold" id="insOk">알겠습니다</button>`
+        : `<a class="btn gold" href="${esc(intent)}">크롬으로 열기</a>`);
+    $('#insCopy').onclick = () => copy(url).then(() => toast('주소를 복사했습니다'));
+    if ($('#insOk')) $('#insOk').onclick = closeSheet;
+    return;
+  }
+  /* ③ iOS 기본 브라우저 — 공유 시트 안내 (API 가 없어 이것이 유일한 길) */
+  if (isIOS()){
+    openSheet('앱으로 설치하기', `
+      <div class="stack">
+        <p class="hint">아이폰은 <b>버튼 한 번으로 설치할 수 없습니다.</b>
+          애플이 그 기능을 제공하지 않아, 아래 3단계를 거쳐야 합니다.</p>
+        <ol class="guide">
+          <li>화면 아래쪽 <b>공유 버튼</b>
+            <svg class="ic shr" viewBox="0 0 24 24" aria-hidden="true"
+              ><path d="M12 15V4"/><path d="m8 8 4-4 4 4"/><path d="M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg>
+            을 누릅니다</li>
+          <li>목록을 아래로 내려 <b>홈 화면에 추가</b>를 누릅니다</li>
+          <li>오른쪽 위 <b>추가</b>를 누릅니다</li>
+        </ol>
+        <div class="note">설치하면 주소창 없이 전체화면으로 열리고, 오프라인에서도
+          동작합니다. 무엇보다 <b>기록이 사라지지 않도록 보호됩니다</b> —
+          설치하지 않으면 사파리가 7일간 방치된 사이트의 데이터를 지울 수 있습니다.</div>
+      </div>`,
+      `<button class="btn gold" id="insOk">알겠습니다</button>`);
+    $('#insOk').onclick = closeSheet;
+    return;
+  }
+  /* ④ 그 외 — 크롬/엣지인데 이벤트가 아직 안 왔거나 지원하지 않는 브라우저 */
+  openSheet('앱으로 설치하기', `
+    <div class="stack">
+      <p class="hint">주소창 오른쪽의 <b>설치 아이콘</b>, 또는
+        브라우저 메뉴 → <b>앱 설치 / 홈 화면에 추가</b>를 눌러 주세요.</p>
+      <p class="hint">사파리·파이어폭스에는 설치 기능이 없습니다.
+        크롬이나 엣지에서 열면 버튼 한 번으로 설치됩니다.</p>
+    </div>`,
+    `<button class="btn gold" id="insOk">알겠습니다</button>`);
+  $('#insOk').onclick = closeSheet;
+}
 /** 이미지 출처 표기.
     위키미디어 사진은 CC BY-SA 등 라이선스가 있어 **출처와 파일을 밝혀야 한다.**
     이름만 적어 두면 저작자를 찾아갈 수 없으므로 Commons 파일 페이지로 링크한다.
@@ -3885,31 +3967,7 @@ function openData(){
   $('#btnTheme').onclick = () => { setTheme(dark ? 'light' : 'dark'); openData(); };
   $('#btnDonate2').onclick = openDonate;
   $('#btnIntro').onclick = () => openIntro(0);
-  $('#btnInstall').onclick = () => {
-    if (installEvt){ installEvt.prompt(); installEvt = null; return; }
-    if (isInstalled()) return toast('이미 앱으로 설치되어 있습니다');
-    /* iOS 는 beforeinstallprompt 가 없다 — 공유 시트를 거쳐야만 설치된다.
-       "브라우저 메뉴"라고만 하면 아이폰 사용자는 찾지 못한다. */
-    openSheet('앱으로 설치하기', isIOS()
-      ? `<div class="stack">
-          <p class="hint">아이폰은 아래 순서로만 설치할 수 있습니다.</p>
-          <ol class="guide">
-            <li>사파리 아래쪽 <b>공유 버튼</b>(↑ 표시)을 누릅니다</li>
-            <li>목록을 내려 <b>홈 화면에 추가</b>를 누릅니다</li>
-            <li>오른쪽 위 <b>추가</b>를 누릅니다</li>
-          </ol>
-          <p class="hint">설치하면 주소창 없이 전체화면으로 열리고, 오프라인에서도
-            동작합니다. 저장한 기록이 사라지지 않도록 보호되기도 하므로
-            <b>설치를 권합니다.</b></p>
-        </div>`
-      : `<div class="stack">
-          <p class="hint">브라우저 주소창 오른쪽의 <b>설치 아이콘</b>, 또는
-            메뉴 → <b>앱 설치 / 홈 화면에 추가</b>를 눌러 주세요.</p>
-          <p class="hint">설치하면 창이 따로 열리고 오프라인에서도 동작합니다.</p>
-        </div>`,
-      `<button class="btn gold" id="insOk">알겠습니다</button>`);
-    $('#insOk').onclick = closeSheet;
-  };
+  $('#btnInstall').onclick = openInstall;
   $('#rmExamples').onclick = () => {
     const kill = DB.items.filter(i => String(i.tags || '').split(',').map(s => s.trim()).includes('예시'));
     DB.items = DB.items.filter(i => !kill.includes(i));
@@ -4208,6 +4266,20 @@ const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent)
 const isInstalled = () => matchMedia('(display-mode: standalone)').matches
   || matchMedia('(display-mode: fullscreen)').matches
   || navigator.standalone === true;
+/** 인앱 브라우저인가 — 카카오톡·네이버 등에서 링크를 열면 여기로 들어온다.
+    이 안에서는 설치가 **아예 불가능하다**: Android 는 beforeinstallprompt 가
+    발생하지 않고, iOS 는 공유 시트에 '홈 화면에 추가'가 없다.
+    블로그·카톡으로 공유하는 앱이므로 이 경우가 실제로 가장 흔하다. */
+function inApp(){
+  const u = navigator.userAgent;
+  if (/KAKAOTALK/i.test(u))            return '카카오톡';
+  if (/NAVER\(inapp|NAVER /i.test(u))  return '네이버 앱';
+  if (/Instagram/i.test(u))            return '인스타그램';
+  if (/FBAN|FBAV/i.test(u))            return '페이스북';
+  if (/Line\//i.test(u))               return '라인';
+  if (/DaumApps/i.test(u))             return '다음 앱';
+  return '';
+}
 
 let persisted = null;                 // null = 아직 모름 / true / false
 async function askPersist(){
