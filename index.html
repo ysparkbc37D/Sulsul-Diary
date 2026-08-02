@@ -12,6 +12,19 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Sulsul Diary">
+<!-- iOS 실행 화면. iOS 는 manifest 아이콘으로 스플래시를 만들지 않아, 없으면
+     앱을 열 때 흰 화면이 잠깐 보인다. 기기 해상도가 정확히 맞아야 적용되므로
+     현재 쓰이는 주요 기기만 담았다 (안 맞는 기기는 기존처럼 배경색만 보인다). -->
+<link rel="apple-touch-startup-image" href="./splash/iphone-13-14.png"
+  media="(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3)">
+<link rel="apple-touch-startup-image" href="./splash/iphone-15-16.png"
+  media="(device-width:393px) and (device-height:852px) and (-webkit-device-pixel-ratio:3)">
+<link rel="apple-touch-startup-image" href="./splash/iphone-max.png"
+  media="(device-width:430px) and (device-height:932px) and (-webkit-device-pixel-ratio:3)">
+<link rel="apple-touch-startup-image" href="./splash/iphone-16-pro.png"
+  media="(device-width:402px) and (device-height:874px) and (-webkit-device-pixel-ratio:3)">
+<link rel="apple-touch-startup-image" href="./splash/ipad.png"
+  media="(device-width:768px) and (device-height:1024px) and (-webkit-device-pixel-ratio:2)">
 <!-- 링크 공유 미리보기 (카카오톡·메신저·SNS).
      og:image 는 반드시 절대 URL 이어야 한다 — 상대 경로는 크롤러가 못 읽는다. -->
 <meta property="og:type" content="website">
@@ -64,6 +77,7 @@
   --ok:#4d7a55;
   --warn:#b0812a;
   --off:#a7a19a;
+  --danger:#a8503c;
   --r:16px; --r2:12px;
   --sh1:0 1px 2px rgba(28,24,21,.04), 0 4px 14px -8px rgba(28,24,21,.10);
   --sh2:0 2px 8px rgba(28,24,21,.06), 0 26px 50px -26px rgba(28,24,21,.32);
@@ -92,7 +106,7 @@
   --beige:#E5D3B3;         /* Warm Beige */
   --accent-bg:#241B10;
   --accent-line:#4A3620;
-  --ok:#6FBF7A; --warn:#D4AF37; --off:#5A5A61;
+  --ok:#6FBF7A; --warn:#D4AF37; --off:#5A5A61; --danger:#c0503c;
   /* 사진 패널은 다크에서도 순백 — normalizeThumb 이 흰 캔버스를 데이터에
      구워 넣으므로, 패널만 따뜻하게 하면 정규화된 썸네일과 색이 어긋난다 */
   --shot:#FFFFFF;
@@ -151,7 +165,7 @@ header.top{
 }
 .syncdot.busy{background:var(--warn);animation:sdp 1.1s ease-in-out infinite}
 .syncdot.ok{background:var(--ok)}
-.syncdot.err{background:#c0503c}
+.syncdot.err{background:var(--danger)}
 @keyframes sdp{50%{opacity:.3}}
 .cta{
   height:36px;padding:0 15px;border-radius:11px;flex:none;
@@ -351,6 +365,9 @@ header.top{
   background:var(--surface);border:1px solid var(--line);border-radius:var(--r);margin-top:18px;
 }
 .empty h3{margin:0 0 8px;font-family:var(--serif);font-size:18px;font-weight:400;color:var(--ink)}
+/* 빈 상태에서 무엇이 걸러내는지 보여 주는 칩 — 목록이 아니라 설명이므로 가운데 정렬 */
+.empty .ecs{justify-content:center;flex-wrap:wrap;margin-top:12px;overflow:visible}
+.empty .ebtn{margin:14px auto 0;max-width:200px}
 .empty p{margin:0;font-size:13.5px}
 
 /* ══════════════ sheet ══════════════ */
@@ -460,7 +477,7 @@ header.top{
 .btn.pri{background:var(--ink);color:var(--bg);border:none}
 :root[data-theme="dark"] .btn.pri{background:var(--accent);color:#1a1409}
 .btn.gold{background:linear-gradient(180deg,#d7a643,#bd8a2a);color:#231803;border:none}
-.btn.dgr{flex:none;width:70px;background:transparent;border-color:var(--line2);color:#a8503c}
+.btn.dgr{flex:none;width:70px;background:transparent;border-color:var(--line2);color:var(--danger)}
 .lnk2{width:100%;text-align:center;font-size:13px;color:var(--ink3);padding:10px 0;text-decoration:underline}
 
 /* ══════════════ record card ══════════════ */
@@ -533,9 +550,28 @@ table.spec tr:last-child th,table.spec tr:last-child td{border-bottom:none}
 .lvlbtns{display:flex;gap:5px;margin-left:auto}
 /* 시음 기록 */
 .sess{display:flex;flex-direction:column;gap:8px}
-.sitem{background:var(--surface2);border-radius:12px;padding:10px 12px}
-.sitem .sh{display:flex;align-items:center;gap:8px}
+/* 시음 기록 타임라인 — 세로 레일 + 기록마다 노드 하나.
+   레일은 마지막 항목 아래로 이어지지 않아야 '끝'으로 읽힌다 */
+.tline{display:flex;flex-direction:column;gap:10px}
+.sitem{
+  background:var(--surface2);border-radius:12px;padding:10px 12px;
+  position:relative;margin-left:15px;
+}
+.sitem::before{                       /* 노드 */
+  content:'';position:absolute;left:-15px;top:15px;width:9px;height:9px;border-radius:50%;
+  background:var(--accent);border:2px solid var(--surface);box-sizing:content-box;
+}
+.sitem::after{                        /* 레일 — 다음 항목까지 */
+  content:'';position:absolute;left:-9px;top:28px;bottom:-14px;width:1px;background:var(--line2);
+}
+.sitem:last-child::after{display:none}
+.sitem .sh{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .sitem .sh b{font-size:12.5px;color:var(--ink)}
+.sago{font-size:10.5px;color:var(--ink3)}
+/* 직전 기록 대비 점수 변화 — 색만으로 구분하지 않고 ▲▼ 기호를 함께 쓴다 */
+.sdel2{font-size:10px;font-weight:700;padding:1px 5px;border-radius:5px;letter-spacing:-.02em}
+.sdel2.up{color:var(--ok);background:color-mix(in srgb, var(--ok) 14%, transparent)}
+.sdel2.dn{color:var(--danger);background:color-mix(in srgb, var(--danger) 12%, transparent)}
 .sitem .sdel{margin-left:auto;color:var(--ink3);font-size:12px;width:22px;height:22px;border-radius:6px}
 .sitem .sm{font-size:11.5px;color:var(--ink3);margin-top:3px}
 .sitem p{margin:6px 0 0;font-size:13px;line-height:1.6;color:var(--ink2)}
@@ -549,7 +585,9 @@ pre.csv{
   font-size:12px;padding:7px 11px;border-radius:9px;background:var(--surface);
   border:1px solid var(--line);color:var(--ink2);text-decoration:none;
 }
-.credit{font-size:10.5px;color:var(--ink3);margin-top:6px}
+.credit{font-size:10.5px;color:var(--ink3);margin-top:6px;line-height:1.5;word-break:keep-all}
+.credit a{color:var(--ink3);text-decoration:underline;text-underline-offset:2px}
+.credit a:hover{color:var(--accent)}
 
 /* ══════════════ wizard ══════════════ */
 .wiz{text-align:center;padding:6px 0 2px}
@@ -638,7 +676,7 @@ pre.csv{
 .kpi .k{font-size:10px;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;font-weight:600}
 .kpi .v{font-family:var(--serif);font-size:24px;letter-spacing:-.02em;margin-top:3px;line-height:1.15}
 .kpi .v u{font-family:var(--sans);font-size:12px;text-decoration:none;color:var(--ink2);margin-left:1px}
-.kpi .v.up{color:var(--ok)} .kpi .v.dn{color:#a8503c}
+.kpi .v.up{color:var(--ok)} .kpi .v.dn{color:var(--danger)}
 .kpi .s{font-size:11px;color:var(--ink3);margin-top:3px}
 .bars{display:flex;flex-direction:column;gap:8px;font-size:12.5px}
 .bar{display:flex;align-items:center;gap:9px}
@@ -1942,8 +1980,19 @@ function render(){
 
   $('#grid').className = V.view === 'list' ? 'listv' : 'grid';
   $('#grid').innerHTML = items.map(V.view === 'list' ? rowHTML : cardHTML).join('');
+  /* 결과가 없을 때 "다른 걸 시도해 보세요"는 도움이 안 된다 —
+     지금 무엇이 걸러내고 있는지 보여 주고 한 번에 풀 수 있게 한다 */
+  const narrowing = [];
+  if (V.q.trim())         narrowing.push(`검색어 "${esc(V.q.trim())}"`);
+  if (V.cat !== 'all')    narrowing.push(`주종 ${esc(V.cat)}`);
+  if (V.type !== 'all')   narrowing.push(`타입 ${esc(V.type)}`);
+  act.forEach(([, t]) => narrowing.push(esc(t)));
   $('#emptyBox').innerHTML = items.length ? '' : (DB.items.length
-    ? `<div class="empty"><h3>검색 결과가 없습니다</h3><p>다른 키워드나 필터를 시도해 보세요.</p></div>`
+    ? `<div class="empty"><h3>조건에 맞는 병이 없습니다</h3>
+       <p>${DB.items.length}병 중 ${narrowing.length ? '아래 조건으로' : ''} 걸러낸 결과가 0건입니다.</p>
+       ${narrowing.length ? `<div class="chips ecs">${
+         narrowing.map(t => `<span class="chip">${t}</span>`).join('')}</div>
+       <button class="btn gold ebtn" data-clrall="1">조건 모두 해제</button>` : ''}</div>`
     : `<div class="empty"><h3>첫 병을 등록해 보세요</h3>
        <p>우측 상단 <b>＋ 추가</b>에 이름만 입력하면<br>사양·테이스팅 노트 초안이 자동으로 채워집니다.</p></div>`);
 }
@@ -2193,19 +2242,67 @@ const dayssince = d => {
   return n <= 0 ? '오늘' : n === 1 ? '어제' : n < 30 ? n + '일 경과'
     : n < 365 ? Math.floor(n / 30) + '개월 경과' : (n / 365).toFixed(1) + '년 경과';
 };
+/** 이미지 출처 표기.
+    위키미디어 사진은 CC BY-SA 등 라이선스가 있어 **출처와 파일을 밝혀야 한다.**
+    이름만 적어 두면 저작자를 찾아갈 수 없으므로 Commons 파일 페이지로 링크한다.
+    직접 촬영한 사진은 이용자 본인 것이므로 표기하지 않는다. */
+function creditHTML(it){
+  if (!it.image_credit) return '';
+  const c = String(it.image_credit);
+  /* "Wikimedia Commons — <파일명>" 형태에서 파일명을 꺼내 파일 페이지를 만든다 */
+  const m = c.match(/—\s*(.+\.(?:jpe?g|png|webp|gif))\s*$/i);
+  const url = m ? 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(m[1].replace(/ /g, '_'))
+    : (/^https?:\/\//.test(c) ? c : '');
+  return `<p class="credit">이미지 출처: ${url
+      ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(c)}</a>`
+      : esc(c)}${m ? ' · 각 파일의 라이선스(CC BY-SA 등)를 따릅니다' : ''}</p>`;
+}
+/** 며칠 전인지 — 시음 기록은 '언제'보다 '얼마나 지났나'가 더 잘 읽힌다 */
+function daysAgo(d){
+  if (!d) return '';
+  const n = Math.round((new Date(today()) - new Date(d)) / 86400000);
+  return n <= 0 ? '오늘' : n === 1 ? '어제' : n < 30 ? n + '일 전'
+    : n < 365 ? Math.round(n / 30) + '개월 전' : (n / 365).toFixed(1) + '년 전';
+}
+/** 시음 기록 타임라인.
+    같은 병을 여러 번 마신 기록이 쌓이면 '점수가 어떻게 변했는지'가 이 화면의 값이다.
+    그래서 최신순으로 세로 레일에 걸고, 직전 기록과의 점수 차이를 함께 보여 준다.
+    개봉일이 있으면 '개봉 N일 후'를 붙여 산화 흐름을 읽을 수 있게 한다. */
 function sessionsHTML(it){
   if (!it.sessions.length)
     return `<p class="hint">아직 시음 기록이 없습니다 — 마신 날의 인상을 남겨 두면 나중에 비교하기 좋습니다.</p>`;
-  return [...it.sessions].sort((a, b) => (b.at || '').localeCompare(a.at || '')).map((s, i) => `
-    <div class="sitem">
+  const sorted = [...it.sessions].sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+  /* 점수 변화는 시간순(오래된 것부터)으로 계산해야 방향이 맞다 */
+  const older = [...sorted].reverse();
+  const delta = {};
+  let prev = null;
+  older.forEach(s => {
+    const v = Number(s.score);
+    if (!isNaN(v) && s.score !== '' && s.score != null){
+      if (prev !== null) delta[s.at + '|' + (s.note || '').slice(0, 12)] = +(v - prev).toFixed(1);
+      prev = v;
+    }
+  });
+  return `<div class="tline">${sorted.map(s => {
+    const key = s.at + '|' + (s.note || '').slice(0, 12);
+    const d = delta[key];
+    const since = it.opened_at && s.at && s.at >= it.opened_at
+      ? Math.round((new Date(s.at) - new Date(it.opened_at)) / 86400000) : null;
+    return `<div class="sitem">
       <div class="sh">
         <b>${esc(s.at || '')}</b>
+        <span class="sago">${esc(daysAgo(s.at))}</span>
         ${s.score ? `<span class="sc">${esc(s.score)}</span>` : ''}
-        <button class="sdel" data-sdel="${esc(s.at)}|${esc(s.note || '').slice(0, 12)}" title="삭제">✕</button>
+        ${d != null && d !== 0
+          ? `<span class="sdel2 ${d > 0 ? 'up' : 'dn'}" title="직전 기록 대비">${d > 0 ? '▲' : '▼'}${Math.abs(d)}</span>`
+          : ''}
+        <button class="sdel" data-sdel="${esc(key)}" title="삭제">✕</button>
       </div>
-      ${(s.place || s.mate) ? `<div class="sm">${[s.place, s.mate].filter(Boolean).map(esc).join(' · ')}</div>` : ''}
+      ${(s.place || s.mate || since !== null) ? `<div class="sm">${
+        [s.place, s.mate, since !== null ? `개봉 ${since}일 후` : ''].filter(Boolean).map(esc).join(' · ')}</div>` : ''}
       ${s.note ? `<p>${esc(s.note)}</p>` : ''}
-    </div>`).join('');
+    </div>`;
+  }).join('')}</div>`;
 }
 /* ── detail: 기록 카드 ────────────────────── */
 function openDetail(id){
@@ -2252,7 +2349,7 @@ function openDetail(id){
     ${shots.length > 1 ? `<div class="shots">${shots.map((u, i) =>
       `<button class="shot${i === 0 ? ' on' : ''}" data-zoom="${i}"><img src="${esc(u)}" alt=""></button>`).join('')}
       <span class="hint" style="align-self:center">사진 ${shots.length}장 · 탭하면 확대</span></div>` : ''}
-    ${it.image_credit ? `<p class="credit">이미지 출처: ${esc(it.image_credit)}</p>` : ''}
+    ${creditHTML(it)}
 
     <h4 class="sec">1. 기본 사양 &amp; 구매 정보</h4>
     <div class="strip">
@@ -3499,7 +3596,7 @@ function openData(){
     <div class="note" style="margin-bottom:11px">
       ${syncOn()
         ? `<b>연결됨</b> · ${esc(SYNC.repo)}/${esc(SYNC.path)}<br>마지막 동기화 <b>${ago(SYNC.last)}</b> · ${DB.items.length}병`
-          + (SYNC.err ? `<br><span style="color:#c0503c">⚠ 마지막 오류: ${esc(SYNC.err)}</span>` : '')
+          + (SYNC.err ? `<br><span style="color:var(--danger)">⚠ 마지막 오류: ${esc(SYNC.err)}</span>` : '')
         : `현재 이 <b>기기 안에만</b> 저장됩니다 — 이대로도 모든 기능을 쓸 수 있고,
            <b>JSON 백업</b>만 받아 두면 충분합니다.<br>
            폰·PC를 자동으로 맞추고 싶다면(선택) 본인의 GitHub <b>비공개 저장소</b>를
@@ -3701,7 +3798,7 @@ function openData(){
               rows.push(['원격 데이터 파일',
                 `❌ JSON 파싱 실패 (${kb}KB${how})<br>파일이 손상되었습니다. 아래 <b>원격 덮어쓰기</b>로 `
                 + `이 기기의 ${DB.items.length}병으로 복구할 수 있습니다.<br>`
-                + `<span style="color:#c0503c">앞 120자:</span> ${esc(got.text.slice(0, 120))}`]);
+                + `<span style="color:var(--danger)">앞 120자:</span> ${esc(got.text.slice(0, 120))}`]);
               rows.push(['복구', `<button class="mini am" id="syForce">원격 덮어쓰기 (이 기기 → 원격)</button>`]);
             }
           }
@@ -3845,9 +3942,9 @@ function openWipe(){
   const photos = DB.items.filter(i => (i.images && i.images.length) || i.image_norm).length;
   openSheet('전체 초기화', `
     <div class="note" style="background:#fdf1ee;border-color:#e6bcb0">
-      <b style="color:#a8503c">되돌리기 어려운 작업입니다.</b><br>
+      <b style="color:var(--danger)">되돌리기 어려운 작업입니다.</b><br>
       이 기기의 <b>${n}병</b>${buy ? ` · 구매 합계 <b>${wonShort(buy)}원</b>` : ''}${photos ? ` · 사진 ${photos}장` : ''} 기록이 모두 삭제됩니다.
-      ${syncOn() ? `<br><b style="color:#a8503c">동기화가 연결되어 있어 폰·PC 등 다른 기기에서도 함께 삭제됩니다.</b>` : ''}
+      ${syncOn() ? `<br><b style="color:var(--danger)">동기화가 연결되어 있어 폰·PC 등 다른 기기에서도 함께 삭제됩니다.</b>` : ''}
     </div>
     <h4 class="sec">1단계 · 백업</h4>
     <div class="stack">
@@ -3872,7 +3969,7 @@ function openWipe(){
     const ok = (backedUp || $('#wpNoBackup').checked) && $('#wpWord').value.trim() === '초기화';
     $('#wpGo').disabled = !ok;
     $('#wpHint').innerHTML = ok
-      ? '<b style="color:#a8503c">삭제 버튼이 활성화되었습니다.</b>'
+      ? '<b style="color:var(--danger)">삭제 버튼이 활성화되었습니다.</b>'
       : (!(backedUp || $('#wpNoBackup').checked)
           ? '1단계: 백업을 받거나 "백업 없이 진행"을 선택하세요.'
           : '2단계: <b>초기화</b> 를 정확히 입력하세요.');
@@ -3955,6 +4052,13 @@ $('#activeChips').onclick = e => {
   const c = e.target.closest('[data-clr]'); if (!c) return;
   V[c.dataset.clr] = 'all';
   if (c.dataset.clr === 'q'){ V.q = ''; $('#q').value = ''; $('#qClr').hidden = true; }
+  render();
+};
+/* 빈 상태의 '조건 모두 해제' — 정렬·보기 방식은 취향이므로 건드리지 않는다 */
+$('#emptyBox').onclick = e => {
+  if (!e.target.closest('[data-clrall]')) return;
+  V.q = ''; $('#q').value = ''; $('#qClr').hidden = true;
+  V.cat = 'all'; V.type = 'all'; V.status = 'all'; V.age = 'all'; V.flavor = 'all';
   render();
 };
 $('#sortSel').onchange = e => { V.sort = e.target.value; render(); };

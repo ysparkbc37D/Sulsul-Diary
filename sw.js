@@ -1,6 +1,6 @@
 /* Sulsul Diary(술술다이어리) — Service Worker
    앱 셸: stale-while-revalidate / 외부 병 사진: cache-first(런타임 캐시) */
-const V = 'wc-shell-v16';
+const V = 'wc-shell-v17';
 const IMG = 'wc-img-v2';    // 일반 표시용 (no-cors, opaque 허용)
 const IMGC = 'wc-imgc-v2';  // CORS 요청용 — 캔버스 정규화에 쓰이므로 opaque를 섞으면 안 됨
 const SHELL = [
@@ -14,7 +14,12 @@ const SHELL = [
   './icons/icon-maskable-192.png',
   // 스크린샷은 설치 UI 전용이라 오프라인 필수는 아니지만, 용량이 작아 같이 담는다
   './shots/phone-1.png', './shots/desktop-1.png',
-  './donate-qr.png', './donate-qr.jpg', './donate-qr.jpeg', './donate-qr.webp',
+  // iOS 실행 화면 — 오프라인에서도 흰 화면이 보이지 않게
+  './splash/iphone-13-14.png', './splash/iphone-15-16.png', './splash/iphone-max.png',
+  './splash/iphone-16-pro.png', './splash/ipad.png',
+  // 실제로 있는 파일만 담는다 — 없는 항목은 설치를 막지는 않지만 매번 404 를 부른다.
+  // DONATE.image 는 확장자 후보를 여러 개 시도하므로, 파일을 바꾸면 여기도 맞춘다.
+  './donate-qr.png',
 ];
 
 self.addEventListener('install', e => {
