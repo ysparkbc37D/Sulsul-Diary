@@ -446,8 +446,17 @@ header.top{
   background:var(--surface);border:1px solid var(--line2);color:var(--ink);transition:.15s;
 }
 .btn:active{transform:scale(.98)}
-/* 링크를 버튼처럼 쓸 때 — a 는 button 과 달리 내용이 가운데로 정렬되지 않는다 */
-a.btn{display:grid;place-items:center;text-decoration:none}
+/* 아이콘을 넣으려면 버튼이 flex 여야 한다 (글자만 있어도 동작은 같다).
+   a 는 button 과 달리 내용이 가운데 정렬되지 않으므로 여기서 함께 맞춘다 */
+.btn, a.btn{display:flex;align-items:center;justify-content:center;gap:7px;text-decoration:none}
+/* 인라인 아이콘 — currentColor 로 그려 버튼 색을 그대로 따른다 */
+.ic{
+  width:15px;height:15px;flex:none;fill:none;stroke:currentColor;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;
+}
+.mini .ic{width:13px;height:13px;stroke-width:1.8}
+.donate .ic{width:14px;height:14px}
+.hint .ic{width:12.5px;height:12.5px;stroke-width:1.9;vertical-align:-2px}
 .btn.pri{background:var(--ink);color:var(--bg);border:none}
 :root[data-theme="dark"] .btn.pri{background:var(--accent);color:#1a1409}
 .btn.gold{background:linear-gradient(180deg,#d7a643,#bd8a2a);color:#231803;border:none}
@@ -609,6 +618,7 @@ pre.csv{
 .mini{
   font-size:11.5px;padding:6px 10px;border-radius:9px;background:var(--surface);
   border:1px solid var(--line);color:var(--ink2);
+  display:inline-flex;align-items:center;gap:5px;
 }
 .mini.am{color:var(--accent);border-color:var(--accent-line);background:var(--accent-bg)}
 .hint{font-size:11px;color:var(--ink3);line-height:1.55;padding-left:1px}
@@ -801,7 +811,10 @@ pre.csv{
   <div class="grid" id="grid"></div>
   <div id="emptyBox"></div>
   <footer class="foot">
-    <button class="donate" id="btnDonate">☕ 술술다이어리 후원</button>
+    <!-- 정적 마크업이라 ic() 템플릿이 평가되지 않는다 → SVG 를 직접 넣는다 (ICONS.coffee 와 동일) -->
+    <button class="donate" id="btnDonate"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"
+      ><path d="M4 8h11v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M15 9.5h2.2a2.3 2.3 0 0 1 0 4.5H15"/><path
+        d="M8 3.4v1.5M11.4 3v1.5"/></svg>술술다이어리 후원</button>
     <nav class="flinks">
       <a href="https://blog.naver.com/ysparkbc37/224365845283"
          target="_blank" rel="noopener">사용 가이드</a>
@@ -980,6 +993,26 @@ BRANDS.forEach(b => {
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* ── 인라인 아이콘 ─────────────────────────
+   currentColor 로 그리므로 테마와 상태(강조·비활성)를 그대로 따른다.
+   컬러 이모지를 쓰지 않는 이유: 다크 테마에서 흰 판처럼 떠 보이고
+   (📊 는 글리프 자체에 흰 배경이 있다), OS·폰트마다 모양이 달라진다. */
+const ICONS = {
+  coffee: '<path d="M4 8h11v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/>'
+        + '<path d="M15 9.5h2.2a2.3 2.3 0 0 1 0 4.5H15"/><path d="M8 3.4v1.5M11.4 3v1.5"/>',
+  moon:   '<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8Z"/>',
+  sun:    '<circle cx="12" cy="12" r="4"/>'
+        + '<path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/>',
+  refresh:'<path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4.5V9h-4.5"/>',
+  camera: '<path d="M3 8.8A1.8 1.8 0 0 1 4.8 7h1.9L8 5h8l1.3 2h1.9A1.8 1.8 0 0 1 21 8.8v8.4A1.8 1.8 0 0 1 19.2 19H4.8A1.8 1.8 0 0 1 3 17.2Z"/>'
+        + '<circle cx="12" cy="13" r="3.3"/>',
+  sparkle:'<path d="M11 3.5l1.7 4.6 4.6 1.7-4.6 1.7L11 16.1 9.3 11.5 4.7 9.8l4.6-1.7z"/>'
+        + '<path d="M18.4 15.6l.65 1.75 1.75.65-1.75.65-.65 1.75-.65-1.75-1.75-.65 1.75-.65z"/>',
+  book:   '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4Z"/>'
+        + '<path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6Z"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.4 15.4 4.1 4.1"/>',
+};
+const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
 const uid = () => 'w' + Date.now().toString(36) + Math.floor(performance.now() * 1000 % 1e5).toString(36);
 const nowISO = () => new Date().toISOString();
 /** 현지 날짜 (UTC 기준으로 하면 오전 9시 이전에 전날로 기록된다) */
@@ -2418,7 +2451,7 @@ function openWizard(){
     </div>`,
     `<button class="btn" data-act="manual">빈 양식</button>
      <button class="btn" data-act="wish" style="flex:0 0 auto;width:80px">위시</button>
-     <button class="btn gold" data-act="go">✨ 초안</button>`);
+     <button class="btn gold" data-act="go">${ic('sparkle')}초안</button>`);
 
   const inp = $('#wname');
   setTimeout(() => inp.focus(), 260);
@@ -2556,11 +2589,11 @@ function openEdit(id, draft){
             ? '<span class="hint"><span class="spin"></span> 위키미디어에서 사진 후보 검색 중…</span>'
             : ''}</div>
           <div class="mrow">
-            <button type="button" class="mini am" id="reFind">🔄 사진 다시 찾기</button>
-            <button type="button" class="mini" id="findG">🔍 구글</button>
+            <button type="button" class="mini am" id="reFind">${ic('refresh')}사진 다시 찾기</button>
+            <button type="button" class="mini" id="findG">${ic('search')}구글</button>
             <button type="button" class="mini" id="findW">Whiskybase</button>
             <button type="button" class="mini" id="findN">네이버</button>
-            <button type="button" class="mini" id="pickFile">📷 직접 촬영</button>
+            <button type="button" class="mini" id="pickFile">${ic('camera')}직접 촬영</button>
             ${src ? `<button type="button" class="mini" id="rmPhoto">사진 삭제</button>` : ''}
           </div>
           <div class="shots" id="shotList"></div>
@@ -2709,9 +2742,9 @@ function openEdit(id, draft){
     if (res.images.every(im => /증류소 사진/.test(im.title)))
       box.insertAdjacentHTML('afterend',
         `<p class="hint" id="wikiNote">병 사진이 위키미디어에 없어 <b>증류소 사진</b>을 제안했습니다 —
-          정확한 기록을 원하시면 <b>📷 직접 촬영</b>을 권합니다.</p>`);
+          정확한 기록을 원하시면 <b>${ic('camera')} 직접 촬영</b>을 권합니다.</p>`);
     else if (res.wiki) box.insertAdjacentHTML('afterend',
-      `<p class="hint" id="wikiNote">📖 <a href="${esc(res.wiki.url)}" target="_blank" rel="noopener">${esc(res.wiki.title)}</a> —
+      `<p class="hint" id="wikiNote">${ic('book')} <a href="${esc(res.wiki.url)}" target="_blank" rel="noopener">${esc(res.wiki.title)}</a> —
         ${esc((res.wiki.extract || '').slice(0, 90))}…</p>`);
   }
   if (draft) enrich(draft).then(renderCands);
@@ -3388,7 +3421,7 @@ function openData(){
       · ${ghToken().length}자 <button class="mini" id="syTokDel" style="margin-left:6px">지우기</button></p>` : ''}
     <div class="stack" style="margin-top:10px">
       <button class="btn pri" id="syNow">${syncOn() ? '지금 동기화' : '연결하고 동기화'}</button>
-      <button class="btn" id="syDiag">🔎 연결 진단</button>
+      <button class="btn" id="syDiag">${ic('search')}연결 진단</button>
       ${syncOn() ? `<button class="btn dgr" id="syOff" style="width:auto">연결 해제</button>` : ''}
     </div>
     <div id="syDiagOut"></div>
@@ -3429,8 +3462,8 @@ function openData(){
 
     <h4 class="sec">앱</h4>
     <div class="stack">
-      <button class="btn" id="btnTheme">${dark ? '☀️ 밝은 테마로' : '🌙 어두운 테마로'}</button>
-      <button class="btn" id="btnDonate2">☕ 술술다이어리 후원하기</button>
+      <button class="btn" id="btnTheme">${dark ? ic('sun') + ' 밝은 테마로' : ic('moon') + ' 어두운 테마로'}</button>
+      <button class="btn" id="btnDonate2">${ic('coffee')}술술다이어리 후원하기</button>
       <button class="btn" id="btnInstall">홈 화면에 추가</button>
       <!-- 블로그 가이드가 본편이지만, 설치한 앱은 신호가 없는 곳에서도 열린다.
            오프라인 요약은 앱 안에 두어야 그때 읽을 수 있다. -->
