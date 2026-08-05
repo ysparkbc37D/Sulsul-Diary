@@ -179,7 +179,7 @@ header.top{
   background:var(--ink);color:var(--bg);font-weight:600;font-size:13.5px;letter-spacing:-.01em;
   box-shadow:var(--sh1);transition:.15s;
 }
-:root[data-theme="dark"] .cta{background:var(--accent);color:#1a1409}
+:root[data-theme="dark"] .cta{background:var(--accent);color:var(--on-accent)}
 .cta:active{transform:scale(.96)}
 
 /* ══════════════ controls ══════════════ */
@@ -510,7 +510,7 @@ header.top{
 .donate .ic{width:14px;height:14px}
 .hint .ic{width:12.5px;height:12.5px;stroke-width:1.9;vertical-align:-2px}
 .btn.pri{background:var(--ink);color:var(--bg);border:none}
-:root[data-theme="dark"] .btn.pri{background:var(--accent);color:#1a1409}
+:root[data-theme="dark"] .btn.pri{background:var(--accent);color:var(--on-accent)}
 .btn.gold{background:linear-gradient(180deg,#d7a643,#bd8a2a);color:#231803;border:none}
 .btn.dgr{flex:none;width:70px;background:transparent;border-color:var(--line2);color:var(--danger)}
 
@@ -1165,6 +1165,11 @@ pre.csv{
    저장: localStorage(wc.v1) · 자동 초안: kb.js + Wikipedia/Commons
    ══════════════════════════════════════════════════════════ */
 const LS = 'wc.v1', LS_THEME = 'wc.theme', LS_SYNC = 'wc.sync', LS_TOK = 'wc.token';
+/* 썸네일 규격 이름 — 화면 문구(첫 실행 안내·토스트)에서 쓰이므로 여기서 정의한다.
+   맞춤 규칙·크기 상수는 normalizeThumb 근처에 있다.
+   ⚠ 최상위 배열·객체 리터럴 안에서 참조되는 상수는 그 리터럴보다 **먼저** 정의해야
+   한다. 아래쪽에 두면 TDZ 로 스크립트 전체가 멈춘다(오류는 콘솔에도 안 남는다). */
+const THUMB_AR = '3:4';
 const LS_INTRO = 'wc.intro';   // 첫 실행 안내를 봤는지 (체크박스 대신 플래그 하나)
 const LS_VER = 'wc.ver';       // 마지막으로 이력을 확인한 버전
 
@@ -3037,6 +3042,10 @@ function sessionsHTML(it){
 }
 /* ── detail: 기록 카드 ────────────────────── */
 function openDetail(id){
+  /* 섹션 번호는 세면서 붙인다. 하드코딩하면 조건부 섹션(메모)이 없을 때
+     4 → 6 으로 건너뛴다. 순서를 바꿀 때 번호를 손보지 않아도 된다. */
+  let secN = 0;
+  const sec = t => `<h4 class="sec">${++secN}. ${t}</h4>`;
   const it = byId(id); if (!it) return;
   const src = imgOf(it);
   const shots = shotsOf(it);
@@ -3087,7 +3096,7 @@ function openDetail(id){
       <table class="spec">${rows}</table>
     </details>
 
-    <h4 class="sec">1. 기본 사양 &amp; 구매 정보</h4>
+    ${sec('기본 사양 &amp; 구매 정보')}
     <div class="strip">
       <div><span>도수</span><b>${it.abv ? Number(it.abv).toFixed(1) + '%' : '—'}</b></div>
       <div><span>숙성</span><b>${it.age === 'NAS' ? 'NAS' : it.age ? it.age + '년' : '—'}</b></div>
@@ -3097,7 +3106,7 @@ function openDetail(id){
     ${it.cask ? `<p class="caskline"><span>캐스크</span> ${esc(it.cask)}</p>` : ''}
     ${it.flavors ? `<div class="bdgs" style="margin-top:9px">${it.flavors.split(',').filter(Boolean)
       .map(f => `<span class="bdg am">${esc(f)}</span>`).join('')}</div>` : ''}
-    <h4 class="sec">2. 시음 기록 ${it.sessions.length ? `· ${it.sessions.length}회` : ''}</h4>
+    ${sec('시음 기록' + (it.sessions.length ? ` · ${it.sessions.length}회` : ''))}
     ${lv !== null ? `<div class="lvlbig">
         <div class="lvlbar"><i style="width:${lv}%"></i></div>
         <div class="lvlrow"><span>잔량 <b>${lv}%</b>${it.opened_at ? ` · ${it.opened_at} 개봉 (${dayssince(it.opened_at)})` : ''}</span>
@@ -3113,21 +3122,21 @@ function openDetail(id){
       ${it.status === '오픈' ? `<button class="lnk" data-act2="empty">비움 처리</button>` : ''}
     </div>
 
-    <h4 class="sec">3. 평점</h4>
+    ${sec('평점')}
     ${sc ? `<div class="rate"><div class="big">${sc}</div><div class="rm">${esc(ssrc)}<br>100점 기준</div></div>
             <div class="gauge"><i style="width:${Math.min(100, sc)}%"></i></div>` : ''}
     ${rl ? `<div class="rlist">${rl}</div>` : (sc ? '' : '<p class="hint">평점 정보가 없습니다.</p>')}
 
-    <h4 class="sec">4. 테이스팅 프로필</h4>
+    ${sec('테이스팅 프로필')}
     <div class="tnote"><span class="lb">Nose · 향</span><p>${esc(it.nose) || '<span class="na">미기재</span>'}</p></div>
     <div class="tnote"><span class="lb">Taste · 맛</span><p>${esc(it.taste) || '<span class="na">미기재</span>'}</p></div>
     <div class="tnote"><span class="lb">Finish · 여운</span><p>${esc(it.finish) || '<span class="na">미기재</span>'}</p></div>
 
-    ${it.notes ? `<h4 class="sec">메모</h4><p style="margin:0;font-size:13.5px;color:var(--ink2)">${esc(it.notes)}</p>` : ''}
+    ${it.notes ? `${sec('메모')}<p style="margin:0;font-size:13.5px;color:var(--ink2)">${esc(it.notes)}</p>` : ''}
     ${it.tags ? `<div class="bdgs" style="margin-top:12px">${it.tags.split(',').filter(Boolean)
       .map(t => `<span class="bdg">#${esc(t.trim())}</span>`).join('')}</div>` : ''}
 
-    <h4 class="sec">5. 데이터베이스 저장용 (CSV)</h4>
+    ${sec('데이터베이스 저장용 (CSV)')}
     <pre class="csv">${esc(quickCSV(it))}</pre>
     <div class="lrow">
       <button class="lnk" data-copy="md">기록 카드(Markdown) 복사</button>
@@ -3444,7 +3453,7 @@ const INTRO = [
   { t: '사진은 찾아 주거나 직접 찍습니다',
     d: `등록하면 병 사진 후보를 함께 제안합니다. 마음에 드는 것이 없으면
         <b>직접 촬영</b>으로 내 병을 남기세요. 한 병에 5장까지 넣을 수 있습니다.`,
-    n: `사진은 모두 같은 3:4 규격으로 자동 정렬되어 목록이 흐트러지지 않습니다.` },
+    n: `사진은 모두 같은 ${THUMB_AR} 규격으로 자동 정렬되어 목록이 흐트러지지 않습니다.` },
   { t: '기록은 이 기기에만 저장됩니다',
     d: `서버가 없어 <b>가입도 로그인도 없습니다.</b> 그래서 기기를 바꾸거나
         브라우저 데이터를 지우면 사라지고, 복구해 드릴 방법이 없습니다.`,
@@ -3907,7 +3916,6 @@ function openEdit(id, draft){
    옛 규격의 병 높이(450×0.9=405px)와 거의 같아 이관 시 확대 없이 재배치된다.
    THUMB_FIT 은 항목별 이관 표식이다 — 맞춤 규칙을 바꾸면 이 값을 올려야
    retrofitThumbs 가 기존 썸네일을 다시 맞춘다(THUMB_AR 은 화면 표시용 이름). */
-const THUMB_AR = '3:4';
 const THUMB_FIT = '3:4/fill';
 /* FILL 을 0.98 로 둔 이유: 병을 프레임 높이에 거의 꽉 채우되, trimBox 의
    경계 판정이 1px 어긋나도 마개가 잘리지 않도록 위아래 1% 만 남긴다.
@@ -5089,7 +5097,7 @@ async function retrofitThumbs(opt){
     /* 중간에 끊겨도 진행분이 남도록 나눠 저장한다 */
     if (++done % 8 === 0){
       save();
-      if (talk) toast(`썸네일 3:4 규격으로 맞추는 중… ${done}/${t.length}`);
+      if (talk) toast(`썸네일 ${THUMB_AR} 규격으로 맞추는 중… ${done}/${t.length}`);
     }
   }
   save(); render();
