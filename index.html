@@ -838,6 +838,35 @@ pre.csv{
 .guide li b{color:var(--ink)}
 /* 공유 아이콘을 문장 안에 넣어 '어떤 버튼인지'를 그림으로 보여 준다 */
 .ic.shr{width:14px;height:14px;vertical-align:-2px;color:var(--accent)}
+
+/* ══════════════ 향·맛·여운 선택 ══════════════
+   기본은 가중치 상위 10개만 — 4열 × 3줄 안에 들어간다. 70개를 한 번에 펼치면
+   아무도 고르지 않는다. 선택된 항목은 접어도 계속 보인다. */
+.nsec{margin-bottom:18px}
+.nsec:last-child{margin-bottom:6px}
+.nhead{display:flex;align-items:center;gap:7px;margin-bottom:9px;flex-wrap:wrap}
+.nhead .ic{width:16px;height:16px;color:var(--accent)}
+.nhead b{font-size:13.5px;color:var(--ink);letter-spacing:-.01em}
+.nhead span{font-size:11px;color:var(--ink3);word-break:keep-all}
+.ngrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.ncell{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  padding:9px 3px 7px;border-radius:11px;min-height:56px;
+  background:var(--surface2);border:1px solid var(--line);color:var(--ink3);
+  transition:.13s;
+}
+.ncell .ic{width:19px;height:19px;stroke-width:1.6}
+.ncell span{font-size:10px;line-height:1.25;text-align:center;word-break:keep-all;letter-spacing:-.02em}
+.ncell:active{transform:scale(.95)}
+/* 선택 상태는 색만으로 구분하지 않는다 — 테두리 굵기와 배경도 함께 바뀐다 */
+.ncell.on{
+  background:var(--accent-bg);border-color:var(--accent);color:var(--accent);
+  box-shadow:inset 0 0 0 1px var(--accent);
+}
+.ncell.on span{font-weight:700}
+.nmore{width:100%;justify-content:center;margin-bottom:9px}
+/* 좁은 화면에서도 4열을 지킨다 — 셀 글자를 줄이는 편이 열을 깨는 것보다 낫다 */
+@media(max-width:359px){ .ncell span{font-size:9.5px} .ncell{min-height:52px} }
 /* 헤더 버전 표시 — 눌러서 변경 이력으로 간다.
    아직 안 본 버전이면 점이 붙는다(사용자가 갱신을 알 수 있게) */
 .ver{
@@ -1124,6 +1153,71 @@ function guessCat(it){
 const STATUS = ['미개봉','오픈','비움','경험','위시'];
 const OWNED = ['미개봉','오픈','비움'];
 
+
+/* ══════════════ 향·맛·피니쉬 디스크립터 ══════════════
+   [이름, 가중치, 아이콘계열]. 가중치는 **위스키 리뷰에서 실제로 자주 거론되는 정도**다.
+   기본 화면에는 가중치 상위 NOTE_TOP 개만 보여 준다 — 70개를 한 번에 펼치면
+   아무도 고르지 않는다. '전체 보기' 로 나머지를 펼치고, 고른 항목은 접어도 남는다.
+   아이콘은 계열별로 공유한다(ICONS 참조). */
+const NOTE_TOP = 10;
+const NOTES = {
+  nose: { label:'향', en:'Nose', icon:'flower', desc:'마시기 전에 코로 맡는 향', list: [
+    ['바닐라',10,'vanilla'], ['셰리',10,'dried'], ['꿀',9,'honey'], ['오크',9,'oak'],
+    ['시트러스',9,'citrus'], ['캐러멜',8,'caramel'], ['스모키',8,'smoke'], ['피트',8,'peat'],
+    ['사과',8,'fruit'], ['말린 과일',8,'dried'],
+    ['견과류',7,'nut'], ['초콜릿',7,'choco'], ['꽃',7,'flower'], ['시나몬',7,'spice'],
+    ['배',6,'fruit'], ['베리류',6,'berry'], ['커피',6,'coffee'], ['가죽',6,'leather'],
+    ['크림',5,'cream'], ['허브',5,'herb'], ['민트',5,'herb'], ['코코넛',5,'nut'],
+    ['건포도',5,'dried'], ['타바코',4,'leather'], ['후추',4,'pepper'], ['무화과',4,'fruit'],
+    ['흙내음',4,'earth'], ['소금기',4,'salt'], ['장미',3,'flower'], ['벌집',3,'honey'],
+  ]},
+  taste: { label:'맛', en:'Palate', icon:'sweet', desc:'입으로 마셨을 때 느껴지는 맛', list: [
+    ['꿀',10,'honey'], ['셰리',10,'dried'], ['바닐라',9,'vanilla'], ['오크',9,'oak'],
+    ['스파이시',9,'spice'], ['과일',9,'fruit'], ['스모키',8,'smoke'], ['피트',8,'peat'],
+    ['초콜릿',8,'choco'], ['캐러멜',8,'caramel'],
+    ['몰트',8,'malt'], ['후추',7,'pepper'], ['견과류',7,'nut'], ['시트러스',7,'citrus'],
+    ['크리미',7,'cream'], ['건포도',7,'dried'], ['감초',6,'herb'], ['커피',6,'coffee'],
+    ['시나몬',6,'spice'], ['토피',6,'caramel'], ['소금',5,'salt'], ['가죽',5,'leather'],
+    ['허브',5,'herb'], ['버터',5,'cream'], ['오렌지 껍질',5,'citrus'], ['흙내음',4,'earth'],
+    ['코코넛',4,'nut'], ['무화과',4,'fruit'], ['다크 체리',4,'berry'], ['생강',3,'spice'],
+  ]},
+  finish: { label:'여운', en:'Finish', icon:'long', desc:'마시고 난 후에 입안에 남는 향', list: [
+    ['긴 여운',10,'long'], ['스모키',9,'smoke'], ['오크',9,'oak'], ['드라이',8,'dry'],
+    ['달콤한',8,'sweet'], ['스파이시',8,'spice'], ['깔끔한',8,'clean'], ['피트',8,'peat'],
+    ['후추',7,'pepper'], ['따뜻한',7,'sweet'],
+    ['셰리',7,'dried'], ['부드러운',7,'soft'], ['복합적인',6,'complex'], ['다크 초콜릿',6,'choco'],
+    ['시트러스',6,'citrus'], ['짧은 여운',6,'clean'], ['감초',5,'herb'], ['견과류',5,'nut'],
+    ['소금기',5,'salt'], ['가죽',5,'leather'], ['미네랄',4,'earth'], ['흙내음',4,'earth'],
+    ['타바코',4,'leather'], ['민트',3,'herb'],
+  ]},
+};
+/* 가중치 내림차순으로 고정해 둔다 — 화면에서 매번 정렬하지 않는다 */
+Object.values(NOTES).forEach(g => g.list.sort((a, b) => b[1] - a[1]));
+
+/** 선택된 값 파싱 — 필드에는 쉼표로 이어진 문자열이 들어 있다.
+    사용자가 직접 쓴 문장도 섞여 있을 수 있으므로 목록에 있는 것만 '선택' 으로 본다. */
+function notePicked(axis, raw){
+  const names = new Set(NOTES[axis].list.map(x => x[0]));
+  const parts = String(raw || '').split(',').map(s => s.trim()).filter(Boolean);
+  return { picked: parts.filter(p => names.has(p)), free: parts.filter(p => !names.has(p)) };
+}
+/** 선택 그리드 HTML. open=true 면 전체, false 면 가중치 상위 + 선택된 것 */
+function noteGrid(axis, raw, open){
+  const g = NOTES[axis];
+  const { picked } = notePicked(axis, raw);
+  const set = new Set(picked);
+  const shown = open ? g.list
+    : g.list.filter((x, i) => i < NOTE_TOP || set.has(x[0]));
+  const hidden = g.list.length - shown.length;
+  return `<div class="ngrid" data-naxis="${axis}">${shown.map(([n, , ic2]) =>
+      `<button type="button" class="ncell${set.has(n) ? ' on' : ''}" data-npick="${esc(n)}"
+        aria-pressed="${set.has(n)}">${ic(ic2)}<span>${esc(n)}</span></button>`).join('')}</div>
+    ${hidden > 0 || open
+      ? `<button type="button" class="mini nmore" data-nmore="${axis}">${
+          open ? '접기' : `전체 보기 (+${hidden})`}</button>`
+      : ''}`;
+}
+
 /* 맛 프로필 — 스프레드시트의 '부종류' 분류를 그대로 쓴다 */
 const FLAVORS = ['피트','셰리','과일','버번','와인','라이'];
 const FLAVOR_RULES = [
@@ -1221,6 +1315,37 @@ const ICONS = {
   book:   '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4Z"/>'
         + '<path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6Z"/>',
   search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.4 15.4 4.1 4.1"/>',
+/* 노트 계열 아이콘 — 디스크립터가 70여 개라 하나씩 그릴 수 없다.
+   계열별로 하나씩 만들어 여러 디스크립터가 공유한다(참고 앱도 같은 방식).
+   24x24 stroke, currentColor. 작게 쓰이므로 선 하나가 더 들어가면 뭉갠다. */
+  fruit:  '<path d="M12 8c0-2.5 1.6-4 4-4 0 2.4-1.6 4-4 4Z"/><path d="M12 8c-3.6 0-6 2.6-6 6.2C6 18 8.6 21 12 21s6-3 6-6.8C18 10.6 15.6 8 12 8Z"/>',
+  berry:  '<circle cx="9" cy="14" r="3.4"/><circle cx="15.4" cy="15.4" r="3"/><path d="M10 10.6C10 8 11.4 6 13.6 5"/>',
+  citrus: '<circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16M6.4 6.4l11.2 11.2M17.6 6.4 6.4 17.6"/>',
+  honey:  '<path d="M12 3.5 18 7v7l-6 3.5L6 14V7Z"/><path d="M12 9.5 15 11v3l-3 1.6L9 14v-3Z"/>',
+  vanilla:'<path d="M9 20c-1.6-3.4-1-8 1.4-12C11.6 6 13 4.6 14.6 4c1.4 2.6 1.6 6.4 0 10-1 2.2-2.6 4.4-4.2 6Z"/><path d="M12.6 8.4c-.6 3-.6 6.6 0 9.6"/>',
+  choco:  '<rect x="4.5" y="5.5" width="15" height="13" rx="2"/><path d="M4.5 12h15M12 5.5v13"/>',
+  coffee: '<path d="M5 8h11v6a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8Z"/><path d="M16 9.5h2a2.2 2.2 0 0 1 0 4.4h-2"/>',
+  smoke:  '<path d="M6 15c-1.6 0-2.6-1.2-2.6-2.6C3.4 11 4.6 10 6 10c0-2.6 2-4.6 4.6-4.6 2 0 3.8 1.3 4.4 3.2C17 8.8 19 10.4 19 12.6c0 1.4-1.1 2.4-2.6 2.4Z"/><path d="M7.5 18.5h9"/>',
+  peat:   '<rect x="4" y="14" width="16" height="5.5" rx="1.4"/><path d="M12 13c-2-2.4-.6-4.6.6-6-.4 2 1.8 2.4 1.8 4.2 0 .7-.3 1.4-.8 1.8"/>',
+  oak:    '<rect x="5" y="5.5" width="14" height="13" rx="3.2"/><path d="M5 9.5h14M5 14.5h14"/>',
+  spice:  '<path d="M12 3.6 13.7 9l5.4.2-4.3 3.3 1.5 5.2-4.3-3.1-4.3 3.1 1.5-5.2L5 9.2 10.4 9Z"/>',
+  pepper: '<circle cx="8" cy="8.5" r="1.3"/><circle cx="14.5" cy="7.5" r="1.3"/><circle cx="11" cy="12.5" r="1.3"/><circle cx="16.5" cy="13" r="1.3"/><circle cx="7.5" cy="15.5" r="1.3"/><circle cx="13" cy="17.5" r="1.3"/>',
+  flower: '<circle cx="12" cy="12" r="2.3"/><path d="M12 9.7c0-2.4-1-3.7-2.6-3.7S7 7.6 8.4 9.4M12 14.3c0 2.4 1 3.7 2.6 3.7s2.4-1.6 1-3.4M9.7 12c-2.4 0-3.7 1-3.7 2.6s1.6 2.4 3.4 1M14.3 12c2.4 0 3.7-1 3.7-2.6S16.4 7 14.6 8.4"/>',
+  herb:   '<path d="M12 20V9"/><path d="M12 12C9 12 6.6 10 6 6.5 9.4 6 12 8 12 12Z"/><path d="M12 15c3 0 5.4-2 6-5.5C14.6 9 12 11 12 15Z"/>',
+  nut:    '<path d="M12 4c3.4 0 5.6 3.2 5.6 7.4 0 4.6-2.4 8.6-5.6 8.6s-5.6-4-5.6-8.6C6.4 7.2 8.6 4 12 4Z"/><path d="M12 5.6v13"/>',
+  caramel:'<path d="M4.6 15.5c1.8-2.6 4.4-4 7.4-4s5.6 1.4 7.4 4"/><path d="M4.6 15.5v2.2c0 .9 3.3 1.8 7.4 1.8s7.4-.9 7.4-1.8v-2.2"/><path d="M9 8.4C9 6 10.3 4.6 12 4.6S15 6 15 8.4"/>',
+  salt:   '<path d="M9 4.6h6l1 5.4H8Z"/><path d="M8 10h8l1.4 9.4H6.6Z"/><path d="M11 13.5v3M13.4 14.6v2"/>',
+  leather:'<rect x="4.5" y="7.5" width="15" height="10" rx="2.4"/><path d="M9.5 7.5V6a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v1.5"/><path d="M4.5 12h15"/>',
+  earth:  '<path d="M3.6 18.4 9 11l4 4.6 2.6-3 4.8 5.8Z"/><circle cx="16.6" cy="7" r="2"/>',
+  cream:  '<path d="M6.6 10.5h10.8L15.8 19a2 2 0 0 1-2 1.6h-3.6A2 2 0 0 1 8.2 19Z"/><path d="M8 10.5c0-2.6 1.8-4.4 4-4.4s4 1.8 4 4.4"/>',
+  dried:  '<circle cx="8.5" cy="9.5" r="2.4"/><circle cx="15" cy="8.6" r="2.1"/><circle cx="12" cy="14.4" r="2.4"/><circle cx="17" cy="14.6" r="2"/><circle cx="7.4" cy="15.6" r="2"/>',
+  long:   '<path d="M4 17.5 9 12l3.4 3L20 7"/><path d="M15.4 7H20v4.6"/>',
+  clean:  '<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.6v4.8h-4.8"/>',
+  sweet:  '<path d="M12 20.4S4.6 16 4.6 10.5A4 4 0 0 1 12 8.3a4 4 0 0 1 7.4 2.2C19.4 16 12 20.4 12 20.4Z"/>',
+  dry:    '<path d="M12 3.6c3 4 5 6.6 5 9.4a5 5 0 0 1-10 0c0-2.8 2-5.4 5-9.4Z"/><path d="M8.6 18.8 6 21.2M15.4 18.8 18 21.2"/>',
+  soft:   '<path d="M12 4.6c2.6 0 4.8 2.4 4.8 5.4 0 4.4-4.8 9.4-4.8 9.4S7.2 14.4 7.2 10c0-3 2.2-5.4 4.8-5.4Z"/>',
+  complex:'<rect x="4.6" y="7.4" width="9" height="9" rx="1.8"/><rect x="10.4" y="4.6" width="9" height="9" rx="1.8"/>',
+  malt:   '<path d="M12 20V6"/><path d="M12 9c-2.4 0-4-1.4-4.4-4C10 4.6 12 6 12 9Z"/><path d="M12 13c-2.4 0-4-1.4-4.4-4C10 8.6 12 10 12 13Z"/><path d="M12 9c2.4 0 4-1.4 4.4-4C14 4.6 12 6 12 9Z"/><path d="M12 13c2.4 0 4-1.4 4.4-4C14 8.6 12 10 12 13Z"/>',
 };
 const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n] || ''}</svg>`;
 const uid = () => 'w' + Date.now().toString(36) + Math.floor(performance.now() * 1000 % 1e5).toString(36);
@@ -3190,7 +3315,14 @@ function openEdit(id, draft){
       <h4 class="sec">구매 정보</h4>
       ${G(['purchase_date','purchase_place','purchase_price','market_low','market_high'])}
       <h4 class="sec">테이스팅 노트</h4>
-      ${G(['nose','taste','finish'])}
+      ${['nose','taste','finish'].map(ax => `
+        <div class="nsec" data-nsec="${ax}">
+          <div class="nhead">${ic(NOTES[ax].icon)}
+            <b>${NOTES[ax].label} (${NOTES[ax].en})</b>
+            <span>${NOTES[ax].desc}</span></div>
+          <div class="nwrap">${noteGrid(ax, it[ax], false)}</div>
+          ${G([ax])}
+        </div>`).join('')}
       <h4 class="sec">평점</h4>
       ${G(['rating_bible','rating_wb','rating_my'])}
       <h4 class="sec">관리</h4>
@@ -3283,6 +3415,36 @@ function openEdit(id, draft){
     }
   });
   f.addEventListener('click', e => {
+    /* 향·맛·여운 디스크립터 선택 — 값은 해당 textarea 에 쉼표로 합쳐 넣는다.
+       사용자가 직접 쓴 문장(free)은 지우지 않고 뒤에 남긴다. 선택으로 내가 쓴
+       글이 사라지면 안 된다. */
+    const pk = e.target.closest('[data-npick]');
+    if (pk){
+      const sec = pk.closest('[data-nsec]'), ax = sec.dataset.nsec;
+      const ta = sec.querySelector(`[name="${ax}"]`);
+      const { picked, free } = notePicked(ax, ta.value);
+      const name = pk.dataset.npick;
+      const next = picked.includes(name) ? picked.filter(x => x !== name) : [...picked, name];
+      /* 목록 순서(가중치 순)로 정렬해 넣는다 — 고른 순서대로 두면 문장이 어수선해진다 */
+      const order = NOTES[ax].list.map(x => x[0]);
+      next.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+      ta.value = [...next, ...free].join(', ');
+      ta.dispatchEvent(new Event('input', {bubbles: true}));   // 초안 배지 해제
+      const open = !!sec.querySelector('[data-nmore]')?.dataset.nopen;
+      sec.querySelector('.nwrap').innerHTML = noteGrid(ax, ta.value, open);
+      if (open) sec.querySelector('[data-nmore]').dataset.nopen = '1';
+      return;
+    }
+    /* 전체 보기 / 접기 */
+    const mr = e.target.closest('[data-nmore]');
+    if (mr){
+      const sec = mr.closest('[data-nsec]'), ax = sec.dataset.nsec;
+      const open = !mr.dataset.nopen;
+      const ta = sec.querySelector(`[name="${ax}"]`);
+      sec.querySelector('.nwrap').innerHTML = noteGrid(ax, ta.value, open);
+      if (open) sec.querySelector('[data-nmore]').dataset.nopen = '1';
+      return;
+    }
     const c = e.target.closest('[data-flav]');
     if (!c || c.tagName !== 'BUTTON') return;
     c.classList.toggle('on');
