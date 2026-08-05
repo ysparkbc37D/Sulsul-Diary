@@ -1888,6 +1888,38 @@ function matchProduct(bk, q, age){
   }
   return best && best.s >= 7 ? best.p : null;
 }
+/* ── 내 컬렉션에서 먼저 찾기 ─────────────────
+   초안 엔진은 내장 DB(BRANDS/PRODUCTS)만 봤다. 그래서 **이미 등록한 병을 다시
+   검색해도 찾지 못했다** — 139병을 넣어 둔 사용자에게 가장 이상한 동작이다.
+   내 기록이 내장 DB보다 정확하다(내가 라벨을 보고 고친 값이니까). 그래서
+   같은 병을 다시 살 때(배치가 다른 같은 제품, 선물용 추가 구매) 내 기록을 먼저 쓴다.
+   구매 정보(가격·날짜·구매처)와 상태·잔량·사진은 가져오지 않는다 — 새 병이다. */
+const MINE_COPY = ['name_ko','name_en','type','distillery','country','region','abv','age',
+  'cask','bottler','size_ml','market_low','market_high','nose','taste','finish',
+  'rating_bible','rating_wb','flavors','tags'];
+/** 이름이 **완전히** 같은 내 기록. nameScore().exact 는 부분 일치에도 참이므로
+    쓸 수 없다 — '글렌알라키' 가 '글렌알라키 메타베브 8년' 을 끌어왔다.
+    사양을 통째로 복사하는 기능이라 근사 일치는 조용히 틀린 초안을 만든다.
+    예시 데이터(태그 '예시')는 그 자체가 추정치이므로 소스로 쓰지 않는다. */
+function mineCandidates(q, limit = 5){
+  const nq = squish(q);
+  if (!nq) return [];
+  const isSeed = it => String(it.tags || '').split(',').map(t => t.trim()).includes('예시');
+  return DB.items.filter(it => !isSeed(it)
+      && (squish(it.name_ko) === nq || squish(it.name_en) === nq))
+    .slice(0, limit)
+    .map(it => ({it, s: 1, exact: true}));
+}
+/** 내 기록 → 초안 필드. 값이 있는 것만 담는다 */
+function draftFromMine(it){
+  const F = {}, keys = new Set();
+  MINE_COPY.forEach(k => {
+    const v = it[k];
+    if (v !== '' && v != null){ F[k] = String(v); keys.add(k); }
+  });
+  return {F, keys};
+}
+
 /** 이름 문자열 → 초안 { fields, keys(자동채움 키), brand, product, lines(요약) } */
 function draftFrom(raw){
   const q = String(raw).trim();
@@ -1896,6 +1928,23 @@ function draftFrom(raw){
 
   F.name_ko = q; F.status = '미개봉'; F.size_ml = '700'; F.remaining_pct = '100';
   F.purchase_date = today(); F.bottler = 'Official (OB)';
+
+  /* 내 컬렉션이 첫 번째 검색원이다 — 내장 DB 보다 내 기록이 정확하다(내가 라벨을
+     보고 고친 값이니까). 이름이 **정확히** 맞을 때만 쓴다 — 근사 일치로 다른 병의
+     사양을 끌어오면 조용히 틀린 초안이 된다.
+     여기서 반환하지 않고 아래 엔진을 그대로 통과시킨다. put() 은 이미 있는 값을
+     덮지 않으므로, 내 기록이 이기고 빈 칸만 내장 DB가 채운다. */
+  const mine = mineCandidates(q, 1)[0];
+  let fromMine = '';
+  if (mine && mine.exact){
+    const m = draftFromMine(mine.it);
+    Object.assign(F, m.F);
+    m.keys.forEach(k => keys.add(k));
+    F.name_ko = q;                       // 사용자가 적은 이름을 살린다
+    fromMine = mine.it.id;
+    lines.push(`내 기록 <b>${esc(fullName(mine.it))}</b> 의 사양을 가져왔습니다`
+      + ' — 구매 정보와 사진은 새로 넣어 주세요.');
+  }
 
   const rs = resolve(q);
   const brand = rs.brand;
@@ -1912,16 +1961,21 @@ function draftFrom(raw){
     if (hint.cask) put('cask', hint.cask);
     if (hint.abv) put('abv', hint.abv);
     if (hint.notes.length){ F.notes = hint.notes.join('\n'); keys.add('notes'); }
-    const lines = rs.ambiguous
+    /* 내 기록에서 이미 채웠다면 '못 찾았다'고 말하지 않는다 — 사용자는 채워진
+       화면을 보면서 실패 문구를 읽게 된다. lines 는 위에서 만든 것을 이어 쓴다. */
+    const more = rs.ambiguous
       ? ['이 표현명은 여러 증류소에 있습니다 — 어느 것인지 골라 주세요:',
          ...rs.ambiguous.map(x => `<b>${esc(x.b.ko || x.b.en)} ${esc(exprOf(x.p, x.b))}</b> · ${esc(x.p.abv)}%`),
          '이름 칸에 증류소를 함께 적으면 바로 채워집니다 (예: 포로지스 스몰배치).']
+      : fromMine
+      ? []
       : ['내장 DB에서 증류소를 찾지 못했습니다.',
          '<b>영문명으로 다시 시도</b>하면 정확도가 올라갑니다 (예: <b>Longmorn 23</b>).',
          '또는 아래 항목을 직접 입력하고 <b>사진 다시 찾기</b>를 눌러 주세요.'];
+    lines.push(...more);
     if (hint.labels.length)
       lines.push('표기에서 읽어낸 정보: <b>' + hint.labels.map(esc).join(' · ') + '</b>');
-    return {fields:F, keys, brand:null, product:null, lines};
+    return {fields:F, keys, brand:null, product:null, lines, fromMine};
   }
 
   put('distillery', brand.en);
@@ -1981,7 +2035,7 @@ function draftFrom(raw){
       .filter(Boolean).join('\n');
     keys.add('notes');
   }
-  return {fields:F, keys, brand, product:p, lines};
+  return {fields:F, keys, brand, product:p, lines, fromMine};
 }
 
 /* ── Wikipedia / Commons 보강 ─────────────── */
