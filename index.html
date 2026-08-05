@@ -398,18 +398,23 @@ header.top{
 /* ══════════════ sheet ══════════════ */
 .scrim{
   position:fixed;inset:0;background:rgba(28,24,21,.36);backdrop-filter:blur(2px);z-index:40;
+  overscroll-behavior:contain;touch-action:none;
   opacity:0;pointer-events:none;transition:opacity .2s;
 }
 .scrim.on{opacity:1;pointer-events:auto}
 .sheet{
-  position:fixed;left:0;right:0;bottom:0;z-index:50;max-height:94dvh;
+  /* --vvh 는 visualViewport 높이 (키보드가 올라오면 줄어든다). iOS 에서 dvh 만
+     쓰면 키보드 뒤로 시트가 밀린다. 지원하지 않는 브라우저는 dvh 로 떨어진다. */
+  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  max-height:min(94dvh, calc(var(--vvh, 94dvh) - 12px));
   display:flex;flex-direction:column;background:var(--surface);
   border-radius:22px 22px 0 0;box-shadow:var(--sh2);
   transform:translateY(101%);transition:transform .26s cubic-bezier(.32,.72,0,1);
 }
 .sheet.on{transform:translateY(0)}
 @media(min-width:760px){
-  .sheet{max-width:700px;margin:0 auto;border-radius:20px;bottom:2vh;max-height:92dvh;
+  .sheet{max-width:700px;margin:0 auto;border-radius:20px;bottom:2vh;
+    max-height:min(92dvh, calc(var(--vvh, 92dvh) - 24px));
     border:1px solid var(--line);transform:translateY(calc(101% + 4vh))}
 }
 
@@ -478,7 +483,10 @@ header.top{
   border-radius:2px;background:var(--line2)}
 .sh-head h2{margin:0;font-size:15.5px;font-weight:600;letter-spacing:-.015em;flex:1;min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sh-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px calc(22px + var(--safe-b))}
+/* overscroll-behavior: 내부 스크롤이 끝에 닿아도 문서로 전파되지 않게 한다.
+   이것이 없으면 iOS 에서 러버밴드가 문서를 흔들고, 고정된 시트가 함께 떨린다. */
+.sh-body{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  padding:16px 16px calc(22px + var(--safe-b))}
 .sh-foot{
   flex:none;display:flex;gap:8px;padding:11px 16px calc(11px + var(--safe-b));
   border-top:1px solid var(--line);background:var(--surface);
@@ -776,11 +784,12 @@ pre.csv{
 .foot small{font-size:10.5px;color:var(--ink3);letter-spacing:.01em;word-break:keep-all}
 /* 문서 링크 — 공개 배포이므로 방침·가이드가 앱에서 늘 닿아야 한다 */
 .flinks{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px}
-.flinks a{
+.flinks a, .flinks .lnkbtn{
   font-size:11.5px;color:var(--ink3);text-decoration:none;
   border-bottom:1px solid var(--line2);padding-bottom:1px;
+  background:none;border-top:0;border-left:0;border-right:0;
 }
-.flinks a:hover{color:var(--accent)}
+.flinks a:hover, .flinks .lnkbtn:hover{color:var(--accent)}
 /* 19세 표기 — 주류를 다루므로 푸터에도 상시 노출한다 */
 .agemark{display:inline-flex;align-items:center;gap:6px}
 .agemark i{
@@ -829,6 +838,33 @@ pre.csv{
 .guide li b{color:var(--ink)}
 /* 공유 아이콘을 문장 안에 넣어 '어떤 버튼인지'를 그림으로 보여 준다 */
 .ic.shr{width:14px;height:14px;vertical-align:-2px;color:var(--accent)}
+/* 헤더 버전 표시 — 눌러서 변경 이력으로 간다.
+   아직 안 본 버전이면 점이 붙는다(사용자가 갱신을 알 수 있게) */
+.ver{
+  position:relative;flex:none;font-size:10.5px;font-weight:700;letter-spacing:-.01em;
+  color:var(--ink3);padding:0 2px;font-variant-numeric:tabular-nums;
+}
+.ver::after{
+  content:'';position:absolute;right:-2px;top:1px;width:5px;height:5px;border-radius:50%;
+  background:var(--accent);opacity:0;transition:.2s;
+}
+.ver.nw{color:var(--accent)}
+.ver.nw::after{opacity:1}
+.ver::before{                       /* 히트 영역 */
+  content:'';position:absolute;left:-6px;right:-6px;top:50%;transform:translateY(-50%);height:40px;
+}
+/* 변경 이력 */
+.chg{border-left:2px solid var(--line2);padding:0 0 2px 13px;position:relative}
+.chg:first-child{border-left-color:var(--accent)}
+.chgh{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.chgh b{font-family:var(--serif);font-size:16px;color:var(--ink);letter-spacing:-.01em}
+.chgh span{font-size:11px;color:var(--ink3)}
+.chgnew{
+  font-size:9.5px;font-weight:700;color:var(--accent);background:var(--accent-bg);
+  border:1px solid var(--accent-line);border-radius:5px;padding:1px 5px;
+}
+.chg ul{margin:0;padding-left:17px;display:flex;flex-direction:column;gap:5px}
+.chg li{font-size:12.5px;line-height:1.6;color:var(--ink2);word-break:keep-all}
 
 /* ══════════════ 히트 영역 ══════════════
    실측: 40px 미만 컨트롤이 15개였다(보기 전환 33x33, 칩 높이 34, 푸터 링크 20 …).
@@ -843,16 +879,16 @@ pre.csv{
       실제 높이를 33~34 → 38 로 올린다. 5px 은 눈에 거슬리지 않고 스크롤도 안 생긴다. */
 
 /* ① 히트 영역만 확대 — 헤더·푸터·시트는 가로 스크롤이 없다 */
-.ib, .viewtg, .sitem .sdel, .inappbar .x, .flinks a, .cta, .donate{position:relative}
+.ib, .viewtg, .sitem .sdel, .inappbar .x, .flinks a, .flinks .lnkbtn, .cta, .donate{position:relative}
 .ib::before, .viewtg::before, .sitem .sdel::before, .inappbar .x::before{
   content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   width:44px;height:44px;
 }
 /* 가로는 이미 넉넉하므로 세로만 — 좌우로 넓히면 옆 버튼의 탭을 훔친다 */
-.flinks a::before, .cta::before, .donate::before{
+.flinks a::before, .flinks .lnkbtn::before, .cta::before, .donate::before{
   content:'';position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:44px;
 }
-.flinks a::before{left:-6px;right:-6px;height:40px}
+.flinks a::before, .flinks .lnkbtn::before{left:-6px;right:-6px;height:40px}
 
 /* ② 실제 높이를 올리는 것들 (가로 스크롤 행 안에 있다) */
 .sel{height:38px;background-position:calc(100% - 14px) 16px, calc(100% - 9px) 16px}
@@ -913,6 +949,8 @@ pre.csv{
       <span class="wm2">술술다이어리</span>
       <span class="cnt" id="hdCnt"></span>
     </div>
+    <!-- 사용자용 버전. 눌러도 되게 두어 변경 이력으로 이어진다 -->
+    <button class="ver" id="btnVer" aria-label="버전과 변경 이력"></button>
     <button class="ib" id="btnStats" aria-label="통계"><svg viewBox="0 0 24 24"
       ><path d="M4 20V11m5 9V5m5 15v-6m5 6V8"/></svg></button>
     <span class="ibwrap">
@@ -963,6 +1001,7 @@ pre.csv{
          target="_blank" rel="noopener">사용 가이드</a>
       <a href="./sync.html">기기 간 동기화</a>
       <a href="./privacy.html">개인정보처리방침</a>
+      <button class="lnkbtn" id="btnChanges">변경 이력</button>
     </nav>
     <small class="agemark"><i>19</i> 만 19세 이상 이용 · 주류 판매·중개를 하지 않습니다</small>
     <small>Copyright © 2026 CoBa's Sulsul Diary. All rights reserved.</small>
@@ -1007,6 +1046,32 @@ pre.csv{
    ══════════════════════════════════════════════════════════ */
 const LS = 'wc.v1', LS_THEME = 'wc.theme', LS_SYNC = 'wc.sync', LS_TOK = 'wc.token';
 const LS_INTRO = 'wc.intro';   // 첫 실행 안내를 봤는지 (체크박스 대신 플래그 하나)
+const LS_VER = 'wc.ver';       // 마지막으로 이력을 확인한 버전
+
+/* ── 버전과 변경 이력 ───────────────────────
+   사용자용 버전은 sw.js 의 셸 버전과 다르다. 셸 버전은 캐시 무효화용 내부 번호라
+   작은 수정마다 올라가고, 이것은 사용자에게 알릴 만한 변화에만 올린다.
+   CHANGES 는 앱 안에 둔다 — 오프라인에서도 이력을 볼 수 있어야 한다.
+   CHANGELOG.md 와 내용을 맞춘다(그쪽이 사람이 읽는 정식 보고서). */
+const APP_VER = '1.1.0';
+const CHANGES = [
+  { v: '1.1.0', d: '2026-08-02', items: [
+    '아이폰에서 입력창을 열면 화면이 흔들리던 문제를 고쳤습니다',
+    '앱 아이콘을 ‘술술’ 위스키병으로 새로 그렸습니다',
+    '카카오톡 등에서 열었을 때 설치 방법을 안내합니다',
+    '목록에서 잔량 옆 ‘−한 잔’ 으로 바로 기록할 수 있습니다 (취소 가능)',
+    '검색이 관련도 순으로 정렬되고, 타자가 밀리지 않습니다',
+    '작은 글씨 색을 진하게 해 밝은 곳에서도 읽히게 했습니다',
+    '버튼을 누를 수 있는 범위를 넓혔습니다',
+  ]},
+  { v: '1.0.0', d: '2026-08-01', items: [
+    '첫 공개 — 이름만 입력하면 사양·테이스팅 노트 초안이 채워집니다',
+    '설치형 앱(PWA) · 오프라인 동작 · 저장소 보호',
+    '기기 간 동기화(선택) · JSON·CSV 백업',
+    '시음 기록 타임라인, 잔량 관리, 통계',
+    '사용 가이드 · 연동 가이드 · 개인정보처리방침',
+  ]},
+];
 const BLOG_GUIDE = 'https://blog.naver.com/ysparkbc37/224365845283';
 const LS_TRASH = 'wc.trash';          // 전체 초기화 되돌리기용 스냅샷
 const TRASH_DAYS = 14;                // 이 기간 안에는 복구 가능
@@ -1243,13 +1308,13 @@ function openLightbox(list, idx){
   LB.i = Math.max(0, Math.min(idx || 0, LB.list.length - 1));
   drawLightbox();
   $('#lightbox').classList.add('on');
-  document.body.style.overflow = 'hidden';
+  lockScroll();
   pushGuard('lb');
 }
 function closeLightbox(fromBack){
+  const wasOn = $('#lightbox').classList.contains('on');
   $('#lightbox').classList.remove('on');
-  if ($('#sheet').classList.contains('on')) document.body.style.overflow = 'hidden';
-  else document.body.style.overflow = '';
+  if (wasOn) unlockScroll();
   if (!fromBack && history.state?.wc === 'lb'){ try{ history.back(); }catch(e){} }
 }
 function drawLightbox(){
@@ -2342,15 +2407,54 @@ function openSheet(title, body, foot){
   $('#shBody').onclick = null; $('#shFoot').onclick = null;
   const wasOpen = $('#sheet').classList.contains('on');
   $('#scrim').classList.add('on'); $('#sheet').classList.add('on');
-  document.body.style.overflow = 'hidden';
+  if (!wasOpen) lockScroll();         // 이미 열려 있었다면 이중으로 잠그지 않는다
   if (!wasOpen) pushGuard('sheet');   // 뒤로가기가 앱을 닫는 대신 시트를 닫게 한다
 }
 /** fromBack: popstate 로 호출된 경우 history 를 다시 건드리지 않는다 */
 function closeSheet(fromBack){
+  const wasOpen = $('#sheet').classList.contains('on');
   $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on');
-  document.body.style.overflow = '';
+  if (wasOpen) unlockScroll();
   if (!fromBack && history.state?.wc === 'sheet'){ try{ history.back(); }catch(e){} }
 }
+
+/* ── 본문 스크롤 잠금 (iOS 대응) ─────────────
+   `body{overflow:hidden}` 은 iOS Safari 에서 문서 스크롤을 막지 못한다.
+   문서가 러버밴드로 계속 움직이고, position:fixed 인 시트는 iOS 에서
+   **시각 뷰포트가 아니라 레이아웃 뷰포트**를 기준으로 배치되므로 그 움직임과
+   어긋나 흔들려 보인다. 본문을 position:fixed 로 못박는 것이 iOS 에서 유효한
+   유일한 방법이다. Android·PC 는 overflow:hidden 이 실제로 먹어서 재현되지 않는다.
+   여러 겹(시트 위 라이트박스)이 열리므로 참조를 세어 마지막이 닫힐 때만 푼다. */
+let lockN = 0, lockY = 0;
+function lockScroll(){
+  if (lockN++) return;                       // 이미 잠겨 있으면 스크롤 위치를 덮지 않는다
+  lockY = window.scrollY || window.pageYOffset || 0;
+  const b = document.body;
+  b.style.position = 'fixed';
+  b.style.top = -lockY + 'px';
+  b.style.left = '0'; b.style.right = '0';
+  b.style.width = '100%';
+  b.style.overflow = 'hidden';               // iOS 외 브라우저용
+}
+function unlockScroll(force){
+  if (force) lockN = 0; else if (--lockN > 0) return;
+  lockN = 0;
+  const b = document.body;
+  b.style.position = ''; b.style.top = '';
+  b.style.left = ''; b.style.right = ''; b.style.width = '';
+  b.style.overflow = '';
+  window.scrollTo(0, lockY);                 // 원래 보던 자리로 되돌린다
+}
+/* 키보드가 올라오면 iOS 는 시각 뷰포트만 줄인다 — 시트가 키보드 뒤로 밀리므로
+   실제로 보이는 높이를 CSS 변수로 넘겨 시트가 그 안에 들어가게 한다. */
+(() => {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const sync = () => document.documentElement.style.setProperty('--vvh', vv.height + 'px');
+  vv.addEventListener('resize', sync);
+  vv.addEventListener('scroll', sync);
+  sync();
+})();
 
 /* ── 시음 기록 ────────────────────────────── */
 const dayssince = d => {
@@ -2438,6 +2542,35 @@ function openInstall(){
     </div>`,
     `<button class="btn gold" id="insOk">알겠습니다</button>`);
   $('#insOk').onclick = closeSheet;
+}
+/** 변경 이력 시트. 새 버전을 처음 열면 버전 배지에 점이 붙고, 이 시트를 열면 사라진다. */
+function openChanges(){
+  openSheet(`변경 이력 · v${APP_VER}`, `
+    <div class="stack">
+      ${CHANGES.map((c, i) => `
+        <div class="chg">
+          <div class="chgh">
+            <b>v${esc(c.v)}</b>
+            <span>${esc(c.d)}</span>
+            ${i === 0 ? '<span class="chgnew">최신</span>' : ''}
+          </div>
+          <ul>${c.items.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+        </div>`).join('')}
+      <p class="hint">앱을 열 때마다 새 버전을 자동으로 받습니다.
+        받은 뒤에는 새로고침하면 바로 적용됩니다.</p>
+    </div>`,
+    `<button class="btn gold" id="chgOk">닫기</button>`);
+  $('#chgOk').onclick = closeSheet;
+  try{ localStorage.setItem(LS_VER, APP_VER); }catch(e){}
+  paintVer();
+}
+/** 헤더의 버전 표시 — 아직 안 본 새 버전이면 점을 붙인다 */
+function paintVer(){
+  const b = $('#btnVer'); if (!b) return;
+  let seen = ''; try{ seen = localStorage.getItem(LS_VER) || ''; }catch(e){}
+  b.textContent = 'v' + APP_VER;
+  b.classList.toggle('nw', seen !== APP_VER);
+  b.title = seen !== APP_VER ? `새 버전 v${APP_VER} — 변경 이력 보기` : '변경 이력 보기';
 }
 /** 이미지 출처 표기.
     위키미디어 사진은 CC BY-SA 등 라이선스가 있어 **출처와 파일을 밝혀야 한다.**
@@ -4278,6 +4411,9 @@ $('#emptyBox').onclick = e => {
 $('#sortSel').onchange = e => { V.sort = e.target.value; render(); };
 $('#btnAdd').onclick = openWizard;
 $('#btnStats').onclick = openStats;
+$('#btnVer').onclick = openChanges;
+$('#btnChanges').onclick = openChanges;
+paintVer();
 /* manifest.shortcuts (아이콘 길게 누르기) 진입 — ?go=add / ?go=stats.
    주소에 흔적을 남기지 않도록 처리 후 쿼리를 지운다. 그래야 새로고침이나
    '홈 화면에 추가' 로 저장된 주소가 늘 목록 화면에서 시작한다. */
