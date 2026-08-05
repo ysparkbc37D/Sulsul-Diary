@@ -857,7 +857,7 @@ pre.csv{
   font-size:11.5px;font-weight:600;color:var(--ink2)}
 .rsl label .ic{width:13px;height:13px;color:var(--accent)}
 .rsl input[type=range]{flex:1;min-width:0;accent-color:var(--accent);padding:0;background:none;border:none}
-.rsl output{flex:none;width:16px;text-align:right;font-size:11.5px;font-weight:700;
+.rsl output{flex:none;width:26px;text-align:right;font-size:11.5px;font-weight:700;
   color:var(--ink);font-variant-numeric:tabular-nums}
 /* 좁은 화면에서는 차트를 위로 올린다 — 나란히 두면 슬라이더가 눌린다 */
 @media(max-width:400px){
@@ -1112,7 +1112,7 @@ const LS_VER = 'wc.ver';       // 마지막으로 이력을 확인한 버전
 const APP_VER = '1.2.0';
 const CHANGES = [
   { v: '1.2.0', d: '2026-08-02', items: [
-    '시음 기록에서 향·맛·여운을 삼각 그래프로 평가하고, 세 축 평균이 내 점수로 들어갑니다',
+    '시음 기록에서 향·맛·여운을 각각 100점으로 평가하면 삼각 그래프로 보이고, 세 값의 합 ÷ 3 이 내 점수가 됩니다',
     '향·맛·여운을 아이콘에서 골라 넣을 수 있습니다 (자주 쓰는 10개가 먼저 보입니다)',
     '이미 등록한 병을 다시 검색하면 그 사양을 그대로 가져옵니다',
     '리큐르·브랜디·럼·진·보드카·와인 39종을 검색할 수 있습니다',
@@ -2769,11 +2769,11 @@ function radarSVG(v, size){
     return [C + Math.cos(a) * r, C + Math.sin(a) * r];
   };
   const ring = f => RAD_AX.map((_, i) => pt(i, R * f).map(n => n.toFixed(1)).join(',')).join(' ');
-  const vals = RAD_AX.map(([k]) => Math.max(0, Math.min(10, Number(v[k]) || 0)));
-  const shape = vals.map((n, i) => pt(i, R * (n / 10)).map(x => x.toFixed(1)).join(',')).join(' ');
+  const vals = RAD_AX.map(([k]) => Math.max(0, Math.min(100, Number(v[k]) || 0)));
+  const shape = vals.map((n, i) => pt(i, R * (n / 100)).map(x => x.toFixed(1)).join(',')).join(' ');
   const any = vals.some(n => n > 0);
   return `<svg class="radar" viewBox="0 0 ${S} ${S}" role="img"
-      aria-label="향 ${vals[0]}, 맛 ${vals[1]}, 여운 ${vals[2]} (10점 기준)">
+      aria-label="향 ${vals[0]}, 맛 ${vals[1]}, 여운 ${vals[2]} (100점 기준)">
     ${[1, .667, .333].map(f =>
       `<polygon points="${ring(f)}" class="rg"/>`).join('')}
     ${RAD_AX.map((_, i) => {
@@ -2781,7 +2781,7 @@ function radarSVG(v, size){
       return `<line x1="${C}" y1="${C}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" class="rg"/>`;
     }).join('')}
     ${any ? `<polygon points="${shape}" class="rv"/>` : ''}
-    ${vals.map((n, i) => { const [x, y] = pt(i, R * (n / 10));
+    ${vals.map((n, i) => { const [x, y] = pt(i, R * (n / 100));
       return n > 0 ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" class="rd"/>` : ''; }).join('')}
     ${RAD_AX.map(([, lab], i) => {
       const [x, y] = pt(i, R + S * 0.115);
@@ -2789,10 +2789,11 @@ function radarSVG(v, size){
     }).join('')}
   </svg>`;
 }
-/** 세 축 → 100점. 평균 × 10. 세 축이 모두 0이면 계산하지 않는다(빈 값 유지) */
+/** 세 축(각 100점) → 내 점수. 세 값의 합 ÷ 3.
+    세 축이 모두 0이면 계산하지 않는다(점수 칸을 빈 값으로 둔다). */
 function radarScore(v){
   const ns = RAD_AX.map(([k]) => Number(v[k]) || 0);
-  return ns.some(n => n > 0) ? String(Math.round(ns.reduce((a, b) => a + b, 0) / 3 * 10)) : '';
+  return ns.some(n => n > 0) ? String(Math.round(ns.reduce((a, b) => a + b, 0) / 3)) : '';
 }
 
 /** 변경 이력 시트. 새 버전을 처음 열면 버전 배지에 점이 붙고, 이 시트를 열면 사라진다. */
@@ -3067,7 +3068,7 @@ function openSession(id){
         ${RAD_AX.map(([k, lab]) => `
           <div class="rsl">
             <label for="ss_${k}">${ic(NOTES[k].icon)}${lab}</label>
-            <input id="ss_${k}" type="range" min="0" max="10" step="1" value="0" data-rax="${k}">
+            <input id="ss_${k}" type="range" min="0" max="100" step="1" value="0" data-rax="${k}">
             <output id="sso_${k}">0</output>
           </div>`).join('')}
       </div>
@@ -3107,7 +3108,7 @@ function openSession(id){
     /* 사용자가 점수를 직접 만졌으면 덮지 않는다 — 계산이 내 느낌과 다를 수 있다 */
     if (!scoreTouched){ $('#ssScore').value = auto; }
     $('#ssAuto').textContent = auto
-      ? (scoreTouched ? `3축 평균은 ${auto}점입니다` : '3축 평균으로 자동 계산됩니다')
+      ? (scoreTouched ? `3축 평균은 ${auto}점입니다` : '향·맛·여운 합 ÷ 3 으로 자동 계산됩니다')
       : '';
   };
   $('#shBody').addEventListener('input', e => {
