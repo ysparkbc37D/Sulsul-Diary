@@ -847,10 +847,11 @@ pre.csv{
 .ic.shr{width:14px;height:14px;vertical-align:-2px;color:var(--accent)}
 
 /* 장소 선택 — 집·바·기타. 값은 장소 입력칸에 들어가고 메모 머리말에도 남는다 */
-.pgrid{display:flex;gap:5px;margin-bottom:6px}
+/* 장소 5칩 — 좁은 폭에 5개가 들어가야 하므로 아이콘 위·글자 아래로 쌓는다 */
+.pgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
 .pcell{
-  flex:1;display:flex;align-items:center;justify-content:center;gap:5px;
-  height:36px;border-radius:9px;font-size:12px;font-weight:600;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  height:42px;border-radius:9px;font-size:9.5px;font-weight:600;
   background:var(--surface2);border:1px solid var(--line);color:var(--ink3);transition:.13s;
 }
 .pcell .ic{width:15px;height:15px}
@@ -875,9 +876,15 @@ pre.csv{
 
 /* ══════════════ 삼각 레이더 ══════════════ */
 .radbox{
-  display:flex;gap:14px;align-items:center;padding:13px;margin-bottom:14px;
+  padding:11px 13px 13px;margin-bottom:12px;
   background:var(--surface2);border:1px solid var(--line);border-radius:14px;
 }
+/* 점수를 그래프 위에 크게 — 이 화면에서 가장 먼저 읽어야 하는 값이다 */
+.radtop{display:flex;align-items:baseline;gap:8px;margin-bottom:9px;
+  padding-bottom:9px;border-bottom:1px solid var(--line)}
+.radtop b{font-family:var(--serif);font-size:30px;line-height:1;letter-spacing:-.02em;color:var(--ink)}
+.radtop span{font-size:10.5px;color:var(--ink3);word-break:keep-all}
+.radbody{display:flex;gap:14px;align-items:center}
 .radwrap{flex:none;width:148px;height:148px}
 .radar{width:100%;height:100%;display:block;overflow:visible}
 .radar .rg{fill:none;stroke:var(--line2);stroke-width:1}
@@ -895,9 +902,10 @@ pre.csv{
   color:var(--ink);font-variant-numeric:tabular-nums}
 /* 좁은 화면에서는 차트를 위로 올린다 — 나란히 두면 슬라이더가 눌린다 */
 @media(max-width:400px){
-  .radbox{flex-direction:column;gap:11px}
-  .radwrap{width:132px;height:132px}
+  .radbody{flex-direction:column;gap:10px}
+  .radwrap{width:126px;height:126px}
   .radsl{width:100%}
+  .radtop b{font-size:26px}
 }
 
 /* ══════════════ 향·맛·여운 선택 ══════════════
@@ -1233,8 +1241,13 @@ const OWNED = ['미개봉','오픈','비움'];
    84개를 한 번에 펼치면 아무도 고르지 않는다.
    '전체 보기' 로 나머지를 펼치고, 고른 항목은 접어도 남는다.
    아이콘은 계열별로 공유한다(ICONS 참조). */
-/* 자주 쓰는 장소 — 직접 타이핑도 되지만 대부분 이 셋이다 */
-const PLACES = [['집','home'], ['바','bar'], ['기타','dots']];
+/* 자주 쓰는 장소. 고른 라벨은 메모 첫 줄의 "집 : " 이 되고, 뒤에 상세를
+   자유롭게 적을 수 있다("집 : 친구집"). 라벨이 남아 있으면 칩은 계속 켜진다. */
+const PLACES = [['집','home'], ['바','bar'], ['모임','group'], ['회식','toast'], ['기타','dots']];
+const PLACE_LABELS = PLACES.map(p => p[0]);
+/** 메모 첫 줄의 "라벨 : 상세" 를 읽는다 */
+const placeLine = txt => String(txt || '').split('\n')[0]
+  .match(new RegExp('^(' + PLACE_LABELS.join('|') + ') : ?(.*)$'));
 const NOTE_TOP = 10;   /* 10열 × 1줄 */
 const NOTES = {
   nose: { label:'향', en:'Nose', icon:'flower', desc:'마시기 전에 코로 맡는 향', list: [
@@ -1402,6 +1415,10 @@ const ICONS = {
         + '<path d="M9.6 20.5v-6h4.8v6"/>',
   bar:    '<path d="M5 4h14l-7 8Z"/><path d="M12 12v7"/><path d="M8.4 19.6h7.2"/>',
   dots:   '<circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/>',
+  group:  '<circle cx="9" cy="8.6" r="3"/><path d="M3.4 19.4c0-3.1 2.5-5.4 5.6-5.4s5.6 2.3 5.6 5.4"/>'
+        + '<path d="M16 6.2a3 3 0 0 1 0 5.8"/><path d="M17 14.4c2.2.5 3.6 2.4 3.6 5"/>',
+  toast:  '<path d="M4.6 4.4h5.6l-1 7.6a1.8 1.8 0 0 1-3.6 0Z"/><path d="M7.4 12v7.4"/><path d="M5 19.6h4.8"/>'
+        + '<path d="M13.8 4.4h5.6l-1 7.6a1.8 1.8 0 0 1-3.6 0Z"/><path d="M16.6 12v7.4"/><path d="M14.2 19.6H19"/>',
 /* 노트 계열 아이콘 — 디스크립터가 70여 개라 하나씩 그릴 수 없다.
    계열별로 하나씩 만들어 여러 디스크립터가 공유한다(참고 앱도 같은 방식).
    24x24 stroke, currentColor. 작게 쓰이므로 선 하나가 더 들어가면 뭉갠다. */
@@ -3177,28 +3194,32 @@ function openSession(id){
   openSheet('시음 기록 · ' + fullName(it), `
     <!-- 향·맛·여운 3축 평가. 슬라이더로 넣고 삼각 레이더가 결과를 보여 준다.
          세 축의 평균 × 10 이 내 점수로 들어가되, 직접 덮어쓸 수 있다. -->
+    <!-- 점수는 그래프 상단에 크게. 슬라이더로만 정한다 —
+         숫자를 직접 넣으면 그래프와 어긋나 어느 쪽이 참인지 알 수 없었다. -->
     <div class="radbox">
-      <div class="radwrap" id="ssRadar"></div>
-      <div class="radsl">
-        ${RAD_AX.map(([k, lab]) => `
-          <div class="rsl">
-            <label for="ss_${k}">${ic(NOTES[k].icon)}${lab}</label>
-            <input id="ss_${k}" type="range" min="0" max="100" step="1" value="0" data-rax="${k}">
-            <output id="sso_${k}">0</output>
-          </div>`).join('')}
+      <div class="radtop">
+        <b id="ssScoreV">—</b>
+        <span>내 점수 · 향·맛·여운 합 ÷ 3</span>
+      </div>
+      <div class="radbody">
+        <div class="radwrap" id="ssRadar"></div>
+        <div class="radsl">
+          ${RAD_AX.map(([k, lab]) => `
+            <div class="rsl">
+              <label for="ss_${k}">${ic(NOTES[k].icon)}${lab}</label>
+              <input id="ss_${k}" type="range" min="0" max="100" step="1" value="0" data-rax="${k}">
+              <output id="sso_${k}">0</output>
+            </div>`).join('')}
+        </div>
       </div>
     </div>
     <div class="fg">
-      <div class="f"><label>마신 날</label><input id="ssAt" type="date" value="${today()}"></div>
-      <div class="f"><label>내 점수 (100점)</label>
-        <input id="ssScore" type="number" min="0" max="100" inputmode="decimal" placeholder="예: 88">
-        <span class="hint" id="ssAuto"></span></div>
+      <div class="f wide"><label>마신 날</label><input id="ssAt" type="date" value="${today()}"></div>
       <div class="f wide"><label>장소</label>
-        <!-- 아이콘으로 고르면 아래 칸이 채워진다. 바 이름처럼 구체적인 것은 직접 적는다 -->
         <div class="pgrid">${PLACES.map(([v, icn]) =>
-          `<button type="button" class="pcell" data-place="${esc(v)}">${ic(icn)}<span>${esc(v)}</span></button>`).join('')}</div>
-        <input id="ssPlace" placeholder="집 · 바 이름 등" autocomplete="off"></div>
-      <div class="f wide"><label>함께한 사람</label><input id="ssMate" placeholder="비워도 됩니다" autocomplete="off"></div>
+          `<button type="button" class="pcell" data-place="${esc(v)}"
+            aria-pressed="false" title="${esc(v)}">${ic(icn)}<span>${esc(v)}</span></button>`).join('')}</div>
+      </div>
     </div>
     <!-- 향·맛·여운을 메모보다 위에 둔다 — 고른 결과가 메모에 쌓이므로
          고르는 곳이 위, 결과가 아래여야 순서대로 읽힌다 -->
@@ -3212,6 +3233,8 @@ function openSession(id){
     <div class="fg">
       <div class="f wide"><label>인상 · 메모</label>
         <textarea id="ssNote" rows="4" placeholder="위에서 고른 항목이 여기에 정리됩니다. 자유롭게 고치세요."></textarea></div>
+      <div class="f wide"><label>함께한 사람</label>
+        <input id="ssMate" placeholder="비워도 됩니다" autocomplete="off"></div>
     </div>
     <label class="hint" style="display:flex;gap:7px;align-items:center;margin-top:11px;cursor:pointer">
       <input type="checkbox" id="ssPour" checked> 기록과 함께 잔량에서 한 잔(30ml) 차감
@@ -3223,15 +3246,10 @@ function openSession(id){
      레이더는 결과 표시 전용이다. 값은 슬라이더로 넣는다(꼭짓점 드래그는 손가락으로
      정확히 집기 어렵고 화면 낭독기로 다룰 수 없다). */
   const R = {nose: 0, taste: 0, finish: 0};
-  let scoreTouched = false;
   const paintRadar = () => {
     $('#ssRadar').innerHTML = radarSVG(R);
     const auto = radarScore(R);
-    /* 사용자가 점수를 직접 만졌으면 덮지 않는다 — 계산이 내 느낌과 다를 수 있다 */
-    if (!scoreTouched){ $('#ssScore').value = auto; }
-    $('#ssAuto').textContent = auto
-      ? (scoreTouched ? `3축 평균은 ${auto}점입니다` : '향·맛·여운 합 ÷ 3 으로 자동 계산됩니다')
-      : '';
+    $('#ssScoreV').textContent = auto || '—';
   };
   /* 대입으로 붙인다 — addEventListener 는 시트를 다시 열 때마다 누적된다 */
   $('#shBody').oninput = e => {
@@ -3242,44 +3260,53 @@ function openSession(id){
       paintRadar();
       return;
     }
-    if (e.target.id === 'ssScore') scoreTouched = true;
-    if (e.target.id === 'ssPlace') paintPlace();
+    /* 메모를 직접 고칠 때는 칩 표시만 맞춘다 — syncNote 를 부르면 타이핑을 덮어쓴다 */
+    if (e.target.id === 'ssNote') paintPlace(true);
   };
   /* 디스크립터 선택 → 메모 앞에 "향: … / 맛: …" 형태로 넣는다.
      사용자가 쓴 문장은 아래에 그대로 남긴다. */
   /* 메모 머리말은 "장소:" / "향:" / "맛:" / "여운:" 네 줄까지다.
      사용자가 그 아래에 쓴 글은 절대 건드리지 않고, 머리말만 갈아 낸다.
      머리말 자체를 사용자가 고쳐도 되게 — 다시 고르면 그때 다시 정리된다. */
-  const NOTE_HEAD = /^(?:(?:장소|향|맛|여운): [^\n]*\n?)+/;
+  /* 메모의 머리말 = "집 : 상세" 한 줄 + 향/맛/여운 줄. 그 아래는 사용자 글이며
+     절대 건드리지 않는다. 장소 상세("집 : 친구집" 의 '친구집')도 보존한다 —
+     칩을 다시 눌러 라벨을 바꿔도 뒤에 쓴 글은 남는다. */
+  const HEAD_RE = new RegExp(
+    '^(?:(?:' + PLACE_LABELS.join('|') + ') : ?[^\n]*\n?)?(?:(?:향|맛|여운): [^\n]*\n?)*');
+  let placeSel = '';                       // 지금 켜진 장소 라벨
   const syncNote = () => {
-    const place = $('#ssPlace').value.trim();
+    const ta = $('#ssNote');
+    const m = placeLine(ta.value);
+    const detail = m ? m[2].trim() : '';   // 라벨 뒤에 사용자가 쓴 상세
     const parts = [
-      place ? `장소: ${place}` : '',
+      placeSel ? `${placeSel} : ${detail}` : '',
       ...['nose','taste','finish'].map(ax => {
         const on = [...document.querySelectorAll(`[data-nsec="${ax}"] .ncell.on`)]
           .map(b => b.dataset.npick);
         return on.length ? `${NOTES[ax].label}: ${on.join(', ')}` : '';
       })].filter(Boolean).join('\n');
-    const ta = $('#ssNote');
-    const free = ta.value.replace(NOTE_HEAD, '').replace(/^\n+/, '');
+    const free = ta.value.replace(HEAD_RE, '').replace(/^\n+/, '');
     ta.value = parts ? parts + (free ? '\n' + free : '') : free;
   };
-  /* 장소 칩의 선택 표시 — 입력칸 값과 맞춘다(직접 타이핑해도 따라온다) */
-  const paintPlace = () => {
-    const v = $('#ssPlace').value.trim();
+  /** 칩 표시를 메모 첫 줄과 맞춘다. fromNote=true 면 메모를 다시 쓰지 않는다
+      (사용자가 타이핑하는 중이므로 덮어쓰면 커서가 튄다) */
+  const paintPlace = (fromNote) => {
+    if (fromNote){
+      const m = placeLine($('#ssNote').value);
+      placeSel = m ? m[1] : '';
+    }
     [...document.querySelectorAll('[data-place]')].forEach(b => {
-      const on = b.dataset.place === v;
+      const on = b.dataset.place === placeSel;
       b.classList.toggle('on', on);
       b.setAttribute('aria-pressed', on);
     });
-    syncNote();
+    if (!fromNote) syncNote();
   };
   $('#shBody').onclick = e => {
     const pl = e.target.closest('[data-place]');
     if (pl){
-      const v = pl.dataset.place;
       /* 같은 것을 다시 누르면 해제 — 잘못 눌렀을 때 되돌릴 방법이 있어야 한다 */
-      $('#ssPlace').value = ($('#ssPlace').value.trim() === v) ? '' : v;
+      placeSel = (placeSel === pl.dataset.place) ? '' : pl.dataset.place;
       paintPlace();
       return;
     }
@@ -3306,8 +3333,10 @@ function openSession(id){
     if (a.dataset.act === 'cancel') return openDetail(it.id);
     const s = {
       at: $('#ssAt').value || today(),
-      score: $('#ssScore').value.trim(),
-      place: $('#ssPlace').value.trim(),
+      score: radarScore(R),
+      /* 장소는 메모 첫 줄에서 뽑는다 — 화면에 입력칸이 따로 없다 */
+      place: (() => { const m = placeLine($('#ssNote').value);
+        return m ? (m[1] + (m[2].trim() ? ' ' + m[2].trim() : '')) : ''; })(),
       mate: $('#ssMate').value.trim(),
       note: $('#ssNote').value.trim(),
       /* 3축 값을 기록에 남긴다 — 나중에 타임라인에서 삼각형을 다시 그릴 수 있다 */
