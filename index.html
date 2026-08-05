@@ -78,6 +78,7 @@
   --warn:#b0812a;
   --off:#a7a19a;
   --danger:#a8503c;
+  --on-accent:#fff;        /* accent 로 채운 면 위의 글자색 */
   /* --ink3 는 9.5~11px 작은 글씨(카드 키커·힌트·날짜·잔량 %)에 쓰인다.
      이전 값 #9c938a 는 흰 카드 대비 3.02 / 페이지 배경 대비 2.85 로
      WCAG AA(4.5)에 크게 못 미쳤다. 작은 글씨에 낮은 대비가 겹쳐 밝은 곳에서
@@ -112,8 +113,9 @@
   --accent-bg:#241B10;
   --accent-line:#4A3620;
   --ok:#6FBF7A; --warn:#D4AF37; --off:#5A5A61; --danger:#c0503c;
-  /* 사진 패널은 다크에서도 순백 — normalizeThumb 이 흰 캔버스를 데이터에
-     구워 넣으므로, 패널만 따뜻하게 하면 정규화된 썸네일과 색이 어긋난다 */
+  --on-accent:#1a1409;
+  /* 사진 패널은 다크에서도 순백 — 정규화 썸네일이 대부분 밝은 여백을 데이터에
+     구워 넣으므로(box.fill), 패널만 따뜻하게 하면 그 썸네일과 색이 어긋난다 */
   --shot:#FFFFFF;
   --sh1:0 1px 2px rgba(0,0,0,.50), 0 8px 24px -14px rgba(0,0,0,.90);
   --sh2:0 8px 20px rgba(0,0,0,.55), 0 30px 60px -30px rgba(0,0,0,1);
@@ -322,7 +324,7 @@ header.top{
 .rowi:active{background:var(--surface2)}
 .rowi .th{width:36px;height:48px;border-radius:7px;overflow:hidden;flex:none;
   background:var(--shot);border:1px solid var(--line);position:relative}
-/* 38×47 타일에서 5% 흰 띠는 2px 남짓이라 확대 없이 cover 만으로 충분하다 */
+/* 36×48 타일에서 5% 흰 띠는 2px 남짓이라 확대 없이 cover 만으로 충분하다 */
 .rowi .th img{width:100%;height:100%;object-fit:cover;display:block}
 .rowi .ph span{font-size:13px}
 .rowi .ph small{display:none}
@@ -511,7 +513,6 @@ header.top{
 :root[data-theme="dark"] .btn.pri{background:var(--accent);color:#1a1409}
 .btn.gold{background:linear-gradient(180deg,#d7a643,#bd8a2a);color:#231803;border:none}
 .btn.dgr{flex:none;width:70px;background:transparent;border-color:var(--line2);color:var(--danger)}
-.lnk2{width:100%;text-align:center;font-size:13px;color:var(--ink3);padding:10px 0;text-decoration:underline}
 
 /* ══════════════ record card ══════════════ */
 .hero{display:flex;gap:14px;margin-bottom:6px}
@@ -719,6 +720,12 @@ pre.csv{
 .bar .n{width:24px;text-align:right;color:var(--ink3);font-size:11.5px;flex:none}
 
 /* ══════════════ misc ══════════════ */
+/* 위험 알림용 변형 — 하드코딩 분홍 배경은 다크에서 밝은 글자와 겹쳐
+   대비 1.4:1 이 됐다. 색을 토큰으로 돌려 두 테마 모두 읽히게 한다. */
+.note.dgr{
+  background:color-mix(in srgb, var(--danger) 12%, transparent);
+  border-color:color-mix(in srgb, var(--danger) 42%, transparent);
+}
 .note{background:var(--accent-bg);border:1px solid var(--accent-line);border-radius:12px;
   padding:11px 13px;font-size:12.5px;color:var(--ink2);line-height:1.6}
 .note b{color:var(--accent)}
@@ -839,6 +846,33 @@ pre.csv{
 /* 공유 아이콘을 문장 안에 넣어 '어떤 버튼인지'를 그림으로 보여 준다 */
 .ic.shr{width:14px;height:14px;vertical-align:-2px;color:var(--accent)}
 
+/* 장소 선택 — 집·바·기타. 값은 장소 입력칸에 들어가고 메모 머리말에도 남는다 */
+.pgrid{display:flex;gap:5px;margin-bottom:6px}
+.pcell{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:5px;
+  height:36px;border-radius:9px;font-size:12px;font-weight:600;
+  background:var(--surface2);border:1px solid var(--line);color:var(--ink3);transition:.13s;
+}
+.pcell .ic{width:15px;height:15px}
+.pcell:active{transform:scale(.96)}
+.pcell.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);
+  box-shadow:inset 0 0 0 1px var(--accent)}
+
+/* 중복 구매 경고 — 막는 것이 아니라 알리는 것이므로 위험색을 쓰지 않는다 */
+.dupwarn{
+  background:var(--accent-bg);border:1px solid var(--accent-line);border-radius:12px;
+  padding:11px 13px;margin-bottom:10px;
+}
+.dupwarn .t{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:7px}
+.dupwarn ul{margin:0;padding-left:16px;display:flex;flex-direction:column;gap:5px}
+.dupwarn li{font-size:12px;color:var(--ink2);line-height:1.5;word-break:keep-all}
+.dupwarn .dst{
+  font-size:9.5px;font-weight:700;color:var(--accent);background:var(--surface);
+  border:1px solid var(--accent-line);border-radius:5px;padding:1px 5px;margin-left:4px;
+}
+.dupwarn .dbits{font-size:11px;color:var(--ink3);margin:6px 0 0}
+.dupwarn li .dbits{margin:2px 0 0}
+
 /* ══════════════ 삼각 레이더 ══════════════ */
 .radbox{
   display:flex;gap:14px;align-items:center;padding:13px;margin-bottom:14px;
@@ -867,8 +901,7 @@ pre.csv{
 }
 
 /* ══════════════ 향·맛·여운 선택 ══════════════
-   기본은 가중치 상위 12개 — **6열 × 2줄**. 폰에서 한눈에 들어오는 크기로 맞췄다.
-   360px 에서 셀 하나가 약 50px 이므로 글자는 9px, 두 줄까지 감싼다.
+   기본은 가중치 상위 10개 — **10열 × 1줄**. 세 축이 한 화면에 들어오게 한다.
    84개를 한 번에 펼치면 아무도 고르지 않는다. 선택된 항목은 접어도 계속 보인다. */
 .nsec{margin-bottom:18px}
 .nsec:last-child{margin-bottom:6px}
@@ -876,16 +909,19 @@ pre.csv{
 .nhead .ic{width:16px;height:16px;color:var(--accent)}
 .nhead b{font-size:13.5px;color:var(--ink);letter-spacing:-.01em}
 .nhead span{font-size:11px;color:var(--ink3);word-break:keep-all}
-.ngrid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:8px}
+/* 10열 1줄 — 세 축이 한 화면에 들어오게 하는 것이 목적이다.
+   360px 에서 셀 하나가 약 30px 이므로 글자는 7.5px, 두 줄까지 감싼다.
+   폭이 좁아 라벨이 짧지 않으면 읽히지 않는다 → 긴 이름은 NOTES 에서 짧게 뒀다. */
+.ngrid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;margin-bottom:7px}
 .ncell{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  padding:6px 2px 5px;border-radius:9px;min-height:48px;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;
+  padding:5px 1px 4px;border-radius:7px;min-height:44px;
   background:var(--surface2);border:1px solid var(--line);color:var(--ink3);
-  transition:.13s;
+  transition:.13s;overflow:hidden;
 }
-.ncell .ic{width:16px;height:16px;stroke-width:1.7}
-.ncell span{font-size:9px;line-height:1.22;text-align:center;word-break:keep-all;
-  letter-spacing:-.03em;max-width:100%}
+.ncell .ic{width:15px;height:15px;stroke-width:1.8}
+.ncell span{font-size:7.5px;line-height:1.2;text-align:center;word-break:keep-all;
+  letter-spacing:-.04em;max-width:100%}
 .ncell:active{transform:scale(.95)}
 /* 선택 상태는 색만으로 구분하지 않는다 — 테두리 굵기와 배경도 함께 바뀐다 */
 .ncell.on{
@@ -895,11 +931,11 @@ pre.csv{
 .ncell.on span{font-weight:700}
 .nmore{width:100%;justify-content:center;margin-bottom:9px}
 /* 좁은 화면에서도 4열을 지킨다 — 셀 글자를 줄이는 편이 열을 깨는 것보다 낫다 */
-@media(max-width:359px){ .ncell span{font-size:8.5px} .ncell{min-height:45px;padding:5px 1px 4px}
-  .ncell .ic{width:15px;height:15px} .ngrid{gap:3px} }
-/* 시트가 넓은 데스크톱에서는 셀이 과하게 커지지 않도록 상한을 둔다 */
-@media(min-width:560px){ .ncell{min-height:56px} .ncell span{font-size:10px}
-  .ncell .ic{width:18px;height:18px} .ngrid{gap:6px} }
+@media(max-width:359px){ .ncell span{font-size:7px} .ncell .ic{width:14px;height:14px}
+  .ncell{min-height:42px} .ngrid{gap:2px} }
+/* 넓은 시트에서는 같은 10열이지만 셀이 커지므로 글자도 키운다 */
+@media(min-width:560px){ .ncell{min-height:52px} .ncell span{font-size:9.5px}
+  .ncell .ic{width:18px;height:18px} .ngrid{gap:5px} }
 /* 헤더 버전 표시 — 눌러서 변경 이력으로 간다.
    아직 안 본 버전이면 점이 붙는다(사용자가 갱신을 알 수 있게) */
 .ver{
@@ -970,7 +1006,7 @@ pre.csv{
 .inappbar .txt{flex:1;min-width:150px;word-break:keep-all}
 .inappbar .go{
   flex:none;height:31px;padding:0 13px;border-radius:9px;font-size:12px;font-weight:700;
-  background:var(--accent);color:#fff;border:0;text-decoration:none;
+  background:var(--accent);color:var(--on-accent);border:0;text-decoration:none;
   display:inline-flex;align-items:center;gap:5px;
 }
 .inappbar .x{flex:none;width:26px;height:26px;border-radius:7px;color:var(--ink3);font-size:13px}
@@ -980,17 +1016,13 @@ pre.csv{
   text-align:center;letter-spacing:-.01em;word-break:keep-all;
 }
 .qrbox .qcap{font-size:12px;color:var(--ink2);text-align:center;line-height:1.6}
-.qrbox .qurl{
-  font-size:10.5px;color:var(--ink3);word-break:break-all;max-width:300px;
-  text-align:center;line-height:1.5;
-}
 </style>
 </head>
 <body>
 
 <!-- 데스크톱(1024px+) 전용 좌측 사이드바. 모바일에서는 display:none 이므로
      헤더의 주종 세그먼트가 그대로 쓰인다. 두 곳의 [data-cat] 버튼은 같은
-     핸들러를 공유한다(bindCats). -->
+     핸들러(onCatClick)를 공유한다. -->
 <aside class="sidebar" id="side">
   <div class="sidebar-brand">
     <span class="wm">Sulsul <b>Diary</b></span>
@@ -1031,7 +1063,7 @@ pre.csv{
       <span class="mg"><svg viewBox="0 0 24 24"
         ><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.4 15.4 4.1 4.1"/></svg></span>
       <input id="q" type="search" placeholder="이름 · 증류소 · 캐스크 · 태그 검색" autocomplete="off">
-      <button class="cl" id="qClr" hidden>✕</button>
+      <button class="cl" id="qClr" hidden aria-label="검색어 지우기">✕</button>
     </div>
     <div class="chips" id="typeChips"></div>
     <div class="rowf">
@@ -1045,9 +1077,10 @@ pre.csv{
         <option value="abv">도수순</option>
         <option value="left">잔량순</option>
         <option value="opened">개봉일순</option>
+        <option value="value">가성비순 (만원당 점수)</option>
       </select>
       <span class="sline" id="statLine"></span>
-      <button class="viewtg" id="btnView" aria-label="보기 전환"></button>
+      <button class="viewtg" id="btnView"></button>
     </div>
     <div class="chips" id="activeChips"></div>
   </div>
@@ -1195,11 +1228,14 @@ const OWNED = ['미개봉','오픈','비움'];
 
 /* ══════════════ 향·맛·피니쉬 디스크립터 ══════════════
    [이름, 가중치, 아이콘계열]. 가중치는 **위스키 리뷰에서 실제로 자주 거론되는 정도**다.
-   기본 화면에는 가중치 상위 NOTE_TOP(12)개만 보여 준다 — 6열 × 2줄에 딱 맞는다.
+   기본 화면에는 가중치 상위 NOTE_TOP(10)개만 보여 준다 — **10열 × 1줄**.
+   세 축(향·맛·여운)이 한 화면에 들어오는 것이 목적이다.
    84개를 한 번에 펼치면 아무도 고르지 않는다.
    '전체 보기' 로 나머지를 펼치고, 고른 항목은 접어도 남는다.
    아이콘은 계열별로 공유한다(ICONS 참조). */
-const NOTE_TOP = 12;   /* 6열 × 2줄 */
+/* 자주 쓰는 장소 — 직접 타이핑도 되지만 대부분 이 셋이다 */
+const PLACES = [['집','home'], ['바','bar'], ['기타','dots']];
+const NOTE_TOP = 10;   /* 10열 × 1줄 */
 const NOTES = {
   nose: { label:'향', en:'Nose', icon:'flower', desc:'마시기 전에 코로 맡는 향', list: [
     ['바닐라',10,'vanilla'], ['셰리',10,'dried'], ['꿀',9,'honey'], ['오크',9,'oak'],
@@ -1324,8 +1360,15 @@ const QUICK = ['name_ko','type','abv','cask','purchase_date','purchase_price',
   '__market','nose','taste','finish','__rating','image_url'];
 
 let DB = {items:[], meta:{}};
+const LS_VIEW = 'wc.view';
+/* 기본 뷰는 리스트다 — 병이 100개를 넘으면 그리드로 훑는 것보다 리스트가 빠르고,
+   한 화면에 들어오는 병 수가 3배다. 사용자가 고른 값은 wc.view 에서 되살린다
+   (전에는 setItem 만 있고 getItem 이 없어 매번 기본값으로 돌아갔다). */
+const savedView = (() => { try{
+  const v = localStorage.getItem(LS_VIEW); return v === 'grid' || v === 'list' ? v : 'list';
+}catch(e){ return 'list'; } })();
 let V = {q:'', cat:'all', type:'all', status:'all', age:'all', flavor:'all',
-         sort:'recent', view:'grid'};
+         sort:'recent', view: savedView};
 let installEvt = null;
 
 /* 추천 정렬용 우선도 — 테이스팅 노트를 직접 정리한 증류소, 제품 라인업이 있는 증류소를 앞세운다 */
@@ -1355,6 +1398,10 @@ const ICONS = {
   book:   '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H10a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H4Z"/>'
         + '<path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H14a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h6Z"/>',
   search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.4 15.4 4.1 4.1"/>',
+  home:   '<path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19Z"/>'
+        + '<path d="M9.6 20.5v-6h4.8v6"/>',
+  bar:    '<path d="M5 4h14l-7 8Z"/><path d="M12 12v7"/><path d="M8.4 19.6h7.2"/>',
+  dots:   '<circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/>',
 /* 노트 계열 아이콘 — 디스크립터가 70여 개라 하나씩 그릴 수 없다.
    계열별로 하나씩 만들어 여러 디스크립터가 공유한다(참고 앱도 같은 방식).
    24x24 stroke, currentColor. 작게 쓰이므로 선 하나가 더 들어가면 뭉갠다. */
@@ -2062,6 +2109,45 @@ function matchProduct(bk, q, age){
 const MINE_COPY = ['name_ko','name_en','type','distillery','country','region','abv','age',
   'cask','bottler','size_ml','market_low','market_high','nose','taste','finish',
   'rating_bible','rating_wb','flavors','tags'];
+/* ── 중복 구매 경고 ─────────────────────────
+   같은 병을 다시 사는 일이 잦다(배치가 다른 같은 제품, 선물용). 그 자체는 정상이지만
+   **모르고** 두 번 사는 것은 막아야 한다. 등록 화면에서 미리 알려 준다.
+   완전일치만 보면 '라가불린 16년' 과 '라가불린 16' 을 놓치므로 여기서는 느슨하게
+   본다 — 경고는 틀려도 손해가 없고, 놓치면 목적을 잃는다. (사양 복사와 반대) */
+function dupCandidates(q, exclude){
+  const nq = squish(q);
+  if (nq.length < 2) return [];
+  const isSeed = it => String(it.tags || '').split(',').map(t => t.trim()).includes('예시');
+  return DB.items.filter(it => {
+    if (it.id === exclude) return false;                       // 자기 자신은 중복이 아니다
+    if (isSeed(it) || it.status === '위시') return false;      // 위시는 아직 안 산 것
+    const a = squish(it.name_ko), b = squish(it.name_en);
+    return (a && (a === nq || a.includes(nq) || nq.includes(a)))
+        || (b && (b === nq || b.includes(nq) || nq.includes(b)));
+  });
+}
+function dupWarnHTML(q, exclude){
+  const dup = dupCandidates(q, exclude);
+  if (!dup.length) return '';
+  const owned = dup.filter(it => OWNED.includes(it.status));
+  const tried = dup.filter(it => it.status === '경험');
+  const line = it => {
+    const bits = [it.purchase_date, it.purchase_place, it.purchase_price ? won(it.purchase_price) : '']
+      .filter(Boolean).join(' · ');
+    return `<li><b>${esc(fullName(it))}</b> <span class="dst">${esc(it.status)}</span>${
+      bits ? `<br><span class="dbits">${esc(bits)}</span>` : ''}</li>`;
+  };
+  return `<div class="dupwarn">
+    <div class="t">${owned.length
+      ? `이미 <b>${owned.length}병</b> 가지고 있습니다`
+      : `전에 <b>마셔 본</b> 병입니다`}</div>
+    <ul>${[...owned, ...tried].slice(0, 4).map(line).join('')}</ul>
+    ${dup.length > 4 ? `<p class="dbits">외 ${dup.length - 4}건</p>` : ''}
+    <p class="dbits">같은 병을 또 사신 것이면 그대로 저장하세요 — 병마다 따로 관리됩니다.
+      잘못 눌렀다면 <b>취소</b>를 누르세요.</p>
+  </div>`;
+}
+
 /** 이름이 **완전히** 같은 내 기록. nameScore().exact 는 부분 일치에도 참이므로
     쓸 수 없다 — '글렌알라키' 가 '글렌알라키 메타베브 8년' 을 끌어왔다.
     사양을 통째로 복사하는 기능이라 근사 일치는 조용히 틀린 초안을 만든다.
@@ -2291,6 +2377,8 @@ function visible(){
     if (V.type !== 'all' && it.type !== V.type) return false;
     if (V.status === '__draft'){ if (it.draft !== '1') return false; }
     else if (V.status === '__owned'){ if (!OWNED.includes(it.status)) return false; }
+    else if (V.status === '__todo'){ if (!OWNED.includes(it.status) || !isIncomplete(it)) return false; }
+    else if (V.status === '__stale'){ if (!isStale(it)) return false; }
     else if (V.status !== 'all' && it.status !== V.status) return false;
     if (!band[2](ageNum(it))) return false;
     if (V.flavor !== 'all' && !String(it.flavors || '').split(',').includes(V.flavor)) return false;
@@ -2307,6 +2395,14 @@ function visible(){
     abv:    (x, y) => (Number(y.abv) || 0) - (Number(x.abv) || 0),
     left:   (x, y) => (Number(x.remaining_pct) || 0) - (Number(y.remaining_pct) || 0),
     opened: (x, y) => (y.opened_at || '').localeCompare(x.opened_at || ''),
+    /* 가성비 — 만원당 점수. 계산 불가한 병(구매가·점수 한쪽이 없음)은 항상 뒤로 */
+    value:  (x, y) => {
+      const a2 = valueScore(x), b2 = valueScore(y);
+      if (a2 === null && b2 === null) return 0;
+      if (a2 === null) return 1;
+      if (b2 === null) return -1;
+      return b2 - a2;
+    },
   };
   const base = S[V.sort] || S.recent;
   /* 검색어가 있으면 관련도를 먼저 본다 — "라가불린" 을 쳤을 때 이름이 정확히
@@ -2374,7 +2470,9 @@ function render(){
     + `<span class="sk">오픈 <b>${opened}</b></span>`
     + (spent ? `<span class="sk">구매 합계 <b>${Math.round(spent / 10000)}만</b></span>` : '');
   $('#btnView').textContent = V.view === 'grid' ? '☰' : '▦';
-  $('#btnView').title = V.view === 'grid' ? '리스트로 보기' : '그리드로 보기';
+  /* aria-label 을 정적으로 두면 ☰/▦ 로 바뀌는 상태를 낭독기가 읽지 못한다 */
+  $('#btnView').title = $('#btnView').ariaLabel =
+    V.view === 'grid' ? '리스트로 보기' : '그리드로 보기';
 
   $('#grid').className = V.view === 'list' ? 'listv' : 'grid';
   $('#grid').innerHTML = items.map(V.view === 'list' ? rowHTML : cardHTML).join('');
@@ -2623,7 +2721,11 @@ function openSheet(title, body, foot){
   $('#shBody').innerHTML = body;
   $('#shFoot').innerHTML = foot || '';
   $('#shBody').scrollTop = 0;
+  /* 이전 시트의 핸들러를 반드시 지운다. addEventListener 로 붙이면 시트를 다시
+     열 때마다 누적되어 토글이 두 번 실행돼 원상복귀한다(모바일에서 향·맛·여운
+     아이콘이 안 켜지던 원인). 이 앱은 대입 방식만 쓴다. */
   $('#shBody').onclick = null; $('#shFoot').onclick = null;
+  $('#shBody').oninput = null; $('#shBody').onchange = null;
   const wasOpen = $('#sheet').classList.contains('on');
   $('#scrim').classList.add('on'); $('#sheet').classList.add('on');
   if (!wasOpen) lockScroll();         // 이미 열려 있었다면 이중으로 잠그지 않는다
@@ -2676,12 +2778,16 @@ function unlockScroll(force){
 })();
 
 /* ── 시음 기록 ────────────────────────────── */
-const dayssince = d => {
+/** 날짜 → 경과 기간 문자열(접미사 없음). dayssince·daysAgo 가 이것을 공유한다 —
+    따로 계산했을 때 같은 상세 화면에서 개봉 경과와 시음 경과의 개월 수가
+    어긋났다(floor vs round, Date.now vs today). */
+function sinceText(d){
   if (!d) return '';
-  const n = Math.floor((Date.now() - new Date(d + 'T00:00:00')) / 86400000);
-  return n <= 0 ? '오늘' : n === 1 ? '어제' : n < 30 ? n + '일 경과'
-    : n < 365 ? Math.floor(n / 30) + '개월 경과' : (n / 365).toFixed(1) + '년 경과';
-};
+  const n = Math.floor((new Date(today() + 'T00:00:00') - new Date(d + 'T00:00:00')) / 86400000);
+  return n <= 0 ? '오늘' : n === 1 ? '어제' : n < 30 ? n + '일'
+    : n < 365 ? Math.floor(n / 30) + '개월' : (n / 365).toFixed(1) + '년';
+}
+const dayssince = d => { const t = sinceText(d); return t && t !== '오늘' && t !== '어제' ? t + ' 경과' : t; };
 /** 설치 안내.
     한 번 누르면 설치되는 버튼은 **Android·PC 크롬/엣지에서만** 가능하다
     (beforeinstallprompt → prompt()). iOS 는 프로그램으로 설치를 띄우는 API 가
@@ -2847,13 +2953,14 @@ function creditHTML(it){
       ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(c)}</a>`
       : esc(c)}${m ? ' · 각 파일의 라이선스(CC BY-SA 등)를 따릅니다' : ''}</p>`;
 }
-/** 며칠 전인지 — 시음 기록은 '언제'보다 '얼마나 지났나'가 더 잘 읽힌다 */
-function daysAgo(d){
-  if (!d) return '';
-  const n = Math.round((new Date(today()) - new Date(d)) / 86400000);
-  return n <= 0 ? '오늘' : n === 1 ? '어제' : n < 30 ? n + '일 전'
-    : n < 365 ? Math.round(n / 30) + '개월 전' : (n / 365).toFixed(1) + '년 전';
-}
+/** 며칠 전인지 — 시음 기록은 '언제'보다 '얼마나 지났나'가 더 잘 읽힌다.
+    dayssince 와 같은 계산을 쓴다(접미사만 다르다) — 따로 두었을 때 같은 상세 화면에서
+    개봉 경과와 시음 경과의 개월 수가 어긋났다(floor vs round). */
+const daysAgo = d => {
+  const t = sinceText(d);
+  /* '오늘'·'어제'는 그 자체로 시점이라 '전'을 붙이면 "어제 전"이 된다 */
+  return t && t !== '오늘' && t !== '어제' ? t + ' 전' : t;
+};
 /** 시음 기록 타임라인.
     같은 병을 여러 번 마신 기록이 쌓이면 '점수가 어떻게 변했는지'가 이 화면의 값이다.
     그래서 최신순으로 세로 레일에 걸고, 직전 기록과의 점수 차이를 함께 보여 준다.
@@ -2886,7 +2993,7 @@ function sessionsHTML(it){
         ${d != null && d !== 0
           ? `<span class="sdel2 ${d > 0 ? 'up' : 'dn'}" title="직전 기록 대비">${d > 0 ? '▲' : '▼'}${Math.abs(d)}</span>`
           : ''}
-        <button class="sdel" data-sdel="${esc(key)}" title="삭제">✕</button>
+        <button class="sdel" data-sdel="${esc(key)}" title="삭제" aria-label="이 시음 기록 삭제">✕</button>
       </div>
       ${(s.place || s.mate || since !== null) ? `<div class="sm">${
         [s.place, s.mate, since !== null ? `개봉 ${since}일 후` : ''].filter(Boolean).map(esc).join(' · ')}</div>` : ''}
@@ -2937,9 +3044,14 @@ function openDetail(id){
       </div>
     </div>
     ${shots.length > 1 ? `<div class="shots">${shots.map((u, i) =>
-      `<button class="shot${i === 0 ? ' on' : ''}" data-zoom="${i}"><img src="${esc(u)}" alt=""></button>`).join('')}
+      `<button class="shot${i === 0 ? ' on' : ''}" data-zoom="${i}"
+         aria-label="${i + 1}번째 사진 크게 보기"><img src="${esc(u)}" alt=""></button>`).join('')}
       <span class="hint" style="align-self:center">사진 ${shots.length}장 · 탭하면 확대</span></div>` : ''}
     ${creditHTML(it)}
+
+    <details class="more"><summary>전체 사양 보기</summary>
+      <table class="spec">${rows}</table>
+    </details>
 
     <h4 class="sec">1. 기본 사양 &amp; 구매 정보</h4>
     <div class="strip">
@@ -2951,10 +3063,6 @@ function openDetail(id){
     ${it.cask ? `<p class="caskline"><span>캐스크</span> ${esc(it.cask)}</p>` : ''}
     ${it.flavors ? `<div class="bdgs" style="margin-top:9px">${it.flavors.split(',').filter(Boolean)
       .map(f => `<span class="bdg am">${esc(f)}</span>`).join('')}</div>` : ''}
-    <details class="more"><summary>전체 사양 보기</summary>
-      <table class="spec">${rows}</table>
-    </details>
-
     <h4 class="sec">2. 시음 기록 ${it.sessions.length ? `· ${it.sessions.length}회` : ''}</h4>
     ${lv !== null ? `<div class="lvlbig">
         <div class="lvlbar"><i style="width:${lv}%"></i></div>
@@ -2971,15 +3079,15 @@ function openDetail(id){
       ${it.status === '오픈' ? `<button class="lnk" data-act2="empty">비움 처리</button>` : ''}
     </div>
 
-    <h4 class="sec">3. 테이스팅 프로필</h4>
-    <div class="tnote"><span class="lb">Nose · 향</span><p>${esc(it.nose) || '<span class="na">미기재</span>'}</p></div>
-    <div class="tnote"><span class="lb">Taste · 맛</span><p>${esc(it.taste) || '<span class="na">미기재</span>'}</p></div>
-    <div class="tnote"><span class="lb">Finish · 여운</span><p>${esc(it.finish) || '<span class="na">미기재</span>'}</p></div>
-
-    <h4 class="sec">4. 평점</h4>
+    <h4 class="sec">3. 평점</h4>
     ${sc ? `<div class="rate"><div class="big">${sc}</div><div class="rm">${esc(ssrc)}<br>100점 기준</div></div>
             <div class="gauge"><i style="width:${Math.min(100, sc)}%"></i></div>` : ''}
     ${rl ? `<div class="rlist">${rl}</div>` : (sc ? '' : '<p class="hint">평점 정보가 없습니다.</p>')}
+
+    <h4 class="sec">4. 테이스팅 프로필</h4>
+    <div class="tnote"><span class="lb">Nose · 향</span><p>${esc(it.nose) || '<span class="na">미기재</span>'}</p></div>
+    <div class="tnote"><span class="lb">Taste · 맛</span><p>${esc(it.taste) || '<span class="na">미기재</span>'}</p></div>
+    <div class="tnote"><span class="lb">Finish · 여운</span><p>${esc(it.finish) || '<span class="na">미기재</span>'}</p></div>
 
     ${it.notes ? `<h4 class="sec">메모</h4><p style="margin:0;font-size:13.5px;color:var(--ink2)">${esc(it.notes)}</p>` : ''}
     ${it.tags ? `<div class="bdgs" style="margin-top:12px">${it.tags.split(',').filter(Boolean)
@@ -3020,7 +3128,7 @@ function openDetail(id){
       if (next <= 0){ it.status = '비움'; it.remaining_pct = '0'; }
       it.updated_at = nowISO();
       save(); render(); openDetail(it.id);
-      toast(next <= 0 ? '다 마셨습니다 — 비움으로 변경' : `잔량 ${next}%`);
+      toast(next <= 0 ? '다 마셨습니다 — 비움으로 바꿨습니다' : `잔량 ${next}%`);
       return;
     }
     /* 상태 빠른 전환 */
@@ -3085,12 +3193,15 @@ function openSession(id){
       <div class="f"><label>내 점수 (100점)</label>
         <input id="ssScore" type="number" min="0" max="100" inputmode="decimal" placeholder="예: 88">
         <span class="hint" id="ssAuto"></span></div>
-      <div class="f"><label>장소</label><input id="ssPlace" placeholder="집 · 바 이름 등" autocomplete="off"></div>
-      <div class="f"><label>함께한 사람</label><input id="ssMate" placeholder="비워도 됩니다" autocomplete="off"></div>
-      <div class="f wide"><label>인상 · 메모</label>
-        <textarea id="ssNote" rows="3" placeholder="향·맛·여운, 그날의 상황 등"></textarea></div>
+      <div class="f wide"><label>장소</label>
+        <!-- 아이콘으로 고르면 아래 칸이 채워진다. 바 이름처럼 구체적인 것은 직접 적는다 -->
+        <div class="pgrid">${PLACES.map(([v, icn]) =>
+          `<button type="button" class="pcell" data-place="${esc(v)}">${ic(icn)}<span>${esc(v)}</span></button>`).join('')}</div>
+        <input id="ssPlace" placeholder="집 · 바 이름 등" autocomplete="off"></div>
+      <div class="f wide"><label>함께한 사람</label><input id="ssMate" placeholder="비워도 됩니다" autocomplete="off"></div>
     </div>
-    <!-- 고른 디스크립터는 메모 앞에 붙는다 — 그날 무엇을 느꼈는지가 기록에 남아야 한다 -->
+    <!-- 향·맛·여운을 메모보다 위에 둔다 — 고른 결과가 메모에 쌓이므로
+         고르는 곳이 위, 결과가 아래여야 순서대로 읽힌다 -->
     ${['nose','taste','finish'].map(ax => `
       <div class="nsec" data-nsec="${ax}" data-ntarget="ssNote">
         <div class="nhead">${ic(NOTES[ax].icon)}
@@ -3098,6 +3209,10 @@ function openSession(id){
           <span>${NOTES[ax].desc}</span></div>
         <div class="nwrap">${noteGrid(ax, '', false)}</div>
       </div>`).join('')}
+    <div class="fg">
+      <div class="f wide"><label>인상 · 메모</label>
+        <textarea id="ssNote" rows="4" placeholder="위에서 고른 항목이 여기에 정리됩니다. 자유롭게 고치세요."></textarea></div>
+    </div>
     <label class="hint" style="display:flex;gap:7px;align-items:center;margin-top:11px;cursor:pointer">
       <input type="checkbox" id="ssPour" checked> 기록과 함께 잔량에서 한 잔(30ml) 차감
     </label>
@@ -3118,7 +3233,8 @@ function openSession(id){
       ? (scoreTouched ? `3축 평균은 ${auto}점입니다` : '향·맛·여운 합 ÷ 3 으로 자동 계산됩니다')
       : '';
   };
-  $('#shBody').addEventListener('input', e => {
+  /* 대입으로 붙인다 — addEventListener 는 시트를 다시 열 때마다 누적된다 */
+  $('#shBody').oninput = e => {
     const r = e.target.closest('[data-rax]');
     if (r){
       R[r.dataset.rax] = Number(r.value);
@@ -3127,21 +3243,46 @@ function openSession(id){
       return;
     }
     if (e.target.id === 'ssScore') scoreTouched = true;
-  });
+    if (e.target.id === 'ssPlace') paintPlace();
+  };
   /* 디스크립터 선택 → 메모 앞에 "향: … / 맛: …" 형태로 넣는다.
      사용자가 쓴 문장은 아래에 그대로 남긴다. */
-  const NOTE_HEAD = /^(?:(?:향|맛|여운): [^\n]*\n?)+/;
+  /* 메모 머리말은 "장소:" / "향:" / "맛:" / "여운:" 네 줄까지다.
+     사용자가 그 아래에 쓴 글은 절대 건드리지 않고, 머리말만 갈아 낸다.
+     머리말 자체를 사용자가 고쳐도 되게 — 다시 고르면 그때 다시 정리된다. */
+  const NOTE_HEAD = /^(?:(?:장소|향|맛|여운): [^\n]*\n?)+/;
   const syncNote = () => {
-    const parts = ['nose','taste','finish'].map(ax => {
-      const on = [...document.querySelectorAll(`[data-nsec="${ax}"] .ncell.on`)]
-        .map(b => b.dataset.npick);
-      return on.length ? `${NOTES[ax].label}: ${on.join(', ')}` : '';
-    }).filter(Boolean).join('\n');
+    const place = $('#ssPlace').value.trim();
+    const parts = [
+      place ? `장소: ${place}` : '',
+      ...['nose','taste','finish'].map(ax => {
+        const on = [...document.querySelectorAll(`[data-nsec="${ax}"] .ncell.on`)]
+          .map(b => b.dataset.npick);
+        return on.length ? `${NOTES[ax].label}: ${on.join(', ')}` : '';
+      })].filter(Boolean).join('\n');
     const ta = $('#ssNote');
     const free = ta.value.replace(NOTE_HEAD, '').replace(/^\n+/, '');
     ta.value = parts ? parts + (free ? '\n' + free : '') : free;
   };
-  $('#shBody').addEventListener('click', e => {
+  /* 장소 칩의 선택 표시 — 입력칸 값과 맞춘다(직접 타이핑해도 따라온다) */
+  const paintPlace = () => {
+    const v = $('#ssPlace').value.trim();
+    [...document.querySelectorAll('[data-place]')].forEach(b => {
+      const on = b.dataset.place === v;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', on);
+    });
+    syncNote();
+  };
+  $('#shBody').onclick = e => {
+    const pl = e.target.closest('[data-place]');
+    if (pl){
+      const v = pl.dataset.place;
+      /* 같은 것을 다시 누르면 해제 — 잘못 눌렀을 때 되돌릴 방법이 있어야 한다 */
+      $('#ssPlace').value = ($('#ssPlace').value.trim() === v) ? '' : v;
+      paintPlace();
+      return;
+    }
     const pk = e.target.closest('[data-npick]');
     if (pk){
       pk.classList.toggle('on');
@@ -3157,7 +3298,7 @@ function openSession(id){
       sec.querySelector('.nwrap').innerHTML = noteGrid(ax, on, open);
       if (open) sec.querySelector('[data-nmore]').dataset.nopen = '1';
     }
-  });
+  };
   paintRadar();
 
   $('#shFoot').onclick = e => {
@@ -3192,8 +3333,29 @@ function openSession(id){
 }
 
 /* ── 필터 시트 ────────────────────────────── */
+/* ── 손볼 병 골라내기 ─────────────────────────
+   흩어져 있으면 손이 가지 않는다. 조건을 한 곳에 모아 필터 하나로 만든다. */
+/** 기록이 덜 찬 병 — 도수·사진·시세 중 하나라도 비었으면. 통계와 초안 정확도가
+    여기서 갈리므로 채울 값이 있는 병을 모아 보여 준다. */
+const isIncomplete = it => !it.abv || !imgOf(it) || !marketMid(it);
+/** 개봉한 지 오래됐고 잔량이 많이 남은 병 — 산화가 진행된다.
+    기준: 90일 초과 + 잔량 15~70%. 거의 빈 병은 어쩔 수 없으므로 제외한다. */
+function isStale(it){
+  if (it.status !== '오픈' || !it.opened_at) return false;
+  const d = Math.round((new Date(today()) - new Date(it.opened_at)) / 86400000);
+  const lv = Number(it.remaining_pct);
+  return d > 90 && lv >= 15 && lv <= 70;
+}
+/** 만원당 점수 — 싸고 좋았던 병을 찾는다. 구매가와 점수가 둘 다 있어야 계산된다
+    (한쪽이 없는 병을 0 으로 넣으면 순위가 거짓말을 한다 — 실록 D-6) */
+function valueScore(it){
+  const sc = bestScore(it), pr = Number(it.purchase_price) || 0;
+  return (sc && pr) ? sc / (pr / 10000) : null;
+}
+
 const STATUS_OPTS = [['all','상태 전체'],['__owned','보유만'],['미개봉','미개봉'],['오픈','오픈'],
-  ['비움','비움'],['경험','유경험'],['위시','위시리스트'],['__draft','초안 확인 필요']];
+  ['비움','비움'],['경험','유경험'],['위시','위시리스트'],['__draft','초안 확인 필요'],
+  ['__todo','기록 미완성'],['__stale','개봉 90일+']];
 function openFilter(){
   const grp = (label, key, opts) => `
     <h4 class="sec">${label}</h4>
@@ -3444,6 +3606,9 @@ function openEdit(id, draft){
     ${draft ? `<div class="note" style="margin-bottom:14px">
       <b>초안이 채워졌습니다.</b> 표시된 항목은 내장 DB·위키백과 기반 추정값입니다.
       실제 라벨과 구매 정보를 확인해 수정한 뒤 저장하세요.</div>` : ''}
+    <!-- 중복 구매 경고는 여기 둔다. 마법사의 로그에 두면 1초 뒤 편집 폼으로 넘어가며
+         사라져 읽을 수가 없다. 편집 중인 병은 자기 자신을 중복으로 잡지 않는다. -->
+    ${dupWarnHTML(it.name_ko || it.name_en || '', id)}
     <form id="ef" onsubmit="return false">
       <h4 class="sec">병 사진 (최대 ${MAX_SHOTS}장)</h4>
       <div class="imgb">
@@ -3553,9 +3718,9 @@ function openEdit(id, draft){
     credit = '';
     for (const file of files){
       try{ await applyImage(await fileToDataURL(file), files.length > 1); }
-      catch(err){ toast('사진 처리 실패'); }
+      catch(err){ toast('사진 처리에 실패했습니다'); }
     }
-    if (files.length > 1) toast(`사진 ${shots.length}장 적용`);
+    if (files.length > 1) toast(`사진 ${shots.length}장을 적용했습니다`);
   };
   const rm = $('#rmPhoto');
   if (rm) rm.onclick = () => {
@@ -3688,7 +3853,9 @@ function openEdit(id, draft){
 }
 /* ══════════════════════════════════════════
    썸네일 정규화 — 모든 병 사진을 같은 크기·같은 비율로
-   ① 배경 여백 자동 트리밍 → ② 3:4 흰 캔버스 중앙 배치 → ③ 동일 배율
+   ① 배경 여백 자동 트리밍 → ② 3:4 캔버스 중앙 배치 → ③ 동일 배율
+   캔버스는 흰색이 아니라 **box.fill(트리밍한 여백의 평균색)** 으로 채운다 —
+   어두운 사진에서 오려낸 병에 흰 띠가 생기던 문제 때문이다(CLAUDE.md 참조).
 
    규격은 3:4 (336×448). 4:5(360×450) 에서 옮겨온 값이며, 448×0.9=403px 은
    옛 규격의 병 높이(450×0.9=405px)와 거의 같아 이관 시 확대 없이 재배치된다.
@@ -3698,7 +3865,7 @@ const THUMB_AR = '3:4';
 const THUMB_FIT = '3:4/fill';
 /* FILL 을 0.98 로 둔 이유: 병을 프레임 높이에 거의 꽉 채우되, trimBox 의
    경계 판정이 1px 어긋나도 마개가 잘리지 않도록 위아래 1% 만 남긴다.
-   흰 캔버스 위의 1% 는 눈에 보이지 않으므로 CSS 확대 보정이 필요 없다. */
+   같은 색 여백 위의 1% 는 눈에 보이지 않으므로 CSS 확대 보정이 필요 없다. */
 const THUMB_W = 336, THUMB_H = 448, THUMB_FILL = 0.98;
 const MAX_SHOTS = 5;                 // 병당 사진 최대 장수
 /* 2번째 이후 사진은 조금 작게 저장해 용량을 아낀다. 본 사진과 같은 3:4 여야
@@ -3782,7 +3949,7 @@ async function normalizeThumb(src, W, H, opt){
   catch(e){ return null; }               // 타 도메인 CORS 차단 → 원본 URL 그대로 사용
   /* 채우기 방식을 내용의 형태로 가른다.
      · 병만 오려낸 이미지(배경이 흰색이라 trimBox 가 병 자체를 잡아낸 경우)는
-       세로로 길다 — h/w 가 2 이상. 높이에 맞추고 좌우에 흰 여백을 두어도
+       세로로 길다 — h/w 가 2 이상. 높이에 맞추고 좌우에 여백(box.fill)을 두어도
        카드 배경이 흰색이라 티가 나지 않으며, 병을 자르지 않는 편이 낫다.
      · 배경이 있는 사진은 h/w 가 2 미만이다. 여기에 같은 처리를 하면 좌우에
        흰 띠가 남아 "내가 등록한 사진만 안 꽉 찬다"로 보였다 → 프레임을 채우고
@@ -4624,7 +4791,7 @@ function openWipe(){
   const buy = DB.items.reduce((s, i) => s + (Number(i.purchase_price) || 0), 0);
   const photos = DB.items.filter(i => (i.images && i.images.length) || i.image_norm).length;
   openSheet('전체 초기화', `
-    <div class="note" style="background:#fdf1ee;border-color:#e6bcb0">
+    <div class="note dgr">
       <b style="color:var(--danger)">되돌리기 어려운 작업입니다.</b><br>
       이 기기의 <b>${n}병</b>${buy ? ` · 구매 합계 <b>${wonShort(buy)}원</b>` : ''}${photos ? ` · 사진 ${photos}장` : ''} 기록이 모두 삭제됩니다.
       ${syncOn() ? `<br><b style="color:var(--danger)">동기화가 연결되어 있어 폰·PC 등 다른 기기에서도 함께 삭제됩니다.</b>` : ''}
@@ -4728,7 +4895,7 @@ function sip(id){
   it.updated_at = nowISO();
   save(); render();
   sipUndo = { id, before };
-  toastUndo(next <= 0 ? '다 마셨습니다 — 비움으로 변경' : `잔량 ${next}%`, () => {
+  toastUndo(next <= 0 ? '다 마셨습니다 — 비움으로 바꿨습니다' : `잔량 ${next}%`, () => {
     const t = byId(id); if (!t) return;
     t.remaining_pct = before.pct; t.status = before.status; t.updated_at = before.upd;
     save(); render(); toast('되돌렸습니다');
@@ -4769,7 +4936,7 @@ $('#qClr').onclick = () => {
 $('#btnFilter').onclick = openFilter;
 $('#btnView').onclick = () => {
   V.view = V.view === 'grid' ? 'list' : 'grid';
-  try{ localStorage.setItem('wc.view', V.view); }catch(e){}
+  try{ localStorage.setItem(LS_VIEW, V.view); }catch(e){}
   render();
 };
 $('#activeChips').onclick = e => {
@@ -4850,7 +5017,7 @@ const needsRetrofit = it => it.thumb_ar !== THUMB_FIT && !!(it.image_norm || it.
 /** 저장 규격 이관 (4:5 → 3:4).
     이미 저장된 썸네일 자체를 원본으로 삼는다 — 네트워크가 필요 없고, 원격 원본을
     다시 받는 것보다 확실하다. noCrop 이라 어떤 사진도 잘려 나가지 않는다:
-    3:4 에 가로가 넘치면 폭 기준으로 줄여 위아래를 흰 여백으로 남긴다.
+    3:4 에 가로가 넘치면 폭 기준으로 줄여 위아래를 여백(box.fill)으로 남긴다.
     실패한 장은 기존 것을 그대로 두어 사진을 잃지 않는다.
 
     updated_at 은 일부러 올리지 않는다. 파생 데이터 갱신일 뿐인데 시각을 올리면
