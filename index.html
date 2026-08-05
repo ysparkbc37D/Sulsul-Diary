@@ -867,23 +867,25 @@ pre.csv{
 }
 
 /* ══════════════ 향·맛·여운 선택 ══════════════
-   기본은 가중치 상위 10개만 — 4열 × 3줄 안에 들어간다. 70개를 한 번에 펼치면
-   아무도 고르지 않는다. 선택된 항목은 접어도 계속 보인다. */
+   기본은 가중치 상위 12개 — **6열 × 2줄**. 폰에서 한눈에 들어오는 크기로 맞췄다.
+   360px 에서 셀 하나가 약 50px 이므로 글자는 9px, 두 줄까지 감싼다.
+   84개를 한 번에 펼치면 아무도 고르지 않는다. 선택된 항목은 접어도 계속 보인다. */
 .nsec{margin-bottom:18px}
 .nsec:last-child{margin-bottom:6px}
 .nhead{display:flex;align-items:center;gap:7px;margin-bottom:9px;flex-wrap:wrap}
 .nhead .ic{width:16px;height:16px;color:var(--accent)}
 .nhead b{font-size:13.5px;color:var(--ink);letter-spacing:-.01em}
 .nhead span{font-size:11px;color:var(--ink3);word-break:keep-all}
-.ngrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.ngrid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:8px}
 .ncell{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-  padding:9px 3px 7px;border-radius:11px;min-height:56px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:6px 2px 5px;border-radius:9px;min-height:48px;
   background:var(--surface2);border:1px solid var(--line);color:var(--ink3);
   transition:.13s;
 }
-.ncell .ic{width:19px;height:19px;stroke-width:1.6}
-.ncell span{font-size:10px;line-height:1.25;text-align:center;word-break:keep-all;letter-spacing:-.02em}
+.ncell .ic{width:16px;height:16px;stroke-width:1.7}
+.ncell span{font-size:9px;line-height:1.22;text-align:center;word-break:keep-all;
+  letter-spacing:-.03em;max-width:100%}
 .ncell:active{transform:scale(.95)}
 /* 선택 상태는 색만으로 구분하지 않는다 — 테두리 굵기와 배경도 함께 바뀐다 */
 .ncell.on{
@@ -893,7 +895,11 @@ pre.csv{
 .ncell.on span{font-weight:700}
 .nmore{width:100%;justify-content:center;margin-bottom:9px}
 /* 좁은 화면에서도 4열을 지킨다 — 셀 글자를 줄이는 편이 열을 깨는 것보다 낫다 */
-@media(max-width:359px){ .ncell span{font-size:9.5px} .ncell{min-height:52px} }
+@media(max-width:359px){ .ncell span{font-size:8.5px} .ncell{min-height:45px;padding:5px 1px 4px}
+  .ncell .ic{width:15px;height:15px} .ngrid{gap:3px} }
+/* 시트가 넓은 데스크톱에서는 셀이 과하게 커지지 않도록 상한을 둔다 */
+@media(min-width:560px){ .ncell{min-height:56px} .ncell span{font-size:10px}
+  .ncell .ic{width:18px;height:18px} .ngrid{gap:6px} }
 /* 헤더 버전 표시 — 눌러서 변경 이력으로 간다.
    아직 안 본 버전이면 점이 붙는다(사용자가 갱신을 알 수 있게) */
 .ver{
@@ -1189,10 +1195,11 @@ const OWNED = ['미개봉','오픈','비움'];
 
 /* ══════════════ 향·맛·피니쉬 디스크립터 ══════════════
    [이름, 가중치, 아이콘계열]. 가중치는 **위스키 리뷰에서 실제로 자주 거론되는 정도**다.
-   기본 화면에는 가중치 상위 NOTE_TOP 개만 보여 준다 — 70개를 한 번에 펼치면
-   아무도 고르지 않는다. '전체 보기' 로 나머지를 펼치고, 고른 항목은 접어도 남는다.
+   기본 화면에는 가중치 상위 NOTE_TOP(12)개만 보여 준다 — 6열 × 2줄에 딱 맞는다.
+   84개를 한 번에 펼치면 아무도 고르지 않는다.
+   '전체 보기' 로 나머지를 펼치고, 고른 항목은 접어도 남는다.
    아이콘은 계열별로 공유한다(ICONS 참조). */
-const NOTE_TOP = 10;
+const NOTE_TOP = 12;   /* 6열 × 2줄 */
 const NOTES = {
   nose: { label:'향', en:'Nose', icon:'flower', desc:'마시기 전에 코로 맡는 향', list: [
     ['바닐라',10,'vanilla'], ['셰리',10,'dried'], ['꿀',9,'honey'], ['오크',9,'oak'],
@@ -2948,17 +2955,7 @@ function openDetail(id){
       <table class="spec">${rows}</table>
     </details>
 
-    <h4 class="sec">2. 테이스팅 프로필</h4>
-    <div class="tnote"><span class="lb">Nose · 향</span><p>${esc(it.nose) || '<span class="na">미기재</span>'}</p></div>
-    <div class="tnote"><span class="lb">Taste · 맛</span><p>${esc(it.taste) || '<span class="na">미기재</span>'}</p></div>
-    <div class="tnote"><span class="lb">Finish · 여운</span><p>${esc(it.finish) || '<span class="na">미기재</span>'}</p></div>
-
-    <h4 class="sec">3. 평점</h4>
-    ${sc ? `<div class="rate"><div class="big">${sc}</div><div class="rm">${esc(ssrc)}<br>100점 기준</div></div>
-            <div class="gauge"><i style="width:${Math.min(100, sc)}%"></i></div>` : ''}
-    ${rl ? `<div class="rlist">${rl}</div>` : (sc ? '' : '<p class="hint">평점 정보가 없습니다.</p>')}
-
-    <h4 class="sec">4. 시음 기록 ${it.sessions.length ? `· ${it.sessions.length}회` : ''}</h4>
+    <h4 class="sec">2. 시음 기록 ${it.sessions.length ? `· ${it.sessions.length}회` : ''}</h4>
     ${lv !== null ? `<div class="lvlbig">
         <div class="lvlbar"><i style="width:${lv}%"></i></div>
         <div class="lvlrow"><span>잔량 <b>${lv}%</b>${it.opened_at ? ` · ${it.opened_at} 개봉 (${dayssince(it.opened_at)})` : ''}</span>
@@ -2974,11 +2971,21 @@ function openDetail(id){
       ${it.status === '오픈' ? `<button class="lnk" data-act2="empty">비움 처리</button>` : ''}
     </div>
 
+    <h4 class="sec">3. 테이스팅 프로필</h4>
+    <div class="tnote"><span class="lb">Nose · 향</span><p>${esc(it.nose) || '<span class="na">미기재</span>'}</p></div>
+    <div class="tnote"><span class="lb">Taste · 맛</span><p>${esc(it.taste) || '<span class="na">미기재</span>'}</p></div>
+    <div class="tnote"><span class="lb">Finish · 여운</span><p>${esc(it.finish) || '<span class="na">미기재</span>'}</p></div>
+
+    <h4 class="sec">4. 평점</h4>
+    ${sc ? `<div class="rate"><div class="big">${sc}</div><div class="rm">${esc(ssrc)}<br>100점 기준</div></div>
+            <div class="gauge"><i style="width:${Math.min(100, sc)}%"></i></div>` : ''}
+    ${rl ? `<div class="rlist">${rl}</div>` : (sc ? '' : '<p class="hint">평점 정보가 없습니다.</p>')}
+
     ${it.notes ? `<h4 class="sec">메모</h4><p style="margin:0;font-size:13.5px;color:var(--ink2)">${esc(it.notes)}</p>` : ''}
     ${it.tags ? `<div class="bdgs" style="margin-top:12px">${it.tags.split(',').filter(Boolean)
       .map(t => `<span class="bdg">#${esc(t.trim())}</span>`).join('')}</div>` : ''}
 
-    <h4 class="sec">4. 데이터베이스 저장용 (CSV)</h4>
+    <h4 class="sec">5. 데이터베이스 저장용 (CSV)</h4>
     <pre class="csv">${esc(quickCSV(it))}</pre>
     <div class="lrow">
       <button class="lnk" data-copy="md">기록 카드(Markdown) 복사</button>
