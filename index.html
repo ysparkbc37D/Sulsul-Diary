@@ -846,15 +846,20 @@ pre.csv{
 /* 공유 아이콘을 문장 안에 넣어 '어떤 버튼인지'를 그림으로 보여 준다 */
 .ic.shr{width:14px;height:14px;vertical-align:-2px;color:var(--accent)}
 
-/* 장소 선택 — 집·바·기타. 값은 장소 입력칸에 들어가고 메모 머리말에도 남는다 */
-/* 장소 5칩 — 좁은 폭에 5개가 들어가야 하므로 아이콘 위·글자 아래로 쌓는다 */
-.pgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+/* 장소 5칩 — 집·바·모임·회식·기타. 고른 라벨은 메모 첫 줄의 "집 : " 이 된다.
+   향·맛·여운 셀과 같은 규격으로 맞춰 **반폭 한 줄**에 5개가 들어간다.
+   폭이 30px 대로 좁아지지만 높이를 아끼는 쪽을 택했다(사용자 요청).
+   라벨이 모두 두 글자라 이 폭에서도 잘리지 않는다(실측). */
+.pgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
 .pcell{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
-  height:42px;border-radius:9px;font-size:9.5px;font-weight:600;
+  height:44px;border-radius:7px;font-size:8.5px;font-weight:600;letter-spacing:-.04em;
   background:var(--surface2);border:1px solid var(--line);color:var(--ink3);transition:.13s;
+  overflow:hidden;
 }
-.pcell .ic{width:15px;height:15px}
+.pcell .ic{width:14px;height:14px}
+@media(min-width:560px){ .pcell{font-size:10px;height:46px} .pgrid{gap:5px}
+  .pcell .ic{width:15px;height:15px} }
 .pcell:active{transform:scale(.96)}
 .pcell.on{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);
   box-shadow:inset 0 0 0 1px var(--accent)}
@@ -894,19 +899,31 @@ pre.csv{
 .radar .rt{fill:var(--ink3);font-size:10px;text-anchor:middle;font-weight:600}
 .radsl{flex:1;min-width:0;display:flex;flex-direction:column;gap:11px}
 .rsl{display:flex;align-items:center;gap:8px}
-.rsl label{flex:none;display:flex;align-items:center;gap:4px;width:52px;
+.rsl label{flex:none;display:flex;align-items:center;gap:4px;width:52px;white-space:nowrap;
   font-size:11.5px;font-weight:600;color:var(--ink2)}
 .rsl label .ic{width:13px;height:13px;color:var(--accent)}
 .rsl input[type=range]{flex:1;min-width:0;accent-color:var(--accent);padding:0;background:none;border:none}
 .rsl output{flex:none;width:26px;text-align:right;font-size:11.5px;font-weight:700;
   color:var(--ink);font-variant-numeric:tabular-nums}
 /* 좁은 화면에서는 차트를 위로 올린다 — 나란히 두면 슬라이더가 눌린다 */
+/* 폰에서도 그래프와 바를 나란히 둔다 — 세로로 쌓으면 이 블록만 높이가 두 배가 된다.
+   대신 그래프를 줄이고 라벨·간격을 좁혀 한 줄에 들어가게 한다. */
 @media(max-width:400px){
-  .radbody{flex-direction:column;gap:10px}
-  .radwrap{width:126px;height:126px}
-  .radsl{width:100%}
+  .radbox{padding:9px 10px 11px}
+  .radbody{gap:9px}
+  .radwrap{width:104px;height:104px}
+  .radsl{gap:10px}
+  .rsl{gap:6px}
+  /* nowrap 이 없으면 '여운' 이 두 글자에서 감겨 슬라이더 줄 높이가 늘어난다 */
+  .rsl label{width:40px;font-size:10.5px;gap:3px;white-space:nowrap}
+  .rsl label .ic{width:12px;height:12px}
+  .rsl output{width:21px;font-size:10.5px}
   .radtop b{font-size:26px}
+  .radtop{margin-bottom:8px;padding-bottom:8px}
 }
+/* 아주 좁은 화면에서는 축 이름을 숨긴다 — 아이콘만으로도 구분된다 */
+@media(max-width:339px){ .radwrap{width:88px;height:88px} .rsl label span{display:none}
+  .rsl label{width:16px} }
 
 /* ══════════════ 향·맛·여운 선택 ══════════════
    기본은 가중치 상위 10개 — **10열 × 1줄**. 세 축이 한 화면에 들어오게 한다.
@@ -3214,8 +3231,8 @@ function openSession(id){
       </div>
     </div>
     <div class="fg">
-      <div class="f wide"><label>마신 날</label><input id="ssAt" type="date" value="${today()}"></div>
-      <div class="f wide"><label>장소</label>
+      <div class="f"><label>마신 날</label><input id="ssAt" type="date" value="${today()}"></div>
+      <div class="f"><label>장소</label>
         <div class="pgrid">${PLACES.map(([v, icn]) =>
           `<button type="button" class="pcell" data-place="${esc(v)}"
             aria-pressed="false" title="${esc(v)}">${ic(icn)}<span>${esc(v)}</span></button>`).join('')}</div>
