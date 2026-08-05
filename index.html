@@ -839,6 +839,33 @@ pre.csv{
 /* 공유 아이콘을 문장 안에 넣어 '어떤 버튼인지'를 그림으로 보여 준다 */
 .ic.shr{width:14px;height:14px;vertical-align:-2px;color:var(--accent)}
 
+/* ══════════════ 삼각 레이더 ══════════════ */
+.radbox{
+  display:flex;gap:14px;align-items:center;padding:13px;margin-bottom:14px;
+  background:var(--surface2);border:1px solid var(--line);border-radius:14px;
+}
+.radwrap{flex:none;width:148px;height:148px}
+.radar{width:100%;height:100%;display:block;overflow:visible}
+.radar .rg{fill:none;stroke:var(--line2);stroke-width:1}
+.radar .rv{fill:color-mix(in srgb, var(--accent) 26%, transparent);
+  stroke:var(--accent);stroke-width:1.8;stroke-linejoin:round}
+.radar .rd{fill:var(--accent)}
+.radar .rt{fill:var(--ink3);font-size:10px;text-anchor:middle;font-weight:600}
+.radsl{flex:1;min-width:0;display:flex;flex-direction:column;gap:11px}
+.rsl{display:flex;align-items:center;gap:8px}
+.rsl label{flex:none;display:flex;align-items:center;gap:4px;width:52px;
+  font-size:11.5px;font-weight:600;color:var(--ink2)}
+.rsl label .ic{width:13px;height:13px;color:var(--accent)}
+.rsl input[type=range]{flex:1;min-width:0;accent-color:var(--accent);padding:0;background:none;border:none}
+.rsl output{flex:none;width:16px;text-align:right;font-size:11.5px;font-weight:700;
+  color:var(--ink);font-variant-numeric:tabular-nums}
+/* 좁은 화면에서는 차트를 위로 올린다 — 나란히 두면 슬라이더가 눌린다 */
+@media(max-width:400px){
+  .radbox{flex-direction:column;gap:11px}
+  .radwrap{width:132px;height:132px}
+  .radsl{width:100%}
+}
+
 /* ══════════════ 향·맛·여운 선택 ══════════════
    기본은 가중치 상위 10개만 — 4열 × 3줄 안에 들어간다. 70개를 한 번에 펼치면
    아무도 고르지 않는다. 선택된 항목은 접어도 계속 보인다. */
@@ -2722,6 +2749,46 @@ function openInstall(){
     `<button class="btn gold" id="insOk">알겠습니다</button>`);
   $('#insOk').onclick = closeSheet;
 }
+/* ══════════════ 삼각 레이더 차트 ══════════════
+   향·맛·여운을 0~10 세 축으로 그린다. SVG 를 직접 만든다(차트 라이브러리를 넣으면
+   무의존 원칙이 깨진다).
+   **꼭짓점을 드래그해 입력하지 않는다** — 손가락으로 정확히 집기 어렵고 화면 낭독기로
+   다룰 수 없다. 입력은 슬라이더 세 개로 하고 차트는 결과를 보여 준다. */
+const RAD_AX = [['nose','향'], ['taste','맛'], ['finish','여운']];
+function radarSVG(v, size){
+  const S = size || 148, C = S / 2, R = S * 0.36;
+  /* 12시부터 시계방향으로 세 축 */
+  const pt = (i, r) => {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / 3;
+    return [C + Math.cos(a) * r, C + Math.sin(a) * r];
+  };
+  const ring = f => RAD_AX.map((_, i) => pt(i, R * f).map(n => n.toFixed(1)).join(',')).join(' ');
+  const vals = RAD_AX.map(([k]) => Math.max(0, Math.min(10, Number(v[k]) || 0)));
+  const shape = vals.map((n, i) => pt(i, R * (n / 10)).map(x => x.toFixed(1)).join(',')).join(' ');
+  const any = vals.some(n => n > 0);
+  return `<svg class="radar" viewBox="0 0 ${S} ${S}" role="img"
+      aria-label="향 ${vals[0]}, 맛 ${vals[1]}, 여운 ${vals[2]} (10점 기준)">
+    ${[1, .667, .333].map(f =>
+      `<polygon points="${ring(f)}" class="rg"/>`).join('')}
+    ${RAD_AX.map((_, i) => {
+      const [x, y] = pt(i, R);
+      return `<line x1="${C}" y1="${C}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" class="rg"/>`;
+    }).join('')}
+    ${any ? `<polygon points="${shape}" class="rv"/>` : ''}
+    ${vals.map((n, i) => { const [x, y] = pt(i, R * (n / 10));
+      return n > 0 ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" class="rd"/>` : ''; }).join('')}
+    ${RAD_AX.map(([, lab], i) => {
+      const [x, y] = pt(i, R + S * 0.115);
+      return `<text x="${x.toFixed(1)}" y="${(y + 3.5).toFixed(1)}" class="rt">${lab}</text>`;
+    }).join('')}
+  </svg>`;
+}
+/** 세 축 → 100점. 평균 × 10. 세 축이 모두 0이면 계산하지 않는다(빈 값 유지) */
+function radarScore(v){
+  const ns = RAD_AX.map(([k]) => Number(v[k]) || 0);
+  return ns.some(n => n > 0) ? String(Math.round(ns.reduce((a, b) => a + b, 0) / 3 * 10)) : '';
+}
+
 /** 변경 이력 시트. 새 버전을 처음 열면 버전 배지에 점이 붙고, 이 시트를 열면 사라진다. */
 function openChanges(){
   openSheet(`변경 이력 · v${APP_VER}`, `
@@ -2986,21 +3053,99 @@ function openDetail(id){
 function openSession(id){
   const it = byId(id); if (!it) return;
   openSheet('시음 기록 · ' + fullName(it), `
+    <!-- 향·맛·여운 3축 평가. 슬라이더로 넣고 삼각 레이더가 결과를 보여 준다.
+         세 축의 평균 × 10 이 내 점수로 들어가되, 직접 덮어쓸 수 있다. -->
+    <div class="radbox">
+      <div class="radwrap" id="ssRadar"></div>
+      <div class="radsl">
+        ${RAD_AX.map(([k, lab]) => `
+          <div class="rsl">
+            <label for="ss_${k}">${ic(NOTES[k].icon)}${lab}</label>
+            <input id="ss_${k}" type="range" min="0" max="10" step="1" value="0" data-rax="${k}">
+            <output id="sso_${k}">0</output>
+          </div>`).join('')}
+      </div>
+    </div>
     <div class="fg">
       <div class="f"><label>마신 날</label><input id="ssAt" type="date" value="${today()}"></div>
       <div class="f"><label>내 점수 (100점)</label>
-        <input id="ssScore" type="number" min="0" max="100" inputmode="decimal" placeholder="예: 88"></div>
+        <input id="ssScore" type="number" min="0" max="100" inputmode="decimal" placeholder="예: 88">
+        <span class="hint" id="ssAuto"></span></div>
       <div class="f"><label>장소</label><input id="ssPlace" placeholder="집 · 바 이름 등" autocomplete="off"></div>
       <div class="f"><label>함께한 사람</label><input id="ssMate" placeholder="비워도 됩니다" autocomplete="off"></div>
       <div class="f wide"><label>인상 · 메모</label>
         <textarea id="ssNote" rows="3" placeholder="향·맛·여운, 그날의 상황 등"></textarea></div>
     </div>
+    <!-- 고른 디스크립터는 메모 앞에 붙는다 — 그날 무엇을 느꼈는지가 기록에 남아야 한다 -->
+    ${['nose','taste','finish'].map(ax => `
+      <div class="nsec" data-nsec="${ax}" data-ntarget="ssNote">
+        <div class="nhead">${ic(NOTES[ax].icon)}
+          <b>${NOTES[ax].label} (${NOTES[ax].en})</b>
+          <span>${NOTES[ax].desc}</span></div>
+        <div class="nwrap">${noteGrid(ax, '', false)}</div>
+      </div>`).join('')}
     <label class="hint" style="display:flex;gap:7px;align-items:center;margin-top:11px;cursor:pointer">
       <input type="checkbox" id="ssPour" checked> 기록과 함께 잔량에서 한 잔(30ml) 차감
     </label>
     <p class="hint">점수를 넣으면 <b>가장 최근 기록의 점수</b>가 목록의 평점으로 표시됩니다.</p>`,
     `<button class="btn" data-act="cancel">취소</button>
      <button class="btn pri" data-act="save">기록 저장</button>`);
+  /* ── 3축 평가 ──
+     레이더는 결과 표시 전용이다. 값은 슬라이더로 넣는다(꼭짓점 드래그는 손가락으로
+     정확히 집기 어렵고 화면 낭독기로 다룰 수 없다). */
+  const R = {nose: 0, taste: 0, finish: 0};
+  let scoreTouched = false;
+  const paintRadar = () => {
+    $('#ssRadar').innerHTML = radarSVG(R);
+    const auto = radarScore(R);
+    /* 사용자가 점수를 직접 만졌으면 덮지 않는다 — 계산이 내 느낌과 다를 수 있다 */
+    if (!scoreTouched){ $('#ssScore').value = auto; }
+    $('#ssAuto').textContent = auto
+      ? (scoreTouched ? `3축 평균은 ${auto}점입니다` : '3축 평균으로 자동 계산됩니다')
+      : '';
+  };
+  $('#shBody').addEventListener('input', e => {
+    const r = e.target.closest('[data-rax]');
+    if (r){
+      R[r.dataset.rax] = Number(r.value);
+      $('#sso_' + r.dataset.rax).textContent = r.value;
+      paintRadar();
+      return;
+    }
+    if (e.target.id === 'ssScore') scoreTouched = true;
+  });
+  /* 디스크립터 선택 → 메모 앞에 "향: … / 맛: …" 형태로 넣는다.
+     사용자가 쓴 문장은 아래에 그대로 남긴다. */
+  const NOTE_HEAD = /^(?:(?:향|맛|여운): [^\n]*\n?)+/;
+  const syncNote = () => {
+    const parts = ['nose','taste','finish'].map(ax => {
+      const on = [...document.querySelectorAll(`[data-nsec="${ax}"] .ncell.on`)]
+        .map(b => b.dataset.npick);
+      return on.length ? `${NOTES[ax].label}: ${on.join(', ')}` : '';
+    }).filter(Boolean).join('\n');
+    const ta = $('#ssNote');
+    const free = ta.value.replace(NOTE_HEAD, '').replace(/^\n+/, '');
+    ta.value = parts ? parts + (free ? '\n' + free : '') : free;
+  };
+  $('#shBody').addEventListener('click', e => {
+    const pk = e.target.closest('[data-npick]');
+    if (pk){
+      pk.classList.toggle('on');
+      pk.setAttribute('aria-pressed', pk.classList.contains('on'));
+      syncNote();
+      return;
+    }
+    const mr = e.target.closest('[data-nmore]');
+    if (mr){
+      const sec = mr.closest('[data-nsec]'), ax = sec.dataset.nsec;
+      const on = [...sec.querySelectorAll('.ncell.on')].map(b => b.dataset.npick).join(', ');
+      const open = !mr.dataset.nopen;
+      sec.querySelector('.nwrap').innerHTML = noteGrid(ax, on, open);
+      if (open) sec.querySelector('[data-nmore]').dataset.nopen = '1';
+    }
+  });
+  paintRadar();
+
   $('#shFoot').onclick = e => {
     const a = e.target.closest('[data-act]'); if (!a) return;
     if (a.dataset.act === 'cancel') return openDetail(it.id);
@@ -3010,6 +3155,8 @@ function openSession(id){
       place: $('#ssPlace').value.trim(),
       mate: $('#ssMate').value.trim(),
       note: $('#ssNote').value.trim(),
+      /* 3축 값을 기록에 남긴다 — 나중에 타임라인에서 삼각형을 다시 그릴 수 있다 */
+      ...(radarScore(R) ? {nose: R.nose, taste: R.taste, finish: R.finish} : {}),
     };
     if (!s.score && !s.note && !s.place){ toast('점수·메모·장소 중 하나는 입력해 주세요'); return; }
     it.sessions.push(s);
