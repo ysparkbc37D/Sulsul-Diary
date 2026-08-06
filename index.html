@@ -225,6 +225,17 @@ header.top{
 .seg.on b{color:var(--accent)}
 .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:1px}
 .chips::-webkit-scrollbar{display:none}
+/* 주종 칩과 타입 칩을 한 줄에 담는다. 둘은 "이 병이 무엇인가"라는 같은 질문이라
+   한 행에 모아도 읽히고, 상단 세로 줄 수를 늘리지 않는다(탭이 세그먼트 행을 쓴다).
+   각자 .chips 라 안쪽에서 스크롤되면 두 그룹이 따로 움직여 어긋난다 — 스크롤은
+   이 부모가 하고 자식은 넘치지 않게 둔다. */
+.chiprow{display:flex;gap:8px;align-items:center;overflow-x:auto;scrollbar-width:none}
+.chiprow::-webkit-scrollbar{display:none}
+.chiprow > .chips{overflow:visible;flex:none}
+/* 두 그룹이 모두 있을 때만 경계선을 넣는다 — 한쪽이 비면 선만 떠 있게 된다 */
+#catChips:not(:empty) + #typeChips:not(:empty){
+  border-left:1px solid var(--line);padding-left:8px
+}
 .chip{
   flex:none;padding:6px 13px;border-radius:999px;font-size:12.5px;
   background:var(--surface);border:1px solid var(--line);color:var(--ink2);white-space:nowrap;
@@ -478,7 +489,9 @@ header.top{
   /* 워드마크는 사이드바로 옮겼다 — 상단바의 브랜드 영역은 여백만 남는다 */
   .brand .wm, .brand .wm2{display:none}
   .wrap{max-width:none;margin-left:236px;padding-left:24px;padding-right:24px}
-  #catSegs{display:none}                    /* 주종 전환은 사이드바가 담당 */
+  /* 탭·주종 전환은 사이드바가 담당한다 — 두 벌이 동시에 보이면 어느 쪽이
+     참인지 알 수 없다. 타입 칩은 사이드바에 없으므로 그대로 남긴다. */
+  #tabSegs, #catChips{display:none}
   /* 176px 은 임의값이 아니다 — auto-fill 은 남는 폭을 열에 나눠 주므로 하한이
      높으면 열 수가 하나 줄면서 카드가 확 넓어진다. 176 은 1280~2560px 구간에서
      카드 폭을 183~190px 로 붙잡아 화면 크기와 무관하게 같아 보이게 하는 값이다. */
@@ -1060,14 +1073,16 @@ pre.csv{
 <body>
 
 <!-- 데스크톱(1024px+) 전용 좌측 사이드바. 모바일에서는 display:none 이므로
-     헤더의 주종 세그먼트가 그대로 쓰인다. 두 곳의 [data-cat] 버튼은 같은
-     핸들러(onCatClick)를 공유한다. -->
+     상단의 탭 세그먼트와 주종 칩이 그대로 쓰인다.
+     [data-tab]·[data-cat] 버튼은 어디에 있든 같은 핸들러(onNavClick)를 공유하지만
+     **문서 위임이 아니다** — 컨테이너마다 따로 붙인다. 네 번째 사본을 만들면
+     그 컨테이너에도 붙여야 한다. -->
 <aside class="sidebar" id="side">
   <div class="sidebar-brand">
     <span class="wm">Sulsul <b>Diary</b></span>
     <span class="wm2">술술다이어리</span>
   </div>
-  <nav class="sidebar-nav" id="sideCats"></nav>
+  <nav class="sidebar-nav" id="sideNav"></nav>
   <div class="sidebar-foot" id="sideStats"></div>
 </aside>
 
@@ -1096,14 +1111,19 @@ pre.csv{
 
 <div class="wrap">
   <div class="controls">
-    <div class="segs" id="catSegs"></div>
+    <!-- 최상위 축은 보유 상태(전체·구매·경험·위시)다. 주종은 아래 칩 행으로 내렸다 —
+         탭은 "이 병이 내 것인가", 주종·타입은 "이 병이 무엇인가"라 층이 다르다. -->
+    <div class="segs" id="tabSegs"></div>
     <div class="search">
       <span class="mg"><svg viewBox="0 0 24 24"
         ><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.4 15.4 4.1 4.1"/></svg></span>
       <input id="q" type="search" placeholder="이름 · 증류소 · 캐스크 · 태그 검색" autocomplete="off">
       <button class="cl" id="qClr" hidden aria-label="검색어 지우기">✕</button>
     </div>
-    <div class="chips" id="typeChips"></div>
+    <div class="chiprow">
+      <div class="chips" id="catChips"></div>
+      <div class="chips" id="typeChips"></div>
+    </div>
     <div class="rowf">
       <button class="sel fbtn" id="btnFilter">필터<b id="fCount"></b></button>
       <select class="sel" id="sortSel">
@@ -1276,6 +1296,22 @@ function guessCat(it){
 const STATUS = ['미개봉','오픈','비움','경험','위시'];
 const OWNED = ['미개봉','오픈','비움'];
 
+/* ── 최상위 탭 — 보유 상태 축 ─────────────────
+   상태 분류는 전부터 있었고 필터 시트 안에 묻혀 있었다. 그것을 최상위로 올린 것이라
+   새 데이터도 새 필터 로직도 없다.
+   **`own` 은 `OWNED` 그대로 — 비움을 포함한다.** 탭의 정의를 "지금 갖고 있는 것"이
+   아니라 **"내가 산 모든 병"** 으로 두기로 했다(계획 결정 1). 구매액·연도별 구매
+   집계가 자연스럽게 맞아떨어지고, 다 마신 병도 컬렉션 이력으로 남는다.
+   그 대가로 '보유 병수' 라벨이 틀리게 되는데, 그 정리는 3단계에서 한다.
+   ⚠ OWNED 보다 뒤에 있어야 한다 — 최상위 리터럴이 앞의 const 를 참조하면 TDZ 로
+   스크립트 전체가 조용히 멈춘다(실록 V-8). */
+const TABS = [['all','전체'], ['own','구매'], ['exp','경험'], ['wish','위시']];
+/** 탭 → 포함할 상태 목록. null 이면 거르지 않는다 */
+const TAB_ST = {all: null, own: OWNED, exp: ['경험'], wish: ['위시']};
+const TAB_KEYS = TABS.map(t => t[0]);
+/** 이 병이 그 탭에 속하는가 */
+const inTab = (it, tab) => { const s = TAB_ST[tab]; return !s || s.includes(it.status); };
+
 
 /* ══════════════ 향·맛·피니쉬 디스크립터 ══════════════
    [이름, 가중치, 아이콘계열]. 가중치는 **위스키 리뷰에서 실제로 자주 거론되는 정도**다.
@@ -1429,7 +1465,13 @@ const LS_VIEW = 'wc.view';
 const savedView = (() => { try{
   const v = localStorage.getItem(LS_VIEW); return v === 'grid' || v === 'list' ? v : 'list';
 }catch(e){ return 'list'; } })();
-let V = {q:'', cat:'all', type:'all', status:'all', age:'all', flavor:'all',
+/* 마지막에 보던 탭으로 돌아온다. 저장된 값이 TABS 에 없으면(옛 값·손으로 고친 값)
+   조용히 전체로 떨어진다 — 알 수 없는 탭은 아무것도 안 보이는 화면이 된다 */
+const LS_TAB = 'wc.tab';
+const savedTab = (() => { try{
+  const t = localStorage.getItem(LS_TAB); return TAB_KEYS.includes(t) ? t : 'all';
+}catch(e){ return 'all'; } })();
+let V = {q:'', tab: savedTab, cat:'all', type:'all', status:'all', age:'all', flavor:'all',
          sort:'recent', view: savedView};
 let installEvt = null;
 
@@ -2439,6 +2481,9 @@ function visible(){
   const q = V.q.trim().toLowerCase();
   const band = AGE_BANDS.find(b => b[0] === V.age) || AGE_BANDS[0];
   const a = DB.items.filter(it => {
+    /* 탭이 먼저다. 상태 필터(V.status)를 대체하지 않고 **함께** 걸린다 —
+       탭 안에서 다시 좁히는 것이 필터의 역할이다 */
+    if (!inTab(it, V.tab)) return false;
     if (V.cat !== 'all' && it.cat !== V.cat) return false;
     if (V.type !== 'all' && it.type !== V.type) return false;
     if (V.status === '__draft'){ if (it.draft !== '1') return false; }
@@ -2491,28 +2536,58 @@ function visible(){
 function render(){
   const items = visible();
 
-  /* 주종 세그먼트 — 데이터가 1건 이상인 주종만, CATS 정의 순서로 */
+  /* ── 세 축의 집계 규칙 ──
+     **각 축은 자기 부모까지만 반영한다.** 탭은 최상위라 컬렉션 전체를 세고, 주종은
+     현재 탭 안을, 타입은 현재 탭+주종 안을 센다. 탭 배지가 검색·필터에 흔들리면
+     타자를 칠 때마다 숫자가 변해 읽을 수 없다. */
+  const tabHTML = ([t, lab]) =>
+    `<button class="seg${V.tab === t ? ' on' : ''}" data-tab="${t}">${lab}<b>${
+      DB.items.filter(i => inTab(i, t)).length}</b></button>`;
+  /* 네 탭은 비어 있어도 늘 보여 준다 — 위시가 0병이라고 탭이 사라지면
+     거기에 넣을 수 있다는 사실 자체가 감춰진다 */
+  $('#tabSegs').innerHTML = TABS.map(tabHTML).join('');
+
+  /* 주종 — 현재 탭 안에서 1건 이상인 것만, CATS 정의 순서로 */
+  const inTabItems = DB.items.filter(i => inTab(i, V.tab));
   const catCount = {};
-  DB.items.forEach(i => { catCount[i.cat] = (catCount[i.cat] || 0) + 1; });
+  inTabItems.forEach(i => { catCount[i.cat] = (catCount[i.cat] || 0) + 1; });
   const cats = CATS.filter(c => catCount[c]);
-  const segHTML = c =>
-    `<button class="seg${V.cat === c ? ' on' : ''}" data-cat="${esc(c)}">${
-      c === 'all' ? '전체' : esc(c)}<b>${c === 'all' ? DB.items.length : catCount[c]}</b></button>`;
-  $('#catSegs').innerHTML = cats.length > 1 ? [...cats, 'all'].map(segHTML).join('') : '';
-  /* 사이드바(데스크톱)는 주종이 하나뿐일 때도 '전체'를 보여 준다 — 화면이
-     비어 보이지 않도록, 그리고 병 수를 항상 읽을 수 있도록 */
-  $('#sideCats').innerHTML = '<div class="navsec">주종</div>'
-    + [...cats, 'all'].map(segHTML).join('');
-  /* 선택된 주종이 사라졌으면 전체로 되돌린다 */
+  /* 고른 주종이 이 탭에 없으면 먼저 되돌린다. 그린 뒤에 되돌리면 이번 렌더에서만
+     켜진 칩이 목록과 어긋난다(탭을 옮기면 눈에 보인다) */
   if (V.cat !== 'all' && !catCount[V.cat]) V.cat = 'all';
-  /* 타입 칩 — 선택된 주종 안에서만 집계한다 */
-  const inCat = DB.items.filter(i => V.cat === 'all' || i.cat === V.cat);
+  const catBtn = c =>
+    `<button class="chip${V.cat === c ? ' on' : ''}" data-cat="${esc(c)}">${
+      c === 'all' ? '전체' : esc(c)}<b>${
+      c === 'all' ? inTabItems.length : catCount[c]}</b></button>`;
+  /* 칩 행에서는 '전체'가 앞이다 — 바로 옆 타입 칩과 순서를 맞춘다.
+     사이드바는 세로 목록이라 전부터 '전체'가 끝이고, 둘은 동시에 보이지 않는다 */
+  $('#catChips').innerHTML = cats.length > 1 ? ['all', ...cats].map(catBtn).join('') : '';
+
+  /* 타입 칩 — 현재 탭 + 주종 안에서만 집계한다 */
+  const inCat = inTabItems.filter(i => V.cat === 'all' || i.cat === V.cat);
   const used = [...new Set(inCat.map(i => i.type))].filter(Boolean).sort();
+  /* 고른 타입이 이 범위에 없으면 되돌린다 — 그냥 두면 칩은 그려지지 않는데 필터는
+     계속 걸려서 0건이 되고, 화면에는 풀 방법이 보이지 않는다 */
+  if (V.type !== 'all' && !used.includes(V.type)) V.type = 'all';
   $('#typeChips').innerHTML = used.length > 1
     ? ['all', ...used].map(t =>
       `<button class="chip${V.type === t ? ' on' : ''}" data-type="${esc(t)}">${
         t === 'all' ? '전체' : esc(t)}<b>${t === 'all' ? inCat.length : inCat.filter(i => i.type === t).length}</b></button>`).join('')
     : '';
+
+  /* 사이드바(데스크톱) — 같은 데이터를 세로 목록으로. 탭과 주종을 각각 한 섹션.
+     주종이 하나뿐일 때도 '전체'를 보여 준다(화면이 비어 보이지 않도록) */
+  const segHTML = c =>
+    `<button class="seg${V.cat === c ? ' on' : ''}" data-cat="${esc(c)}">${
+      c === 'all' ? '전체' : esc(c)}<b>${
+      c === 'all' ? inTabItems.length : catCount[c]}</b></button>`;
+  /* 주종이 하나뿐인 탭(구매가 전부 위스키인 경우 등)에서는 '전체'만 둔다 —
+     `위스키 9 / 전체 9` 처럼 같은 수를 두 번 보여 주게 되기 때문이다.
+     그래도 '전체'는 남긴다: 병 수를 읽는 자리이자 목록이 비어 보이지 않게 하는 것이다 */
+  const sideCats = cats.length > 1 ? [...cats, 'all'] : ['all'];
+  $('#sideNav').innerHTML =
+      '<div class="navsec">구분</div>' + TABS.map(tabHTML).join('')
+    + '<div class="navsec">주종</div>' + sideCats.map(segHTML).join('');
 
   /* 적용된 필터 개수를 버튼 배지로, 각 필터를 지울 수 있는 칩으로 보여준다 */
   const act = [];
@@ -2544,6 +2619,9 @@ function render(){
   /* 결과가 없을 때 "다른 걸 시도해 보세요"는 도움이 안 된다 —
      지금 무엇이 걸러내고 있는지 보여 주고 한 번에 풀 수 있게 한다 */
   const narrowing = [];
+  /* 탭도 조건이다 — 넣지 않으면 위시 탭에서 "조건에 맞는 병이 없습니다"만 보이고
+     무엇이 걸러냈는지 알 수 없다 */
+  if (V.tab !== 'all')    narrowing.push((TABS.find(t => t[0] === V.tab) || [, V.tab])[1]);
   if (V.q.trim())         narrowing.push(`검색어 "${esc(V.q.trim())}"`);
   if (V.cat !== 'all')    narrowing.push(`주종 ${esc(V.cat)}`);
   if (V.type !== 'all')   narrowing.push(`타입 ${esc(V.type)}`);
@@ -5052,14 +5130,30 @@ function sip(id){
     save(); render(); toast('되돌렸습니다');
   });
 }
-/* 주종 전환 — 모바일은 헤더 세그먼트, 데스크톱은 사이드바가 같은 버튼을 쓴다 */
-const onCatClick = e => {
-  const c = e.target.closest('[data-cat]'); if (!c) return;
-  V.cat = c.dataset.cat; V.type = 'all';   // 주종을 바꾸면 타입 필터는 초기화
-  render();
+/* 탭·주종 전환 — 폰은 상단(세그먼트·칩), 데스크톱은 사이드바가 같은 버튼을 쓴다.
+   한 핸들러로 두 축을 처리하고 **컨테이너마다 따로 붙인다.** 문서 위임이 아니다 —
+   대입(onclick)이라 같은 컨테이너에 두 번 붙이면 앞의 것이 지워진다. */
+const onNavClick = e => {
+  const t = e.target.closest('[data-tab]');
+  if (t){
+    if (V.tab !== t.dataset.tab){
+      V.tab = t.dataset.tab;
+      try{ localStorage.setItem(LS_TAB, V.tab); }catch(e){}
+      /* 정렬과 검색어는 유지한다 — 탭마다 정렬을 따로 기억하면 순서가 왜 바뀌었는지
+         알 수 없다. 주종·타입도 유지하고, 새 탭에 없을 때만 render() 가 되돌린다 */
+      render();
+    }
+    return;
+  }
+  const c = e.target.closest('[data-cat]');
+  if (c){
+    V.cat = c.dataset.cat; V.type = 'all';   // 주종을 바꾸면 타입 필터는 초기화
+    render();
+  }
 };
-$('#catSegs').onclick = onCatClick;
-$('#sideCats').onclick = onCatClick;
+$('#tabSegs').onclick = onNavClick;
+$('#catChips').onclick = onNavClick;
+$('#sideNav').onclick = onNavClick;
 $('#btnDonate').onclick = openDonate;
 $('#typeChips').onclick = e => {
   const c = e.target.closest('[data-type]'); if (!c) return;
@@ -5100,6 +5194,10 @@ $('#activeChips').onclick = e => {
 $('#emptyBox').onclick = e => {
   if (!e.target.closest('[data-clrall]')) return;
   V.q = ''; $('#q').value = ''; $('#qClr').hidden = true;
+  /* 탭도 조건이므로 함께 푼다 — 빈 결과 화면에 탭을 이유로 적어 놓고 해제하지
+     않으면 눌러도 여전히 0건이다. 저장된 탭도 같이 되돌린다 */
+  V.tab = 'all';
+  try{ localStorage.setItem(LS_TAB, V.tab); }catch(e){}
   V.cat = 'all'; V.type = 'all'; V.status = 'all'; V.age = 'all'; V.flavor = 'all';
   render();
 };
