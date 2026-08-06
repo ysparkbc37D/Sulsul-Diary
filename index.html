@@ -4578,9 +4578,15 @@ function importText(text){
   setTimeout(() => normalizeMissing(touched, {progress: true}), 600);
 }
 
-/* ── stats ────────────────────────────────── */
-function openStats(){
-  const a = DB.items, n = a.length;
+/* ── stats ──────────────────────────────────
+   통계 본문을 **대상 집합을 받는 함수**로 뽑아냈다. 전에는 `openStats()` 안에서
+   `DB.items` 를 직접 참조하는 150줄짜리 템플릿 하나였고, 그래서 화면에서 무엇을
+   보고 있든 같은 숫자가 나왔다.
+   시트·목록 위 요약 줄·데스크톱 사이드바가 **모두 이 함수를 쓴다** — 세 곳이 따로
+   계산하면 어긋난다(실제로 사이드바의 '보유'가 openStats 와 다른 수를 보여 주고
+   있었다). 계산식은 추출할 때 한 줄도 바꾸지 않았다. */
+function statsFor(a){
+  const n = a.length;
   const priced = a.filter(i => Number(i.purchase_price));
   const buy = priced.reduce((s, i) => s + Number(i.purchase_price), 0);
   const mkt = a.reduce((s, i) => s + marketMid(i), 0);
@@ -4605,7 +4611,7 @@ function openStats(){
        <span class="tr"><i style="width:${v / mx * 100}%"></i></span><span class="n">${v}</span></div>`).join('')
       || '<span class="hint">데이터 없음</span>';
   };
-  openSheet('컬렉션 통계', `
+  return `
     <div class="kpis">
       <div class="kpi"><div class="k">보유 병수</div>
         <div class="v">${a.filter(i => OWNED.includes(i.status)).length}<u>병</u></div>
@@ -4672,7 +4678,10 @@ function openStats(){
     <h4 class="sec">증류소별</h4><div class="bars">${bars(cnt('distillery'))}</div>
     <h4 class="sec">지역별</h4><div class="bars">${bars(cnt('region'))}</div>
     <div class="note" style="margin-top:18px"><b>평가 손익</b>은 입력한 구매가와 추정 시장가의 차이로,
-      수수료·세금·실거래 여부를 반영하지 않은 참고 지표입니다.</div>`,
+      수수료·세금·실거래 여부를 반영하지 않은 참고 지표입니다.</div>`;
+}
+function openStats(){
+  openSheet('컬렉션 통계', statsFor(DB.items),
     `<button class="btn pri" data-act="close">닫기</button>`);
   $('#shFoot').onclick = closeSheet;
 }
