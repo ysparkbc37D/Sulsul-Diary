@@ -1,0 +1,57 @@
+<meta charset="utf-8">
+<style>
+/*FONTFACE*/
+html,body{margin:0;padding:0;background:transparent}
+svg{display:block}
+</style>
+<svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Flat base, not a full-canvas radial. A radial across every pixel is what made
+         icon-512.png 150KB against the old 40KB — PNG cannot run-length a gradient.
+         Flat + one localised glow keeps most of the canvas identical, and it is also
+         closer to the reference, which is essentially black. -->
+    <radialGradient id="glass-lit" cx="50%" cy="62%" r="46%">
+      <stop offset="0"   stop-color="#1E1A16"/>
+      <stop offset="1"   stop-color="#100E0C"/>
+    </radialGradient>
+    <linearGradient id="liq" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E3A659"/>
+      <stop offset="1" stop-color="#A96C24"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0"   stop-color="#E4892C" stop-opacity=".34"/>
+      <stop offset="1"   stop-color="#E4892C" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="__RADIUS__" fill="#100E0C"/>
+
+  <!-- __DY__ recentres the artwork when the wordmark is dropped (favicon), so the
+       ribbon does not graze the rounded corner. -->
+  <g transform="translate(256 __DY__) scale(__SCALE__) translate(-256 -256)">
+    <!-- warm pool of light behind the glass, kept small so most of the canvas stays flat -->
+    <ellipse cx="256" cy="336" rx="118" ry="86" fill="url(#glow)"/>
+
+    <!-- The two ribbons share one zigzag, offset by a constant (14,18); drawing them
+         from independent point lists made them cross and read as tangled.
+         Cream stops above the mouth, amber carries on down into the whisky. -->
+    <path d="M 428 54 L 322 88 L 350 112 L 272 146 L 300 168 L 268 214"
+          fill="none" stroke="#F5F0E7" stroke-width="9"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M 442 72 L 336 106 L 364 130 L 286 164 L 314 186 L 282 232
+             C 258 274 249 312 254 350"
+          fill="none" stroke="#E4892C" stroke-width="9"
+          stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- whisky in the glass. inset from the walls so the stroke stays readable -->
+    <path d="M 192 320 L 320 320 L 313 380 Q 312 386 306 386 L 206 386 Q 200 386 199 380 Z"
+          fill="url(#liq)"/>
+    <line x1="193" y1="320" x2="319" y2="320" stroke="#F0C079" stroke-width="3" opacity=".85"/>
+
+    <!-- the glass: open top, straight line art -->
+    <path d="M 178 236 L 198 392 L 314 392 L 334 236"
+          fill="none" stroke="#F5F0E7" stroke-width="11"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    __TEXT__
+  </g>
+</svg>

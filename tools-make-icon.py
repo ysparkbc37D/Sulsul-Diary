@@ -1,5 +1,18 @@
 # -*- coding: utf-8 -*-
-"""술술다이어리 앱 아이콘 생성기.
+"""술술다이어리 앱 아이콘 생성기 — 구버전. 실행하지 마라.
+
+⚠ 이 스크립트는 **옛 '술술' 위스키병 아이콘**을 그린다. 지금 쓰는 아이콘은
+   유리잔 라인아트 + `SULSUL` 워드마크이고, 그 소스는 `tools-icon.html` 이며
+   생성기는 `tools-make-icon.ps1` 이다. 이것을 돌리면 현재 아이콘을 옛 디자인으로
+   **덮어쓴다.** 참고용으로만 남겨 둔다 (Pillow 로 병 실루엣을 그리는 방식).
+
+   아이콘을 다시 만들 때:
+     powershell -NoProfile -ExecutionPolicy Bypass -File tools-make-icon.ps1
+     powershell -NoProfile -ExecutionPolicy Bypass -File tools-make-splash.ps1
+
+   아래는 옛 버전의 원문이다.
+─────────────────────────────────────────────────────────────────────────
+술술다이어리 앱 아이콘 생성기.
 
 원칙
 - 48px 런처에서는 글자가 아니라 **실루엣**이 앱을 구분한다. 병 모양을 크게 잡고,
