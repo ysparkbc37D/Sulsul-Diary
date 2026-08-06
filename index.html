@@ -2,7 +2,11 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- interactive-widget=resizes-content: 키보드가 올라올 때 레이아웃 뷰포트까지 줄인다.
+     기본값(resizes-visual)에서는 position:fixed 인 시트의 bottom:0 이 키보드 **뒤**에
+     남아 편집 폼이 자판에 덮인다. Android 크롬은 이 값으로 해결되고, 이 속성을 모르는
+     iOS 는 무시하므로 --vvb(시각 뷰포트 기반 보정)가 대신 들어 올린다. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Sulsul Diary — 술술다이어리</title>
 <meta name="theme-color" content="#faf8f5">
 <meta name="description" content="위스키 이름만 입력하면 사양·캐스크·테이스팅 노트 초안을 자동으로 만들어 주는 개인 컬렉션 앱">
@@ -123,7 +127,11 @@
 /* 라이트 테마의 사진 패널은 순백 */
 :root{ --shot:#ffffff; --beige:#8a6a2f; }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0}
+/* overscroll-behavior-y:none — 폰에서 목록을 끝까지 넘겼을 때 문서가 러버밴드로
+   따라 흔들리고(iOS) 당겨서 새로고침이 걸리는(Android) 것을 함께 막는다.
+   화면이 "디바이스 크기에 고정되지 않고 흔들린다"고 보고된 현상이 이것이다.
+   시트 안쪽(.sh-body)은 이미 overscroll-behavior:contain 으로 따로 막혀 있다. */
+html,body{margin:0;padding:0;overscroll-behavior-y:none}
 body{
   background:var(--bg); color:var(--ink);
   font-family:var(--sans); font-size:15px; line-height:1.6;
@@ -152,7 +160,8 @@ header.top{
 .wm{font-family:var(--serif);font-size:21px;font-weight:600;letter-spacing:-.005em;line-height:1}
 .wm b{color:var(--accent);font-weight:600}
 .wm2{font-size:9.5px;letter-spacing:.16em;color:var(--ink3);font-weight:600;white-space:nowrap}
-.cnt{font-size:11.5px;color:var(--ink3);white-space:nowrap;flex:none}
+/* 상단바의 병 수 표기(.cnt/#hdCnt)는 제거했다 — 주종 세그먼트와 통계가 같은 수를
+   이미 보여 주고 있어서 워드마크 옆 숫자는 읽을 이유가 없었다. */
 @media(max-width:420px){ .wm2{display:none} }
 .ib{
   width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none;
@@ -406,8 +415,11 @@ header.top{
 .scrim.on{opacity:1;pointer-events:auto}
 .sheet{
   /* --vvh 는 visualViewport 높이 (키보드가 올라오면 줄어든다). iOS 에서 dvh 만
-     쓰면 키보드 뒤로 시트가 밀린다. 지원하지 않는 브라우저는 dvh 로 떨어진다. */
-  position:fixed;left:0;right:0;bottom:0;z-index:50;
+     쓰면 키보드 뒤로 시트가 밀린다. 지원하지 않는 브라우저는 dvh 로 떨어진다.
+     --vvb 는 **키보드가 가리는 높이**다. 높이를 줄이는 것만으로는 부족하다 —
+     position:fixed 의 bottom 은 레이아웃 뷰포트 기준이라 시트 아래쪽(저장 버튼과
+     마지막 입력란)이 자판 뒤에 그대로 남는다. bottom 을 그만큼 띄워야 올라온다. */
+  position:fixed;left:0;right:0;bottom:var(--vvb, 0px);z-index:50;
   max-height:min(94dvh, calc(var(--vvh, 94dvh) - 12px));
   display:flex;flex-direction:column;background:var(--surface);
   border-radius:22px 22px 0 0;box-shadow:var(--sh2);
@@ -415,7 +427,7 @@ header.top{
 }
 .sheet.on{transform:translateY(0)}
 @media(min-width:760px){
-  .sheet{max-width:700px;margin:0 auto;border-radius:20px;bottom:2vh;
+  .sheet{max-width:700px;margin:0 auto;border-radius:20px;bottom:calc(2vh + var(--vvb, 0px));
     max-height:min(92dvh, calc(var(--vvh, 92dvh) - 24px));
     border:1px solid var(--line);transform:translateY(calc(101% + 4vh))}
 }
@@ -463,9 +475,8 @@ header.top{
      헤더 콘텐츠 시작점(236+24)과 .wrap 의 콘텐츠 시작점을 일치시켜 둔다. */
   header.top{padding-left:calc(236px + 24px);padding-right:24px}
   .top-in{max-width:none}
-  /* 워드마크는 사이드바로 옮겼다. 병 수(#hdCnt)는 상단바에 남겨 둔다 */
+  /* 워드마크는 사이드바로 옮겼다 — 상단바의 브랜드 영역은 여백만 남는다 */
   .brand .wm, .brand .wm2{display:none}
-  .brand .cnt{font-size:13px}
   .wrap{max-width:none;margin-left:236px;padding-left:24px;padding-right:24px}
   #catSegs{display:none}                    /* 주종 전환은 사이드바가 담당 */
   /* 176px 은 임의값이 아니다 — auto-fill 은 남는 폭을 열에 나눠 주므로 하한이
@@ -851,6 +862,9 @@ pre.csv{
    폭이 30px 대로 좁아지지만 높이를 아끼는 쪽을 택했다(사용자 요청).
    라벨이 모두 두 글자라 이 폭에서도 잘리지 않는다(실측). */
 .pgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+/* 보관 위치 — 3종이라 5열 .pgrid 를 그대로 쓰면 칩이 과하게 넓어진다.
+   셀은 .pcell 을 공유하므로 여기서 바꿀 것은 열 수뿐이다. */
+.sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
 .pcell{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
   height:44px;border-radius:7px;font-size:8.5px;font-weight:600;letter-spacing:-.04em;
@@ -1066,7 +1080,6 @@ pre.csv{
     <div class="brand">
       <span class="wm">Sulsul <b>Diary</b></span>
       <span class="wm2">술술다이어리</span>
-      <span class="cnt" id="hdCnt"></span>
     </div>
     <!-- 사용자용 버전. 눌러도 되게 두어 변경 이력으로 이어진다 -->
     <button class="ver" id="btnVer" aria-label="버전과 변경 이력"></button>
@@ -1178,8 +1191,15 @@ const LS_VER = 'wc.ver';       // 마지막으로 이력을 확인한 버전
    작은 수정마다 올라가고, 이것은 사용자에게 알릴 만한 변화에만 올린다.
    CHANGES 는 앱 안에 둔다 — 오프라인에서도 이력을 볼 수 있어야 한다.
    CHANGELOG.md 와 내용을 맞춘다(그쪽이 사람이 읽는 정식 보고서). */
-const APP_VER = '1.2.0';
+const APP_VER = '1.2.1';
 const CHANGES = [
+  { v: '1.2.1', d: '2026-08-07', items: [
+    '폰에서 추가·편집 창이 자판에 덮이지 않습니다 — 창이 자판 위로 올라오고, 누른 칸이 보이는 자리로 따라옵니다',
+    '목록을 끝까지 넘겼을 때 화면이 따라 흔들리던 것을 막았습니다',
+    '시음 기록의 향·맛·여운 슬라이더가 70에서 시작합니다 (0에서 매번 끌어올리지 않도록)',
+    '보관 위치를 집·바·기타 아이콘에서 눌러 고릅니다. 상세 화면에도 표시됩니다',
+    '상단의 병 수 표기를 없앴습니다 — 주종 버튼과 통계에 이미 있습니다',
+  ]},
   { v: '1.2.0', d: '2026-08-02', items: [
     '시음 기록에서 향·맛·여운을 각각 100점으로 평가하면 삼각 그래프로 보이고, 세 값의 합 ÷ 3 이 내 점수가 됩니다',
     '향·맛·여운을 아이콘에서 골라 넣을 수 있습니다 (자주 쓰는 10개가 먼저 보입니다)',
@@ -1267,6 +1287,12 @@ const OWNED = ['미개봉','오픈','비움'];
    자유롭게 적을 수 있다("집 : 친구집"). 라벨이 남아 있으면 칩은 계속 켜진다. */
 const PLACES = [['집','home'], ['바','bar'], ['모임','group'], ['회식','toast'], ['기타','dots']];
 const PLACE_LABELS = PLACES.map(p => p[0]);
+/** 보관 위치 — 자유 입력이던 칸을 아이콘 셀로 대체했다(사용자 요청).
+    한 병은 한 곳에만 있으므로 단일 선택이고, 같은 것을 다시 누르면 해제된다
+    (시음 기록의 장소 칩과 같은 규칙). 자유 입력으로 적어 둔 옛 값은 지우지 않는다 —
+    칩을 누를 때 대체된다. 편집 폼의 'store' 필드 타입이 이것을 그린다. */
+const STORES = [['집','home'], ['바','bar'], ['기타','dots']];
+const STORE_LABELS = STORES.map(s => s[0]);
 /** 메모 첫 줄의 "라벨 : 상세" 를 읽는다 */
 const placeLine = txt => String(txt || '').split('\n')[0]
   .match(new RegExp('^(' + PLACE_LABELS.join('|') + ') : ?(.*)$'));
@@ -1384,7 +1410,7 @@ const FIELDS = [
   ['status','상태','select',0,STATUS],
   ['opened_at','개봉일','date'],
   ['remaining_pct','잔량(%)','range'],
-  ['storage','보관 위치','text'],
+  ['storage','보관 위치','store'],
   ['flavors','맛 프로필','flavors',1],
   ['tags','태그(쉼표 구분)','text',1],
   ['notes','메모','textarea',1],
@@ -2463,7 +2489,6 @@ function visible(){
 /* ── render list ──────────────────────────── */
 function render(){
   const items = visible();
-  $('#hdCnt').textContent = DB.items.length ? DB.items.length + '병' : '';
 
   /* 주종 세그먼트 — 데이터가 1건 이상인 주종만, CATS 정의 순서로 */
   const catCount = {};
@@ -2806,14 +2831,53 @@ function unlockScroll(force){
   window.scrollTo(0, lockY);                 // 원래 보던 자리로 되돌린다
 }
 /* 키보드가 올라오면 iOS 는 시각 뷰포트만 줄인다 — 시트가 키보드 뒤로 밀리므로
-   실제로 보이는 높이를 CSS 변수로 넘겨 시트가 그 안에 들어가게 한다. */
+   실제로 보이는 높이를 CSS 변수로 넘겨 시트가 그 안에 들어가게 한다.
+
+   --vvh 만으로는 부족했다. 높이를 줄여도 bottom:0 은 레이아웃 뷰포트의 바닥이라
+   시트 아래쪽이 자판에 덮인 채로 남는다. 그래서 **자판이 가리는 높이**를 --vvb 로
+   따로 넘겨 시트를 그만큼 들어 올린다.
+
+   두 플랫폼이 한 식으로 처리된다:
+   · Android 크롬 — 뷰포트 메타의 interactive-widget=resizes-content 때문에
+     innerHeight 자체가 줄어들어 gap ≈ 0 이 되고, bottom:0 이 이미 자판 위다.
+   · iOS — 그 속성을 모르므로 innerHeight 는 그대로고 vv.height 만 줄어,
+     gap 이 자판 높이가 된다.
+   1px 미만은 버린다 — 주소창이 스크롤로 접힐 때 소수점이 흔들려서 시트가 떤다. */
 (() => {
   const vv = window.visualViewport;
   if (!vv) return;
-  const sync = () => document.documentElement.style.setProperty('--vvh', vv.height + 'px');
+  const sync = () => {
+    const gap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    const st = document.documentElement.style;
+    st.setProperty('--vvh', vv.height + 'px');
+    st.setProperty('--vvb', (gap > 1 ? Math.round(gap) : 0) + 'px');
+  };
   vv.addEventListener('resize', sync);
   vv.addEventListener('scroll', sync);
   sync();
+})();
+/* 포커스된 입력란을 자판 위로 끌어올린다.
+   시트 높이가 줄어드는 것만으로는 이미 스크롤이 내려가 있던 폼에서 방금 누른 칸이
+   화면 밖에 남는다. 자판이 올라온 뒤에 재야 하므로 시각 뷰포트의 resize 를 기다린다
+   (setTimeout 상수는 기기마다 어긋난다). 안 오면 그때 한 번 보정한다. */
+(() => {
+  const near = el => {
+    const b = $('#shBody'); if (!b || !el || !b.contains(el)) return;
+    const r = el.getBoundingClientRect(), br = b.getBoundingClientRect();
+    /* 라벨까지 같이 보이도록 위로 조금 더, 아래는 다음 칸이 살짝 보이도록 */
+    if (r.top < br.top + 8) b.scrollTop -= (br.top + 8 - r.top);
+    else if (r.bottom > br.bottom - 8) b.scrollTop += (r.bottom - br.bottom + 8);
+  };
+  document.addEventListener('focusin', e => {
+    const el = e.target;
+    if (!el.matches?.('input,select,textarea')) return;
+    const vv = window.visualViewport;
+    if (vv){
+      const once = () => { vv.removeEventListener('resize', once); near(el); };
+      vv.addEventListener('resize', once);
+      setTimeout(() => { vv.removeEventListener('resize', once); near(el); }, 350);
+    } else setTimeout(() => near(el), 350);
+  });
 })();
 
 /* ── 시음 기록 ────────────────────────────── */
@@ -2913,6 +2977,11 @@ function openInstall(){
    **꼭짓점을 드래그해 입력하지 않는다** — 손가락으로 정확히 집기 어렵고 화면 낭독기로
    다룰 수 없다. 입력은 슬라이더 세 개로 하고 차트는 결과를 보여 준다. */
 const RAD_AX = [['nose','향'], ['taste','맛'], ['finish','여운']];
+/** 새 시음 기록을 열 때 세 슬라이더의 출발점. 실제 평가가 대체로 70점대에 모여 있어서
+    0 에서 시작하면 매번 세 번을 끌어올려야 했다. 여기서 시작해 위아래로 조정한다.
+    부작용을 알고 쓴다 — 슬라이더를 건드리지 않고 저장하면 70/70/70 이 기록된다
+    ("점수를 비워 둔 기록"을 만들려면 세 축을 0 으로 내려야 한다). */
+const RAD_DEF = 70;
 function radarSVG(v, size){
   const S = size || 148, C = S / 2, R = S * 0.36;
   /* 12시부터 시계방향으로 세 축 */
@@ -3062,6 +3131,8 @@ function openDetail(id){
     ['현재 시장가', marketStr(it)],
     ['구입처', it.purchase_place],
     ['상태', it.status + (it.status === '오픈' && it.remaining_pct ? ` · 잔량 ${it.remaining_pct}%` : '')],
+    /* 보관 위치는 저장만 되고 어디에도 보이지 않던 값이다 — 입력을 칩으로 바꾼 김에 노출한다 */
+    ['보관 위치', it.storage],
   ].map(([k, v]) => `<tr><th>${k}</th><td>${v ? esc(v) : '<span class="na">미기재</span>'}</td></tr>`).join('');
 
   const sc = bestScore(it), ssrc = scoreSrc(it);
@@ -3233,8 +3304,8 @@ function openSession(id){
           ${RAD_AX.map(([k, lab]) => `
             <div class="rsl">
               <label for="ss_${k}">${ic(NOTES[k].icon)}${lab}</label>
-              <input id="ss_${k}" type="range" min="0" max="100" step="1" value="0" data-rax="${k}">
-              <output id="sso_${k}">0</output>
+              <input id="ss_${k}" type="range" min="0" max="100" step="1" value="${RAD_DEF}" data-rax="${k}">
+              <output id="sso_${k}">${RAD_DEF}</output>
             </div>`).join('')}
         </div>
       </div>
@@ -3271,7 +3342,7 @@ function openSession(id){
   /* ── 3축 평가 ──
      레이더는 결과 표시 전용이다. 값은 슬라이더로 넣는다(꼭짓점 드래그는 손가락으로
      정확히 집기 어렵고 화면 낭독기로 다룰 수 없다). */
-  const R = {nose: 0, taste: 0, finish: 0};
+  const R = {nose: RAD_DEF, taste: RAD_DEF, finish: RAD_DEF};
   const paintRadar = () => {
     $('#ssRadar').innerHTML = radarSVG(R);
     const auto = radarScore(R);
@@ -3647,6 +3718,17 @@ function openEdit(id, draft){
           `<button type="button" class="chip${String(v).split(',').includes(f) ? ' on' : ''}"
             data-flav="${esc(f)}">${esc(f)}</button>`).join('')}
           <input type="hidden" name="${k}" value="${esc(v)}"></div>`;
+    else if (t === 'store')
+      /* 옛 자유 입력값(예: '거실 장')은 어느 칩과도 맞지 않는다. 그 값을 조용히 버리면
+         142병 중 적어 둔 것이 소리 없이 사라지므로, 칩은 꺼진 채로 두고 값을 hidden 에
+         그대로 남긴 뒤 아래에 무엇이 적혀 있었는지 보여 준다. */
+      ctl = `<div class="sgrid" data-store>${STORES.map(([s, icn]) =>
+          `<button type="button" class="pcell${s === v ? ' on' : ''}" data-store="${esc(s)}"
+            aria-pressed="${s === v}" title="${esc(s)}">${ic(icn)}<span>${esc(s)}</span></button>`).join('')}
+          <input type="hidden" name="${k}" value="${esc(v)}"></div>`
+        + (v && !STORE_LABELS.includes(v)
+            ? `<p class="hint">전에 적어 둔 값 <b>${esc(v)}</b> 을 그대로 두었습니다 — 칩을 누르면 대체됩니다.</p>`
+            : '');
     else ctl = `<input name="${k}" type="${t}" value="${esc(v)}"${t === 'number' ? ' inputmode="decimal" step="any"' : ''}>`;
     return `<div class="f${wide ? ' wide' : ''}${dk.has(k) ? ' drafted' : ''}" data-fk="${k}">
       <label>${lbl}${dk.has(k) ? '<i class="dpill">초안</i>' : ''}</label>${ctl}</div>`;
@@ -3824,6 +3906,20 @@ function openEdit(id, draft){
       const ta = sec.querySelector(`[name="${ax}"]`);
       sec.querySelector('.nwrap').innerHTML = noteGrid(ax, ta.value, open);
       if (open) sec.querySelector('[data-nmore]').dataset.nopen = '1';
+      return;
+    }
+    /* 보관 위치 — 단일 선택. 켜져 있던 것을 다시 누르면 해제된다 */
+    const st = e.target.closest('[data-store]');
+    if (st && st.tagName === 'BUTTON'){
+      const box = st.parentElement, was = st.classList.contains('on');
+      [...box.querySelectorAll('button')].forEach(b => {
+        const on = !was && b === st;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-pressed', on);
+      });
+      box.querySelector('input[type=hidden]').value = was ? '' : st.dataset.store;
+      /* 옛 값 안내는 한 번 고르면 의미가 없다 */
+      st.closest('.f')?.querySelector('.hint')?.remove();
       return;
     }
     const c = e.target.closest('[data-flav]');
