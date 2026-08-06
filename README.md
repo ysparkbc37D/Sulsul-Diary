@@ -103,7 +103,7 @@ DB에 없으면 **구글 · 데일리샷 · Whiskybase 검색 링크**를 제시
 GitHub 웹에서 새 저장소 생성 — 이름: `Sulsul-Diary`, **Public**, README 생성 안 함.
 
 ### 4-2. 이 폴더를 올리기
-`LG MVP/Sulsul-Diary` 폴더에서 터미널을 열고:
+이 `Sulsul-Diary` 폴더에서 터미널을 열고:
 
 ```bash
 git init && git add . && git commit -m "Whisky Collector PWA"
@@ -274,8 +274,13 @@ GitHub 저장소를 데이터베이스로 연결하면 어느 기기에서 등�
 
 ## 10. 로컬에서 확인하기
 
+이 폴더에서 터미널을 열고:
+
 ```bash
-python -m http.server 8765 --directory "LG MVP/Sulsul-Diary"
+python -m http.server 8765
 ```
+
+Node가 있으면 `npx serve -l 8765` 도 됩니다. 정적 파일을 http로 주기만 하면 어떤 서버든 상관없습니다.
+
 브라우저에서 `http://localhost:8765` 접속.
 서비스 워커·설치·이미지 자동 가공은 `http(s)`에서만 완전히 동작합니다.
