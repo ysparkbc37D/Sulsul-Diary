@@ -11,8 +11,13 @@
 <meta name="theme-color" content="#faf8f5">
 <meta name="description" content="위스키 이름만 입력하면 사양·캐스크·테이스팅 노트 초안을 자동으로 만들어 주는 개인 컬렉션 앱">
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="icon" href="./icons/favicon-64.png" sizes="64x64">
-<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<!-- ⚠ 아이콘 URL 의 ?v= 는 장식이 아니다. 아이콘 **파일 내용만** 바꾸면
+     매니페스트가 그대로여서 크롬이 "변경 없음"으로 판단하고, **이미 설치된 앱의
+     런처 아이콘을 다시 받지 않는다** — 서버에는 새 아이콘이 있는데 홈 화면에는
+     옛 아이콘이 계속 남는다(실제로 그랬다).
+     아이콘을 다시 그릴 때마다 manifest.webmanifest 와 여기의 ?v= 를 함께 올린다. -->
+<link rel="icon" href="./icons/favicon-64.png?v=2" sizes="64x64">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Sulsul Diary">

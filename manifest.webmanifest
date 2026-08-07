@@ -14,10 +14,10 @@
   "theme_color": "#faf8f5",
   "categories": ["lifestyle", "food", "utilities"],
   "icons": [
-    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "./icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "./icons/icon-192.png?v=2", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png?v=2", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-192.png?v=2", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icons/icon-maskable-512.png?v=2", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "screenshots": [
     { "src": "./shots/phone-1.png", "sizes": "1170x2532", "type": "image/png",
@@ -27,8 +27,8 @@
   ],
   "shortcuts": [
     { "name": "병 추가", "short_name": "추가", "url": "./?go=add",
-      "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }] },
+      "icons": [{ "src": "./icons/icon-192.png?v=2", "sizes": "192x192" }] },
     { "name": "통계 보기", "short_name": "통계", "url": "./?go=stats",
-      "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }] }
+      "icons": [{ "src": "./icons/icon-192.png?v=2", "sizes": "192x192" }] }
   ]
 }
