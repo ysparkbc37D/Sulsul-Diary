@@ -1144,17 +1144,9 @@ pre.csv{
     </div>
     <div class="rowf">
       <button class="sel fbtn" id="btnFilter">필터<b id="fCount"></b></button>
-      <select class="sel" id="sortSel">
-        <option value="recent">최근 등록순</option>
-        <option value="bought">구입일순</option>
-        <option value="name">이름순</option>
-        <option value="score">평점순</option>
-        <option value="price">가격순</option>
-        <option value="abv">도수순</option>
-        <option value="left">잔량순</option>
-        <option value="opened">개봉일순</option>
-        <option value="value">가성비순 (만원당 점수)</option>
-      </select>
+      <!-- 항목은 render() 가 SORTS 에서 그린다 — 술장마다 뺄 것이 다르다
+           (경험·위시에는 잔량순·개봉일순·가성비순이 성립하지 않는다) -->
+      <select class="sel" id="sortSel" aria-label="정렬"></select>
       <span class="sline" id="statLine"></span>
       <button class="viewtg" id="btnView"></button>
     </div>
@@ -1235,8 +1227,16 @@ const LS_VER = 'wc.ver';       // 마지막으로 이력을 확인한 버전
    작은 수정마다 올라가고, 이것은 사용자에게 알릴 만한 변화에만 올린다.
    CHANGES 는 앱 안에 둔다 — 오프라인에서도 이력을 볼 수 있어야 한다.
    CHANGELOG.md 와 내용을 맞춘다(그쪽이 사람이 읽는 정식 보고서). */
-const APP_VER = '1.2.1';
+const APP_VER = '1.3.0';
 const CHANGES = [
+  { v: '1.3.0', d: '2026-08-07', items: [
+    '전체 · 구매 · 경험 · 위시를 술장 탭으로 나눴습니다 — 병의 상태가 곧 술장이라, 상태를 바꾸면 그 술장으로 옮겨집니다',
+    '통계가 보고 있는 술장 기준으로 나옵니다. 목록 위 한 줄 요약을 누르면 펼쳐집니다',
+    '경험 술장에는 구매 후보(마셔 봤고 아직 안 산 것)를, 위시 술장에는 예상 지출을 보여 줍니다',
+    '주종은 검색 아래 칩으로 옮겼습니다. 화면 줄 수는 늘지 않았습니다',
+    '필터의 보유만을 지금 보유로 바꿨습니다 — 다 마신 병을 뺀 수입니다',
+    '사이드바 요약이 보유 개수를 잘못 세던 것을 고쳤습니다',
+  ]},
   { v: '1.2.1', d: '2026-08-07', items: [
     '앱 아이콘을 새로 그렸습니다 — 잔에 위스키를 따르는 선 그림과 SULSUL 워드마크. 실행 화면도 함께 바꿨습니다',
     '폰에서 추가·편집 창이 자판에 덮이지 않습니다 — 창이 자판 위로 올라오고, 누른 칸이 보이는 자리로 따라옵니다',
@@ -1335,6 +1335,27 @@ const TAB_ST = {all: null, own: OWNED, exp: ['경험'], wish: ['위시']};
 const TAB_KEYS = TABS.map(t => t[0]);
 /** 이 병이 그 탭에 속하는가 */
 const inTab = (it, tab) => { const s = TAB_ST[tab]; return !s || s.includes(it.status); };
+/** 지금 실제로 갖고 있는가 — 비움은 구매 이력이지 보유가 아니다.
+    구매 술장이 비움을 포함하기로 했으므로(결정 1) '보유' 를 따로 가릴 수단이 필요하다 */
+const isHeld = it => it.status === '미개봉' || it.status === '오픈';
+
+/** 상태 필터 중 이 술장에서 의미가 있는 것.
+    탭이 이미 보유 상태를 가르므로, 술장과 모순되는 조합(위시 술장 + 미개봉 → 언제나
+    0건)을 **애초에 만들 수 없게** 한다. 초안 확인은 어느 술장에서나 의미가 있다.
+    경험·위시는 사지 않은 병이라 잔량·개봉일·기록 미완성이 성립하지 않는다. */
+const TAB_STATUS = {
+  all:  ['all','__owned','미개봉','오픈','비움','__draft','__todo','__stale'],
+  own:  ['all','__owned','미개봉','오픈','비움','__draft','__todo','__stale'],
+  exp:  ['all','__draft'],
+  wish: ['all','__draft'],
+};
+/** 정렬 목록. 마크업에 박아 두면 술장별로 가릴 수 없어서 여기로 옮겼다 */
+const SORTS = [['recent','최근 등록순'], ['bought','구입일순'], ['name','이름순'],
+  ['score','평점순'], ['price','가격순'], ['abv','도수순'], ['left','잔량순'],
+  ['opened','개봉일순'], ['value','가성비순 (만원당 점수)']];
+/** 이 술장에서 **뺄** 정렬. 잔량·개봉일은 값이 없어 전부 동순위가 되고,
+    가성비는 구매가가 있어야 계산된다 — 남겨 두면 눌러도 아무 일이 없는 항목이 된다 */
+const TAB_SORT_OFF = {all: [], own: [], exp: ['left','opened','value'], wish: ['left','opened','value']};
 
 
 /* ══════════════ 향·맛·피니쉬 디스크립터 ══════════════
@@ -2517,7 +2538,10 @@ function visible(){
     if (V.cat !== 'all' && it.cat !== V.cat) return false;
     if (V.type !== 'all' && it.type !== V.type) return false;
     if (V.status === '__draft'){ if (it.draft !== '1') return false; }
-    else if (V.status === '__owned'){ if (!OWNED.includes(it.status)) return false; }
+    /* '지금 보유' — 비움을 뺀다. 구매 술장이 비움을 포함하므로(결정 1) 이 필터가
+       "지금 술장에 있는 것만" 보는 유일한 수단이다. 상태 필터는 단일 선택이라
+       미개봉과 오픈을 함께 고를 방법이 없어서, 이 항목이 없으면 그 조합이 불가능해진다 */
+    else if (V.status === '__owned'){ if (!isHeld(it)) return false; }
     else if (V.status === '__todo'){ if (!OWNED.includes(it.status) || !isIncomplete(it)) return false; }
     else if (V.status === '__stale'){ if (!isStale(it)) return false; }
     else if (V.status !== 'all' && it.status !== V.status) return false;
@@ -2564,6 +2588,13 @@ function visible(){
 
 /* ── render list ──────────────────────────── */
 function render(){
+  /* 술장에서 성립하지 않는 상태·정렬은 **목록을 뽑기 전에** 되돌린다.
+     뽑은 뒤에 되돌리면 이번 화면만 0건이 되고, 사용자는 왜 비었는지 알 수 없다.
+     (주종·타입은 개수를 세야 판단할 수 있어 아래에서 따로 되돌린다) */
+  if (!(TAB_STATUS[V.tab] || TAB_STATUS.all).includes(V.status)) V.status = 'all';
+  const sortOff = TAB_SORT_OFF[V.tab] || [];
+  if (sortOff.includes(V.sort)) V.sort = 'recent';
+
   const items = visible();
 
   /* ── 세 축의 집계 규칙 ──
@@ -2642,6 +2673,10 @@ function render(){
     $('#statFold').hidden = !statsOpen;
     /* 접혀 있을 때는 만들지 않는다 — 통계 계산은 컬렉션 전체를 훑는다 */
     $('#statFold').innerHTML = statsOpen ? statsFor(inTabItems, V.tab) : '';
+  } else {
+    /* 숨긴 채로 옛 술장의 수치를 들고 있으면 안 된다 — 숨은 노드의 낡은 값은
+       나중에 다시 보이게 될 때 그대로 새어 나온다 */
+    $('#statSum').innerHTML = ''; $('#statFold').innerHTML = '';
   }
 
   /* 사이드바 하단 요약 — 데스크톱에서만 보이지만 계산은 가벼우니 항상 갱신한다.
@@ -2652,6 +2687,12 @@ function render(){
       `<span class="sk">${esc(tabLab)}</span>`
     + statsLine(inTabItems, V.tab).split(' · ')
         .map(s => `<span class="sk">${s}</span>`).join('');
+  /* 정렬 목록 — 술장에 따라 항목이 달라지므로 그려서 넣는다. 다시 그리면 선택이
+     날아가므로 value 를 되돌려 놓는다(전에는 마크업에 박혀 있어 필요가 없었다) */
+  $('#sortSel').innerHTML = SORTS.filter(([k]) => !sortOff.includes(k))
+    .map(([k, lab]) => `<option value="${k}">${esc(lab)}</option>`).join('');
+  $('#sortSel').value = V.sort;
+
   $('#btnView').textContent = V.view === 'grid' ? '☰' : '▦';
   /* aria-label 을 정적으로 두면 ☰/▦ 로 바뀌는 상태를 낭독기가 읽지 못한다 */
   $('#btnView').title = $('#btnView').ariaLabel =
@@ -3601,16 +3642,24 @@ function valueScore(it){
   return (sc && pr) ? sc / (pr / 10000) : null;
 }
 
-const STATUS_OPTS = [['all','상태 전체'],['__owned','보유만'],['미개봉','미개봉'],['오픈','오픈'],
-  ['비움','비움'],['경험','유경험'],['위시','위시리스트'],['__draft','초안 확인 필요'],
+/* '유경험'·'위시리스트' 는 술장 탭으로 올라갔으므로 여기서 뺐다 — 같은 일을 하는
+   두 번째 방법을 남기면 어느 쪽이 참인지 알 수 없다.
+   '보유만' 은 지우지 않고 **'지금 보유'(미개봉+오픈)로 재정의**했다. 옛 의미(OWNED
+   전체)는 구매 술장과 중복이지만 새 의미는 중복이 아니다 — 결정 1 로 비움이 구매 술장에
+   들어오면서 "지금 술장에 있는 것만" 보는 길이 사라졌기 때문이다.
+   라벨 조회용으로는 이 표 전체를 쓴다(적용된 필터 칩). 필터 시트에 무엇을 **보여
+   줄지**는 TAB_STATUS 가 정한다. */
+const STATUS_OPTS = [['all','상태 전체'],['__owned','지금 보유'],['미개봉','미개봉'],['오픈','오픈'],
+  ['비움','비움'],['__draft','초안 확인 필요'],
   ['__todo','기록 미완성'],['__stale','개봉 90일+']];
 function openFilter(){
   const grp = (label, key, opts) => `
     <h4 class="sec">${label}</h4>
     <div class="chips" style="flex-wrap:wrap">${opts.map(([v, t]) =>
       `<button class="chip${V[key] === v ? ' on' : ''}" data-f="${key}" data-v="${esc(v)}">${esc(t)}</button>`).join('')}</div>`;
+  const okStatus = TAB_STATUS[V.tab] || TAB_STATUS.all;
   openSheet('필터',
-    grp('상태', 'status', STATUS_OPTS)
+    grp('상태', 'status', STATUS_OPTS.filter(o => okStatus.includes(o[0])))
     + grp('숙성 년수', 'age', AGE_BANDS.map(b => [b[0], b[1]]))
     + grp('맛 프로필', 'flavor', [['all','맛 전체'], ...FLAVORS.map(f => [f, f])]),
     `<button class="btn" data-act="reset">초기화</button>
@@ -4628,7 +4677,7 @@ function importText(text){
 
 /** 지금 실제로 갖고 있는 것 — 미개봉 + 오픈. 비움은 구매 이력이지 보유가 아니다.
     구매 술장이 OWNED(비움 포함)라서 '보유' 를 따로 셀 필요가 생겼다 */
-function nowHeld(a){ return a.filter(i => i.status === '미개봉' || i.status === '오픈'); }
+function nowHeld(a){ return a.filter(isHeld); }
 
 /** 경험 술장의 구매 후보 — 마셔 봤고 아직 안 산 것, 평점 높은 순.
     ⚠ 같은 이름의 구매 항목이 있으면 뺀다. 마셔 본 병을 나중에 사면 이 앱은 기록을
