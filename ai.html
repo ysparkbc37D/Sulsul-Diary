@@ -60,8 +60,16 @@
 <ol class="steps">
   <li><b>Google AI Studio 에서 키를 만듭니다</b>
     <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> —
-    구글 계정으로 로그인해 <b>Create API key</b> 를 누르면 <code>AIza…</code> 로 시작하는
-    문자열이 나옵니다. 무료입니다.</li>
+    구글 계정으로 로그인해 <b>Create API key</b> 를 누릅니다. 무료입니다.
+    <div class="box stop" style="margin-top:10px">
+      <span class="bt">프로젝트 이름을 복사하지 마세요 — 가장 흔한 실수입니다</span>
+      <p>목록에는 <b>프로젝트 이름</b>과 <b>API 키</b>가 나란히 있습니다.
+      프로젝트 이름은 <code>gen-lang-client-0000000000</code> 처럼 생겼고
+      <b>26자</b>입니다. 이걸 넣으면 <code>API key not valid</code> 가 납니다.</p>
+      <p>필요한 것은 <b>API 키 열</b>의 값입니다 — 가려져 있으니 눌러서 복사하세요.
+      보통 <code>AIza…</code> 로 시작하는 <b>39자</b> 또는 <code>AQ.…</code> 로 시작하는
+      더 긴 문자열입니다.</p>
+    </div></li>
 
   <li><b>앱 설정에 붙여넣습니다</b>
     설정(⚙) → <b>AI 초안</b> → <b>Google AI Studio API 키</b> 칸에 붙여넣고
@@ -125,8 +133,11 @@
 <table>
   <thead><tr><th>증상</th><th>원인과 해결</th></tr></thead>
   <tbody>
-    <tr><td>API key not valid</td>
-      <td>키가 잘못되었거나 공백·줄바꿈이 섞였습니다. 다시 복사해 붙여넣으세요.</td></tr>
+    <tr><td>API key not valid<br><b>(가장 흔함)</b></td>
+      <td><b>API 키 대신 프로젝트 이름을 붙여넣은 경우</b>가 대부분입니다.
+        저장된 키가 <code>gen-lang-client-…</code> 로 시작하거나 <b>26자</b>라면
+        그것입니다 — AI Studio 목록에서 <b>API 키 열</b>의 값을 복사하세요.<br>
+        앞뒤 공백·줄바꿈이 섞여도 거부됩니다.</td></tr>
     <tr><td>무료 한도를 넘었습니다</td>
       <td>Google 무료 등급의 분당·일일 한도입니다. 잠시 뒤 다시 시도하세요.</td></tr>
     <tr><td>값이 비어서 옵니다</td>
