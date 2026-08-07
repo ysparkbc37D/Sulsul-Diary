@@ -735,6 +735,9 @@ pre.csv{
   display:inline-flex;align-items:center;gap:5px;
 }
 .mini.am{color:var(--accent);border-color:var(--accent-line);background:var(--accent-bg)}
+/* AI 초안 줄 — 버튼과 상태 문구가 나란히, 문구가 길어지면 아래로 감긴다 */
+.airow{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.airow .hint{flex:1;min-width:150px}
 .hint{font-size:11px;color:var(--ink3);line-height:1.55;padding-left:1px}
 .cands{display:flex;gap:7px;overflow-x:auto;padding:2px;scrollbar-width:none}
 .cands::-webkit-scrollbar{display:none}
@@ -1823,6 +1826,22 @@ const ghToken = () => { try{ return localStorage.getItem(LS_TOK) || ''; }catch(e
 /** HTTP 헤더에는 ASCII 만 넣을 수 있다 — 한글이 섞인 값은 미리 걸러 원시 오류를 막는다 */
 const tokenAscii = t => /^[\x21-\x7e]+$/.test(t || '');
 const syncOn = () => !!(SYNC.repo && ghToken() && tokenAscii(ghToken()));
+
+/* ── AI 초안 (선택) ─────────────────────────
+   키를 앱에 심을 수 없다 — 저장소가 공개이고 앱이 클라이언트 전용이라 그대로 노출된다.
+   **사용자 본인 키**만 받는다. 동기화 토큰(wc.token)과 같은 방식이고, 같은 이유로
+   백업 파일에 들어가지 않는다(KEYS/EXTRA 밖이라 자동으로 제외된다).
+   기본은 꺼짐 — 키가 없어도 앱의 모든 기능이 지금처럼 동작한다.
+   모델 이름도 값으로 둔다. 무료 등급의 모델 구성은 바뀌므로 코드에 박으면 어느 날
+   조용히 실패하고, 그때 사용자가 손댈 방법이 없다.
+   tokenAscii 뒤에 둔다 — 이 파일에서 순서 때문에 스크립트가 통째로 멈춘 적이 있다(V-8). */
+const LS_AIKEY = 'wc.aikey', LS_AIMODEL = 'wc.aimodel';
+const AI_MODEL_DEFAULT = 'gemini-2.0-flash';
+const aiKey = () => { try{ return localStorage.getItem(LS_AIKEY) || ''; }catch(e){ return ''; } };
+const aiModel = () => { try{ return localStorage.getItem(LS_AIMODEL) || AI_MODEL_DEFAULT; }
+  catch(e){ return AI_MODEL_DEFAULT; } };
+/* 키가 URL 쿼리로 나가므로 ASCII 가 아니면 요청 자체가 깨진다 — 토큰과 같은 검사 */
+const aiOn = () => !!(aiKey() && tokenAscii(aiKey()));
 
 /* UTF-8 ↔ base64 (한글이 섞이므로 TextEncoder 경유) */
 function b64enc(str){
@@ -3917,6 +3936,13 @@ function openEdit(id, draft){
     <!-- 중복 구매 경고는 여기 둔다. 마법사의 로그에 두면 1초 뒤 편집 폼으로 넘어가며
          사라져 읽을 수가 없다. 편집 중인 병은 자기 자신을 중복으로 잡지 않는다. -->
     ${dupWarnHTML(it.name_ko || it.name_en || '', id)}
+    <!-- AI 초안 — 위저드가 아니라 여기 둔다. 위저드는 곧 이 폼으로 넘어가 사라지고,
+         여기 있으면 **이미 등록한 병**에도 쓸 수 있다(도수가 빈 병이 그 대상이다).
+         빈 칸만 채운다 — 앞 검색원과 사용자가 넣은 값은 건드리지 않는다. -->
+    <div class="airow">
+      <button type="button" class="mini am" id="aiGo">${ic('refresh')}AI로 빈 칸 채우기</button>
+      <span class="hint" id="aiMsg"></span>
+    </div>
     <form id="ef" onsubmit="return false">
       <h4 class="sec">병 사진 (최대 ${MAX_SHOTS}장)</h4>
       <div class="imgb">
@@ -4108,6 +4134,83 @@ function openEdit(id, draft){
       const p = box.querySelector('.dpill'); if (p) p.remove();
       dk.delete(box.dataset.fk);
     }
+  };
+
+  /* ── AI 초안 ──
+     빈 칸만 채운다. 채운 키를 들고 있어야 되돌릴 수 있다. */
+  let aiDone = [];
+  const aiMsg = (t, bad) => {
+    const m = $('#aiMsg'); if (!m) return;
+    m.innerHTML = t; m.style.color = bad ? 'var(--danger)' : '';
+  };
+  /** 이 필드의 현재 값 (칩·hidden 도 name 으로 잡힌다) */
+  const fval = k => { const el = f.querySelector(`[name="${k}"]`); return el ? String(el.value).trim() : null; };
+  const setVal = (k, v) => {
+    const el = f.querySelector(`[name="${k}"]`); if (!el) return false;
+    el.value = v;
+    /* 맛 프로필은 hidden 뒤에 칩이 따로 있다 — 표시를 같이 맞춘다 */
+    if (k === 'flavors'){
+      const on = v.split(',').map(s => s.trim());
+      f.querySelectorAll('button[data-flav]').forEach(b =>
+        b.classList.toggle('on', on.includes(b.dataset.flav)));
+    }
+    /* 초안 배지 — 출처를 구분해 준다. 편집하면 f.oninput 이 지운다 */
+    const box = el.closest('.f[data-fk]');
+    if (box && !box.classList.contains('drafted')){
+      box.classList.add('drafted');
+      const lab = box.querySelector('label');
+      if (lab && !lab.querySelector('.dpill'))
+        lab.insertAdjacentHTML('beforeend', '<i class="dpill">초안 · AI</i>');
+    }
+    dk.add(k);
+    return true;
+  };
+  $('#aiGo').onclick = async () => {
+    const b = $('#aiGo');
+    if (!aiOn()){
+      aiMsg('설정 → <b>AI 초안</b> 에서 API 키를 넣어 주세요', true); return;
+    }
+    if (!navigator.onLine){ aiMsg('오프라인입니다', true); return; }
+    const name = (f.querySelector('[name="name_ko"]')?.value
+      || f.querySelector('[name="name_en"]')?.value || '').trim();
+    if (name.length < 2){ aiMsg('제품명을 먼저 넣어 주세요', true); return; }
+    /* 비어 있는 칸만 고른다 — 앞 검색원과 사용자가 넣은 값은 덮지 않는다 */
+    const want = Object.keys(AI_FIELDS).filter(k => fval(k) === '');
+    if (!want.length){ aiMsg('빈 칸이 없습니다'); return; }
+
+    b.disabled = true;
+    aiMsg('<span class="spin"></span> ' + want.length + '개 칸을 물어보는 중…');
+    try{
+      const r = await aiFill(name, want);
+      aiDone = [...r.keys].filter(k => setVal(k, r.F[k]));
+      if (!aiDone.length) aiMsg('채울 값을 받지 못했습니다 — 이름 표기를 바꿔 보세요', true);
+      else aiMsg(`${aiDone.length}개를 채웠습니다 — <b>라벨을 보고 확인</b>하세요. `
+        + `<button type="button" class="mini" id="aiUndo">되돌리기</button>`);
+      const u = $('#aiUndo');
+      if (u) u.onclick = () => {
+        let n = 0;
+        aiDone.forEach(k => {
+          const el = f.querySelector(`[name="${k}"]`); if (!el) return;
+          /* **사용자가 손댄 칸은 건드리지 않는다.** 편집하면 f.oninput 이 배지를 떼고
+             dk 에서 뺀다 — 그것이 "이건 이제 내 값이다"라는 표시다. 그걸 무시하고
+             비우면 사용자가 방금 입력한 값을 되돌리기가 지운다(실제로 그랬다). */
+          if (!dk.has(k)) return;
+          el.value = '';
+          if (k === 'flavors') f.querySelectorAll('button[data-flav].on')
+            .forEach(x => x.classList.remove('on'));
+          const box = el.closest('.f[data-fk]');
+          if (box){ box.classList.remove('drafted'); box.querySelector('.dpill')?.remove(); }
+          dk.delete(k); n++;
+        });
+        const kept = aiDone.length - n;
+        aiMsg(`${n}개를 비웠습니다`
+          + (kept ? ` · 직접 고친 ${kept}개는 그대로 두었습니다` : ''));
+        aiDone = [];
+      };
+    }catch(e){
+      aiMsg('실패 — ' + esc(String(e.message).slice(0, 160)), true);
+    }
+    b.disabled = false;
   };
 
   /* 사진 후보 렌더링 */
@@ -4670,6 +4773,117 @@ function importText(text){
   setTimeout(() => normalizeMissing(touched, {progress: true}), 600);
 }
 
+/* ══════════════ AI 초안 ══════════════
+   네 번째 검색원이다 — ① 내 컬렉션 ② kb.js ③ Wikipedia/Commons 다음이고,
+   **앞 단계가 채운 값을 절대 덮지 않는다.** 순서가 곧 신뢰도다.
+
+   검색 그라운딩은 붙이지 않는다(계획 §3-1 확정). 그래서 모델은 기억으로 답하고,
+   **출처 URL 을 요구하지 않는다** — 지어낸 URL 이 검증된 것처럼 보이는 쪽이 출처가
+   없는 쪽보다 나쁘다. 대조는 편집 폼에 이미 있는 Whiskybase·구글·네이버 버튼으로 한다.
+
+   돈·평점·상태는 아예 스키마에 넣지 않는다. 틀린 도수는 사용자가 라벨을 보고
+   알아채지만 **틀린 시장가는 어느 화면에도 이상으로 나타나지 않고**, 평가 손익·
+   가성비순 정렬·위시 술장 예상 지출이 전부 거기서 나온다. */
+const AI_FIELDS = {
+  name_en:    '영문 제품명 (라벨 표기)',
+  type:       '위스키 타입. 다음 중 하나만: ' + TYPES.join(' | '),
+  distillery: '증류소명 (영문)',
+  country:    '생산 국가 (한글, 예: 스코틀랜드)',
+  region:     '지역 (한글, 예: 스페이사이드 · 아일라)',
+  abv:        '알코올 도수. 숫자만 (예: 46 또는 53.9)',
+  age:        '숙성 연수. 숫자만 (예: 12). 숙성 미표기면 정확히 NAS',
+  cask:       '사용 캐스크 (예: Oloroso Sherry + Bourbon Barrel)',
+  bottler:    '보틀러. 공식 병입이면 정확히 Official (OB)',
+  size_ml:    '용량 ml. 숫자만 (예: 700)',
+  nose:       '향 — 한국어 짧은 서술, 120자 이내',
+  taste:      '맛 — 한국어 짧은 서술, 120자 이내',
+  finish:     '여운 — 한국어 짧은 서술, 120자 이내',
+  flavors:    '맛 프로필. 다음에서 1~3개를 쉼표로: ' + FLAVORS.join(' | '),
+  tags:       '태그 2~4개를 쉼표로 (한국어)',
+};
+/** 값이 규격 안인지 본다. 모델을 믿지 않는다 — 앱이 다시 검사한다 */
+const AI_CHECK = {
+  type:    v => TYPES.includes(v) ? v : '',
+  flavors: v => String(v).split(',').map(s => s.trim()).filter(s => FLAVORS.includes(s))
+                 .slice(0, 3).join(',') || '',
+  abv:     v => { const n = Number(v); return n > 0 && n <= 96 ? String(n) : ''; },
+  age:     v => v === 'NAS' ? 'NAS'
+                 : (Number(v) >= 1 && Number(v) <= 80 ? String(Number(v)) : ''),
+  size_ml: v => { const n = Number(v); return n >= 50 && n <= 5000 ? String(n) : ''; },
+  bottler: v => String(v).trim().slice(0, 60),
+};
+/** 서술 필드 길이 상한. 넘으면 **버린다** — 잘린 문장은 고치기가 더 번거롭다 */
+const AI_MAXLEN = {nose: 300, taste: 300, finish: 300, cask: 200, tags: 120,
+  name_en: 120, distillery: 80, country: 40, region: 60};
+
+/** 이름 → AI 초안. 반환 {F, keys, raw} 또는 throw.
+    want 가 주어지면 그 키만 요청한다(빈 칸만 채우기). */
+async function aiFill(name, want){
+  if (!aiOn()) throw new Error('AI 초안이 꺼져 있습니다 — 설정에서 API 키를 넣어 주세요');
+  if (!navigator.onLine) throw new Error('오프라인입니다');
+  const keys = (want && want.length ? want : Object.keys(AI_FIELDS))
+    .filter(k => AI_FIELDS[k]);
+  if (!keys.length) throw new Error('채울 빈 칸이 없습니다');
+
+  const props = {};
+  keys.forEach(k => { props[k] = {type: 'STRING', description: AI_FIELDS[k]}; });
+  const prompt = [
+    '당신은 위스키 데이터 정리 담당자다. 아래 위스키의 사양을 JSON 으로 채운다.',
+    '',
+    '위스키 이름: ' + name,
+    '',
+    '규칙:',
+    '- **확실하지 않은 항목은 빈 문자열("")로 둔다.** 추측해 채우지 않는다.',
+    '- 배치·빈티지 표기가 없으면 가장 표준적인 공식 병입(OB)을 기준으로 한다.',
+    '- 숫자 항목은 숫자만 쓴다(단위·쉼표·물결표 없이).',
+    '- 서술은 한국어로 짧게. 문장을 늘리지 않는다.',
+    '- 목록이 지정된 항목은 그 목록의 값만 쓴다.',
+  ].join('\n');
+
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/'
+    + encodeURIComponent(aiModel()) + ':generateContent?key=' + encodeURIComponent(aiKey());
+  const res = await fetch(url, {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      contents: [{parts: [{text: prompt}]}],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: {type: 'OBJECT', properties: props},
+        /* 같은 병을 두 번 넣었을 때 다른 답이 나오면 사용자가 신뢰하지 않는다 */
+        temperature: 0,
+      },
+    }),
+  });
+  const body = await res.text();
+  if (!res.ok){
+    /* 오류를 삼켜 '실패' 로만 적으면 원인을 알 수 없다 — 응답 문구를 그대로 올린다 */
+    let msg = body.slice(0, 200);
+    try{ msg = JSON.parse(body).error?.message || msg; }catch(e){}
+    if (res.status === 429) msg = '무료 한도를 넘었습니다 — 잠시 뒤 다시 시도하세요';
+    throw new Error(msg);
+  }
+  let obj;
+  try{
+    const txt = JSON.parse(body).candidates?.[0]?.content?.parts?.[0]?.text || '';
+    obj = JSON.parse(txt);
+  }catch(e){
+    /* 부분 적용이 더 나쁘다 — 파싱이 깨지면 아무것도 채우지 않는다 */
+    throw new Error('응답을 읽을 수 없습니다 (형식 오류)');
+  }
+  const F = {}, filled = new Set();
+  keys.forEach(k => {
+    let v = obj[k];
+    if (v == null) return;
+    v = String(v).trim();
+    if (!v) return;
+    if (AI_CHECK[k]) v = AI_CHECK[k](v);
+    if (!v) return;
+    if (AI_MAXLEN[k] && v.length > AI_MAXLEN[k]) return;   // 자르지 않고 버린다
+    F[k] = v; filled.add(k);
+  });
+  return {F, keys: filled, raw: obj};
+}
+
 /* ── 술장별 지표 ────────────────────────────
    술장마다 물어볼 것이 다르다. 구매 술장은 "얼마 썼고 얼마 남았나", 위시 술장은
    "다 사면 얼마인가", 경험 술장은 "그중에 뭘 살까". 걸러 낸 같은 숫자가 아니라
@@ -4970,6 +5184,45 @@ function openData(){
     <p class="hint" style="margin-top:8px">토큰은 <b>이 브라우저에만</b> 저장되고 백업 파일에는 포함되지 않습니다.
       기기마다 한 번씩 입력하세요. 저장소를 <b>Private</b>으로 만들면 나만 볼 수 있습니다.</p>
 
+    <h4 class="sec">AI 초안 (선택)</h4>
+    <div class="note" style="margin-bottom:11px">
+      ${aiOn()
+        ? `<b>켜져 있습니다</b> · 모델 <b>${esc(aiModel())}</b><br>
+           편집 화면의 <b>AI로 빈 칸 채우기</b> 버튼으로 씁니다. 채운 값은 <b>초안</b>으로
+           표시되니 <b>라벨을 보고 확인</b>하세요.`
+        : `이름만 넣으면 사양·노트를 <b>AI가 초안으로</b> 채워 줍니다(선택).
+           <b>본인의 Google AI Studio API 키</b>가 필요합니다 — 무료로 발급받을 수 있고
+           제작자를 거치지 않습니다.`}
+      <!-- 안내 링크는 **양쪽 분기에 둔다.** 켜진 뒤에만 감추면 무엇이 나가는지
+           다시 확인할 방법이 사라진다 — 켠 사람이야말로 그걸 읽어야 한다. -->
+      <br><a href="./ai.html" target="_blank" rel="noopener"
+        style="color:var(--accent)">AI 초안 안내 — 무엇이 전달되고 무엇을 채우지 않는지</a>
+    </div>
+    <div class="fg">
+      <!-- autocomplete="new-password": 크롬은 password 칸의 autocomplete="off" 를
+           무시하고 **저장된 자격증명을 자동완성**한다. 실제로 검증 중에 관계없는
+           구글 토큰이 이 칸에 채워지고 그대로 API 키로 저장됐다. new-password 는
+           크롬이 존중하는 값이라 저장된 비밀번호를 채우지 않는다. -->
+      <div class="f wide"><label>Google AI Studio API 키</label>
+        <input id="aiK" type="password" value=""
+          placeholder="${aiKey() ? '저장됨 — 바꿀 때만 입력' : 'AIza...'}"
+          autocomplete="new-password" autocapitalize="off" spellcheck="false"></div>
+      <div class="f wide"><label>모델</label>
+        <input id="aiM" value="${esc(aiModel())}" placeholder="${AI_MODEL_DEFAULT}"
+          autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+    </div>
+    ${aiKey() ? `<p class="hint" style="margin-top:6px">저장된 키: <b>${esc(aiKey().slice(0, 8))}…${esc(aiKey().slice(-4))}</b>
+      · ${aiKey().length}자 <button class="mini" id="aiKDel" style="margin-left:6px">지우기</button></p>` : ''}
+    <div class="stack" style="margin-top:10px">
+      <button class="btn pri" id="aiSave">키·모델 저장</button>
+      <button class="btn" id="aiTest">${ic('search')}연결 확인</button>
+    </div>
+    <div id="aiTestOut"></div>
+    <p class="hint" style="margin-top:8px">키는 <b>이 브라우저에만</b> 저장되고 백업 파일에는 들어가지 않습니다.
+      보내는 것은 <b>위스키 이름과 필드 이름</b>뿐이며 구매 기록·사진은 보내지 않습니다.
+      Google 무료 등급은 입력이 <b>모델 개선에 쓰일 수 있습니다</b>.
+      구매가·시장가·평점·상태는 <b>AI가 채우지 않습니다</b>.</p>
+
     <h4 class="sec">가져오기</h4>
     <div class="stack">
       <button class="btn" id="impFile">파일에서 가져오기 (JSON · CSV)</button>
@@ -5186,6 +5439,45 @@ function openData(){
     SYNC = {repo:'', path:'collection.json', branch:'main', sha:'', last:''};
     saveSync(); openData(); toast('연결을 해제했습니다');
   };
+  /* ── AI 초안 설정 ── */
+  $('#aiSave').onclick = () => {
+    const k = $('#aiK').value.trim(), m = $('#aiM').value.trim() || AI_MODEL_DEFAULT;
+    /* 형태를 본다. 브라우저가 password 칸에 엉뚱한 자격증명을 자동완성하는 일이
+       실제로 있었고(그래서 위에 new-password 를 달았다), 그걸 조용히 키로 저장하면
+       사용자는 왜 안 되는지 알 수 없다. AI Studio 키는 AIza 로 시작하는 39자다. */
+    if (k && !/^AIza[\w-]{30,}$/.test(k)){
+      toast('⚠ API 키 형태가 아닙니다 — AIza 로 시작하는 키를 붙여넣어 주세요', 5000);
+      return;
+    }
+    try{
+      /* 빈 칸이면 기존 키를 지우지 않는다 — 모델만 바꾸려는 경우가 있다 */
+      if (k) localStorage.setItem(LS_AIKEY, k);
+      localStorage.setItem(LS_AIMODEL, m);
+    }catch(e){ toast('⚠ 저장 실패'); return; }
+    toast(aiOn() ? 'AI 초안을 켰습니다' : '모델을 저장했습니다');
+    openData();
+  };
+  if ($('#aiKDel')) $('#aiKDel').onclick = () => {
+    try{ localStorage.removeItem(LS_AIKEY); }catch(e){}
+    openData(); toast('API 키를 지웠습니다 — AI 초안이 꺼졌습니다');
+  };
+  $('#aiTest').onclick = async () => {
+    const box = $('#aiTestOut'), b = $('#aiTest');
+    const line = (t, ok) => box.innerHTML = `<p class="hint" style="margin-top:10px;color:${
+      ok ? 'var(--accent)' : 'var(--danger)'}">${t}</p>`;
+    if (!aiKey()){ line('먼저 API 키를 저장하세요', false); return; }
+    b.disabled = true; box.innerHTML = '<p class="hint" style="margin-top:10px"><span class="spin"></span> 확인 중…</p>';
+    try{
+      /* 실제 초안 호출과 같은 경로로 확인한다 — 따로 만든 확인은 통과해도 증명이 안 된다 */
+      const r = await aiFill('Glenfiddich 12 Year Old', ['distillery','country','region']);
+      const got = [...r.keys];
+      line(got.length
+        ? `연결 정상 — 시험 응답에서 ${got.length}개 항목을 받았습니다 (${esc(got.join(', '))})`
+        : '연결은 됐지만 값이 비어 왔습니다 — 모델 이름을 확인하세요', got.length > 0);
+    }catch(e){ line('실패 — ' + esc(String(e.message).slice(0, 160)), false); }
+    b.disabled = false;
+  };
+
   $('#impFile').onclick = () => $('#impInput').click();
   $('#impInput').onchange = e => {
     const file = e.target.files[0]; if (!file) return;

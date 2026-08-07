@@ -1,12 +1,12 @@
 /* Sulsul Diary(술술다이어리) — Service Worker
    앱 셸: stale-while-revalidate / 외부 병 사진: cache-first(런타임 캐시) */
-const V = 'wc-shell-v38';
+const V = 'wc-shell-v39';
 const IMG = 'wc-img-v2';    // 일반 표시용 (no-cors, opaque 허용)
 const IMGC = 'wc-imgc-v2';  // CORS 요청용 — 캔버스 정규화에 쓰이므로 opaque를 섞으면 안 됨
 const SHELL = [
   './', './index.html', './kb.js', './manifest.webmanifest', './whisky.json',
   // 문서 페이지 — 공개 배포이므로 오프라인에서도 방침·가이드에 닿아야 한다
-  './docs.css', './guide.html', './sync.html', './privacy.html',
+  './docs.css', './guide.html', './sync.html', './privacy.html', './ai.html',
   './icons/icon-192.png', './icons/icon-512.png',
   './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-64.png',
   './icons/icon-maskable-192.png',
