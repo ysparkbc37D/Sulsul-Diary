@@ -229,6 +229,24 @@ header.top{
    한 행에 모아도 읽히고, 상단 세로 줄 수를 늘리지 않는다(탭이 세그먼트 행을 쓴다).
    각자 .chips 라 안쪽에서 스크롤되면 두 그룹이 따로 움직여 어긋난다 — 스크롤은
    이 부모가 하고 자식은 넘치지 않게 둔다. */
+/* ══════════════ 술장 요약 줄 ══════════════
+   목록 바로 위. 접힌 높이가 40px 을 넘으면 그건 한 줄이 아니다 — 첫 카드가 밀린
+   만큼은 매번 스크롤로 치르는 값이다(360px 에서 실측하며 맞춘다). */
+.statbar{margin:12px 0 2px}
+.statsum{
+  display:flex;align-items:center;gap:8px;width:100%;
+  padding:9px 12px;border-radius:11px;text-align:left;
+  background:var(--surface2);border:1px solid var(--line);
+  font-size:12px;color:var(--ink2);letter-spacing:-.02em;
+}
+.statsum .who{font-weight:700;color:var(--ink);flex:none}
+/* 수치는 남는 폭을 다 쓰고, 넘치면 줄바꿈 대신 잘린다 — 한 줄을 지키는 것이 목적이다 */
+.statsum .num{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.statsum .num b{color:var(--ink);font-weight:600}
+.statsum .cv{flex:none;color:var(--ink3);transition:transform .18s}
+.statsum[aria-expanded="true"]{border-color:var(--accent-line);background:var(--accent-bg)}
+.statsum[aria-expanded="true"] .cv{transform:rotate(180deg);color:var(--accent)}
+.statfold{padding:12px 2px 2px}
 .chiprow{display:flex;gap:8px;align-items:center;overflow-x:auto;scrollbar-width:none}
 .chiprow::-webkit-scrollbar{display:none}
 .chiprow > .chips{overflow:visible;flex:none}
@@ -1142,6 +1160,12 @@ pre.csv{
     </div>
     <div class="chips" id="activeChips"></div>
   </div>
+  <!-- 이 술장의 요약. 기본은 한 줄이고 누르면 펼쳐진다 — KPI 격자를 늘 펼쳐 두면
+       폰에서 첫 카드가 150~200px 밀린다. 펼침 상태는 wc.stats 에 남는다. -->
+  <div class="statbar" id="statBar" hidden>
+    <button class="statsum" id="statSum" aria-expanded="false" aria-controls="statFold"></button>
+    <div class="statfold" id="statFold" hidden></div>
+  </div>
   <div class="grid" id="grid"></div>
   <div id="emptyBox"></div>
   <footer class="foot">
@@ -1471,6 +1495,12 @@ const LS_TAB = 'wc.tab';
 const savedTab = (() => { try{
   const t = localStorage.getItem(LS_TAB); return TAB_KEYS.includes(t) ? t : 'all';
 }catch(e){ return 'all'; } })();
+/* 요약 줄을 펼쳐 뒀는지. 기억하지 않으면 매번 다시 펼쳐야 해서 그 기능 자체를 안 쓴다.
+   기본은 접힘 — 목록을 보러 온 것이 대부분이다 */
+const LS_STATS = 'wc.stats';
+let statsOpen = (() => { try{
+  return localStorage.getItem(LS_STATS) === '1';
+}catch(e){ return false; } })();
 let V = {q:'', tab: savedTab, cat:'all', type:'all', status:'all', age:'all', flavor:'all',
          sort:'recent', view: savedView};
 let installEvt = null;
@@ -2600,15 +2630,28 @@ function render(){
     `<button class="chip" data-clr="${k}">${esc(t)}<i>✕</i></button>`).join('');
   $('#statLine').textContent = (V.q.trim() || act.length) ? items.length + '병' : '';
 
-  /* 사이드바 하단 요약 — 데스크톱에서만 보이지만 계산은 가벼우니 항상 갱신한다 */
-  const opened = DB.items.filter(i => i.status === '오픈').length;
-  const sealed = DB.items.filter(i => i.status === '미개봉').length;
-  const spent = DB.items.reduce((s, i) => s + (Number(i.purchase_price) || 0), 0);
+  /* 이 술장의 요약 줄 — 목록 바로 위. 병이 없으면 숨긴다(0만 적힌 줄은 자리만 먹는다) */
+  const tabLab = (TABS.find(t => t[0] === V.tab) || [, ''])[1];
+  $('#statBar').hidden = !inTabItems.length;
+  if (inTabItems.length){
+    $('#statSum').innerHTML =
+        `<span class="who">${tabLab}</span>`
+      + `<span class="num">${statsLine(inTabItems, V.tab)}</span>`
+      + `<span class="cv">⌄</span>`;
+    $('#statSum').setAttribute('aria-expanded', statsOpen ? 'true' : 'false');
+    $('#statFold').hidden = !statsOpen;
+    /* 접혀 있을 때는 만들지 않는다 — 통계 계산은 컬렉션 전체를 훑는다 */
+    $('#statFold').innerHTML = statsOpen ? statsFor(inTabItems, V.tab) : '';
+  }
+
+  /* 사이드바 하단 요약 — 데스크톱에서만 보이지만 계산은 가벼우니 항상 갱신한다.
+     **요약 줄과 같은 함수를 쓴다.** 전에는 여기서 따로 세면서 `DB.items.length` 를
+     '보유' 라고 적었다 — 경험·위시까지 포함한 전체 개수였고, openStats 의
+     '보유 병수'(OWNED 기준)와 다른 수를 보여 주고 있었다. */
   $('#sideStats').innerHTML =
-      `<span class="sk">보유 <b>${DB.items.length}</b></span>`
-    + `<span class="sk">미개봉 <b>${sealed}</b></span>`
-    + `<span class="sk">오픈 <b>${opened}</b></span>`
-    + (spent ? `<span class="sk">구매 합계 <b>${Math.round(spent / 10000)}만</b></span>` : '');
+      `<span class="sk">${esc(tabLab)}</span>`
+    + statsLine(inTabItems, V.tab).split(' · ')
+        .map(s => `<span class="sk">${s}</span>`).join('');
   $('#btnView').textContent = V.view === 'grid' ? '☰' : '▦';
   /* aria-label 을 정적으로 두면 ☰/▦ 로 바뀌는 상태를 낭독기가 읽지 못한다 */
   $('#btnView').title = $('#btnView').ariaLabel =
@@ -4578,6 +4621,49 @@ function importText(text){
   setTimeout(() => normalizeMissing(touched, {progress: true}), 600);
 }
 
+/* ── 술장별 지표 ────────────────────────────
+   술장마다 물어볼 것이 다르다. 구매 술장은 "얼마 썼고 얼마 남았나", 위시 술장은
+   "다 사면 얼마인가", 경험 술장은 "그중에 뭘 살까". 걸러 낸 같은 숫자가 아니라
+   그 술장에만 있는 질문이라 따로 만든다. */
+
+/** 지금 실제로 갖고 있는 것 — 미개봉 + 오픈. 비움은 구매 이력이지 보유가 아니다.
+    구매 술장이 OWNED(비움 포함)라서 '보유' 를 따로 셀 필요가 생겼다 */
+function nowHeld(a){ return a.filter(i => i.status === '미개봉' || i.status === '오픈'); }
+
+/** 경험 술장의 구매 후보 — 마셔 봤고 아직 안 산 것, 평점 높은 순.
+    ⚠ 같은 이름의 구매 항목이 있으면 뺀다. 마셔 본 병을 나중에 사면 이 앱은 기록을
+    **두 개**로 만든다(초안이 구매 정보를 가져오지 않고 새 병으로 취급한다). 그냥 두면
+    옛 경험 항목이 남아 **이미 산 술을 계속 사라고 추천한다.**
+    이름 맞추기는 새로 만들지 않고 중복 구매 경고의 dupCandidates 를 쓴다 — squish 로
+    정규화해 '라가불린 16년' 과 '라가불린 16' 을 같이 잡는다. */
+function buyCandidates(a){
+  const exp = a.filter(i => i.status === '경험');
+  const bought = it => dupCandidates(it.name_ko || it.name_en || '', it.id)
+    .some(d => OWNED.includes(d.status));
+  const list = exp.filter(it => !bought(it))
+    .sort((x, y) => bestScore(y) - bestScore(x));
+  return {list, hidden: exp.length - list.length};
+}
+
+/** 위시 술장의 예상 지출 — 시장가 중간값 합산. 시장가가 없는 병은 셀 수 없다 */
+function wishSpend(a){
+  const w = a.filter(i => marketMid(i) > 0);
+  return {
+    sum: w.reduce((s, i) => s + marketMid(i), 0), n: w.length, miss: a.length - w.length,
+    top: w.slice().sort((x, y) => marketMid(y) - marketMid(x))[0] || null
+  };
+}
+
+/** 시음 기록의 장소 집계. 저장 형식이 "집 친구집" 이므로 라벨만 떼어 센다 */
+function placeCounts(a){
+  const m = {};
+  a.forEach(i => (i.sessions || []).forEach(s => {
+    const lab = String(s.place || '').trim().split(/\s+/)[0];
+    if (lab) m[lab] = (m[lab] || 0) + 1;
+  }));
+  return Object.entries(m).sort((x, y) => y[1] - x[1]);
+}
+
 /* ── stats ──────────────────────────────────
    통계 본문을 **대상 집합을 받는 함수**로 뽑아냈다. 전에는 `openStats()` 안에서
    `DB.items` 를 직접 참조하는 150줄짜리 템플릿 하나였고, 그래서 화면에서 무엇을
@@ -4585,7 +4671,7 @@ function importText(text){
    시트·목록 위 요약 줄·데스크톱 사이드바가 **모두 이 함수를 쓴다** — 세 곳이 따로
    계산하면 어긋난다(실제로 사이드바의 '보유'가 openStats 와 다른 수를 보여 주고
    있었다). 계산식은 추출할 때 한 줄도 바꾸지 않았다. */
-function statsFor(a){
+function statsFor(a, tab){
   const n = a.length;
   const priced = a.filter(i => Number(i.purchase_price));
   const buy = priced.reduce((s, i) => s + Number(i.purchase_price), 0);
@@ -4611,12 +4697,82 @@ function statsFor(a){
        <span class="tr"><i style="width:${v / mx * 100}%"></i></span><span class="n">${v}</span></div>`).join('')
       || '<span class="hint">데이터 없음</span>';
   };
+  const flavBars = () => {
+    const m = {};
+    a.forEach(i => String(i.flavors || '').split(',').filter(Boolean)
+      .forEach(f => m[f] = (m[f] || 0) + 1));
+    return bars(Object.entries(m).sort((x, y) => y[1] - x[1]));
+  };
+
+  /* 경험 술장 — 사지 않은 병이라 구매가·잔량·개봉일이 없다. 같은 KPI 격자를 대상만
+     바꿔 보여 주면 열두 칸 중 여덟이 0원과 대시가 되고, 그 화면은 "통계가 고장났다"로
+     읽힌다. 그래서 이 술장에만 있는 질문으로 바꾼다 — 그중에 뭘 살까. */
+  if (tab === 'exp'){
+    const bc = buyCandidates(a);
+    const sess = a.reduce((s, i) => s + (i.sessions?.length || 0), 0);
+    const scored2 = a.filter(i => bestScore(i));
+    return `
+      <div class="kpis">
+        <div class="kpi"><div class="k">마셔 본 병</div><div class="v">${n}<u>병</u></div>
+          <div class="s">시음 기록 ${sess}회</div></div>
+        <div class="kpi"><div class="k">구매 후보</div><div class="v">${bc.list.length}<u>병</u></div>
+          <div class="s">${bc.hidden ? `이미 구입 ${bc.hidden}병 제외` : '아직 사지 않은 것'}</div></div>
+        <div class="kpi"><div class="k">평균 평점</div><div class="v">${
+          scored2.length ? (scored2.reduce((s, i) => s + bestScore(i), 0) / scored2.length).toFixed(1) : '—'}</div>
+          <div class="s">${scored2.length}병 기준</div></div>
+        <div class="kpi"><div class="k">증류소</div><div class="v">${
+          new Set(a.map(i => i.distillery).filter(Boolean)).size}<u>곳</u></div>
+          <div class="s">마셔 본 증류소</div></div>
+      </div>
+      <h4 class="sec">구매 후보 — 평점순</h4>
+      ${bc.list.length ? `<div class="rlist">${bc.list.slice(0, 10).map(it =>
+        `<div><b>${esc(fullName(it))}</b><span>${bestScore(it) || '—'}</span></div>`).join('')}</div>`
+        /* 비어 있는 이유가 두 가지다 — 기록이 없거나, 이미 다 샀거나.
+           한 문구로 뭉개면 "평점을 넣으라"고 엉뚱한 말을 하게 된다 */
+        : `<span class="hint">${bc.hidden
+            ? '마셔 본 병을 이미 다 구입했습니다'
+            : '마셔 본 병을 기록하면 살 만한 순서로 정리됩니다'}</span>`}
+      <h4 class="sec">마셔 본 곳</h4><div class="bars">${bars(placeCounts(a))}</div>
+      <h4 class="sec">맛 프로필</h4><div class="bars">${flavBars()}</div>
+      <div class="note" style="margin-top:18px"><b>구매 후보</b>는 마셔 봤고 아직 사지 않은 병입니다.
+        같은 이름으로 구매한 기록이 있으면 목록에서 빠집니다.</div>`;
+  }
+
+  /* 위시 술장 — 아직 안 산 것이므로 유일하게 의미 있는 돈은 **앞으로 쓸 돈**이다 */
+  if (tab === 'wish'){
+    const ws = wishSpend(a);
+    const withAbv2 = a.filter(i => Number(i.abv));
+    return `
+      <div class="kpis">
+        <div class="kpi"><div class="k">위시</div><div class="v">${n}<u>병</u></div>
+          <div class="s">아직 사지 않은 병</div></div>
+        <div class="kpi"><div class="k">예상 지출</div><div class="v">${wonShort(ws.sum) || 0}<u>원</u></div>
+          <div class="s">시장가 있는 ${ws.n}병 합산${ws.miss ? ` · ${ws.miss}병 미기재` : ''}</div></div>
+        <div class="kpi"><div class="k">평균 예상가</div><div class="v">${
+          ws.n ? wonShort(Math.round(ws.sum / ws.n)) : 0}<u>원</u></div>
+          <div class="s">${ws.n}병 기준</div></div>
+        <div class="kpi"><div class="k">가장 비싼 병</div><div class="v">${
+          ws.top ? wonShort(marketMid(ws.top)) : '—'}${ws.top ? '<u>원</u>' : ''}</div>
+          <div class="s">${ws.top ? esc(fullName(ws.top)) : '시장가를 넣으면 보입니다'}</div></div>
+      </div>
+      <h4 class="sec">주종별</h4><div class="bars">${bars(cnt('cat'))}</div>
+      <h4 class="sec">타입별</h4><div class="bars">${bars(cnt('type'))}</div>
+      <h4 class="sec">맛 프로필</h4><div class="bars">${flavBars()}</div>
+      <div class="note" style="margin-top:18px"><b>예상 지출</b>은 시장가 중간값의 합입니다 —
+        실제 구매가는 다를 수 있고, 시장가를 넣지 않은 병은 빠져 있습니다.</div>`;
+  }
+
   return `
     <div class="kpis">
-      <div class="kpi"><div class="k">보유 병수</div>
+      <!-- '보유 병수' 였는데 대상이 OWNED(비움 포함)라 라벨이 틀렸다 — 다 마신 병을
+           보유로 세고 있었다. 구매 술장의 정의가 "내가 산 모든 병" 이므로 이름을
+           맞추고, 지금 실제로 갖고 있는 수는 부제에 한 줄 더 붙인다.
+           KPI 타일을 늘리지 않고 두 수를 같이 읽게 하는 것이 목적이다. -->
+      <div class="kpi"><div class="k">구매 병수</div>
         <div class="v">${a.filter(i => OWNED.includes(i.status)).length}<u>병</u></div>
         <div class="s">${OWNED.map(s => s + ' ' + a.filter(i => i.status === s).length).join(' · ')}
-          ${a.filter(i => i.status === '경험').length ? `<br>유경험(미보유) ${a.filter(i => i.status === '경험').length}병` : ''}</div></div>
+          <br>지금 보유 ${nowHeld(a).length}병
+          ${a.filter(i => i.status === '경험').length ? ` · 유경험(미보유) ${a.filter(i => i.status === '경험').length}병` : ''}</div></div>
       <div class="kpi"><div class="k">총 구매액</div><div class="v">${wonShort(buy) || 0}<u>원</u></div>
         <div class="s">${priced.length}병 기재${n - priced.length ? ` · ${n - priced.length}병 미기재` : ''}</div></div>
       <div class="kpi"><div class="k">추정 시장가</div><div class="v">${wonShort(mkt) || 0}<u>원</u></div>
@@ -4680,8 +4836,35 @@ function statsFor(a){
     <div class="note" style="margin-top:18px"><b>평가 손익</b>은 입력한 구매가와 추정 시장가의 차이로,
       수수료·세금·실거래 여부를 반영하지 않은 참고 지표입니다.</div>`;
 }
+/** 접힌 요약 한 줄. 그 술장에서 **가장 먼저 볼 수치 2~3개**만 담는다 —
+    여기에 다 넣으려 하면 한 줄이 깨지고, 한 줄이 깨지면 목록이 밀린다.
+    시트·사이드바와 같은 원본(같은 헬퍼)에서 뽑으므로 세 곳의 수가 어긋날 수 없다. */
+function statsLine(a, tab){
+  const bit = (k, v) => `${k} <b>${v}</b>`;
+  const p = [bit('', a.length + '병').trim()];
+  if (tab === 'wish'){
+    const ws = wishSpend(a);
+    if (ws.n) p.push(bit('예상 지출', wonShort(ws.sum)));
+  } else if (tab === 'exp'){
+    const bc = buyCandidates(a);
+    p.push(bit('구매 후보', bc.list.length));
+    const sess = a.reduce((s, i) => s + (i.sessions?.length || 0), 0);
+    if (sess) p.push(bit('시음', sess + '회'));
+  } else {
+    const held = nowHeld(a), open = a.filter(i => i.status === '오픈');
+    const buy = a.reduce((s, i) => s + (Number(i.purchase_price) || 0), 0);
+    p.push(bit('지금 보유', held.length));
+    if (buy) p.push(bit('구매', wonShort(buy)));
+    if (open.length) p.push(bit('평균 잔량',
+      Math.round(open.reduce((s, i) => s + (Number(i.remaining_pct) || 0), 0) / open.length) + '%'));
+  }
+  return p.join(' · ');
+}
 function openStats(){
-  openSheet('컬렉션 통계', statsFor(DB.items),
+  /* 보고 있는 술장의 통계를 낸다. 전체 술장 탭이 곧 '전체로 보기' 라 별도 토글은 없다 */
+  const a = DB.items.filter(i => inTab(i, V.tab));
+  const lab = (TABS.find(t => t[0] === V.tab) || [, ''])[1];
+  openSheet(`${lab} 술장 통계 · ${a.length}병`, statsFor(a, V.tab),
     `<button class="btn pri" data-act="close">닫기</button>`);
   $('#shFoot').onclick = closeSheet;
 }
@@ -5163,6 +5346,12 @@ const onNavClick = e => {
 $('#tabSegs').onclick = onNavClick;
 $('#catChips').onclick = onNavClick;
 $('#sideNav').onclick = onNavClick;
+/* 요약 줄 펼치기 — render() 가 펼친 내용을 만들므로 상태만 바꾸고 다시 그린다 */
+$('#statSum').onclick = () => {
+  statsOpen = !statsOpen;
+  try{ localStorage.setItem(LS_STATS, statsOpen ? '1' : '0'); }catch(e){}
+  render();
+};
 $('#btnDonate').onclick = openDonate;
 $('#typeChips').onclick = e => {
   const c = e.target.closest('[data-type]'); if (!c) return;
