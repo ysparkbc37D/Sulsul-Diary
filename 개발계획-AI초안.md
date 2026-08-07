@@ -56,8 +56,32 @@ AI 는 `enrich` 옆에 **네 번째 검색원**으로 들어간다.
 
 | 등급 | 필드 | 이유 |
 | :--- | :--- | :--- |
-| **채운다** | `name_en` `type` `distillery` `country` `region` `abv` `age` `cask` `bottler` `size_ml` `nose` `taste` `finish` `flavors` `tags` `notes` | 전부 `초안` 배지를 달고 들어간다. 사용자가 라벨을 보고 확인·수정한다 |
-| **건드리지 않는다** | `purchase_price` `market_low` `market_high` `rating_bible` `rating_wb` `rating_my` `status` `remaining_pct` `opened_at` `purchase_date` `purchase_place` `storage` | 돈·평점·상태·보관은 **내 기록**이다. 통계가 여기서 나오고, **틀려도 화면에 안 보인다** |
+| **채운다** | `name_en` `type` `distillery` `country` `region` `abv` `age` `cask` `bottler` `size_ml` `nose` `taste` `finish` `flavors` `tags` · **`market_low` `market_high` `rating_wb`** | 전부 `초안` 배지를 달고 들어간다. 사용자가 라벨을 보고 확인·수정한다 |
+| **건드리지 않는다** | `purchase_price` `purchase_date` `purchase_place` `rating_my` `rating_bible` `status` `remaining_pct` `opened_at` `storage` | **내 기록**이다 — 얼마에 어디서 샀고 지금 얼마 남았는지는 AI 가 알 수 없다 |
+
+**2차 갱신 (2026-08-07, 사용자 요청)** — 처음에는 시장가와 평점을 전부 뺐지만
+`market_low`·`market_high`·`rating_wb` 를 **넣기로 했다.** 위험은 그대로다(아래) —
+`초안` 배지와 사용자 확인을 전제로 받아들인 결정이다.
+방어는 범위 검사로 한다: 원화 5천원~1억을 벗어난 값, 100점 척도를 벗어난 평점은 버린다
+(모델이 파운드 값이나 10점 척도로 답하는 경우가 실제로 있다).
+**그럴듯한 범위의 틀린 값은 걸러낼 수 없다** — 그건 사용자 확인에 맡긴다.
+
+`storage` 는 AI 가 채우지 않지만 **새 병의 기본값을 `집`** 으로 둔다(사용자 요청).
+`draftFrom()` 과 `openEdit(null)` 에만 넣는다 — `normalize()` 에 넣으면 기존 142병의
+빈 보관 위치까지 소급해서 바뀐다.
+
+### 초안 값도 다시 채운다 (2026-08-07)
+
+처음에는 **빈 칸만** 채웠다. 그런데 내장 DB 에 없는 병은 초안 엔진이 근사 일치로
+**다른 병의 값을 넣어 두고**, 그 칸이 "비어 있지 않다"는 이유로 건너뛰어졌다 —
+틀린 값이 그대로 남는다(사용자가 실제로 겪었다).
+
+`초안` 배지는 **아직 확인되지 않았다**는 뜻이므로 다시 채워도 된다.
+대상 = **빈 칸 ∪ 아직 `dk` 에 있는 칸**. 사용자가 직접 고친 칸은 배지가 떨어져
+`dk` 에서 빠지므로 자동으로 보호된다 — 판단 기준을 새로 만들지 않았다.
+
+그래서 되돌리기도 "비우기"에서 **"덮기 전 값으로 복원"** 으로 바뀌었다(`aiPrev`).
+초안 엔진 값으로 돌아갔으면 배지도 `초안 · AI` → `초안` 으로 되돌린다.
 
 `name_ko` 는 사용자가 입력한 값이므로 고치지 않는다. `name_en` 은 비어 있을 때만 채운다.
 

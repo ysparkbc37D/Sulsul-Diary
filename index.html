@@ -2378,6 +2378,10 @@ function draftFrom(raw){
 
   F.name_ko = q; F.status = '미개봉'; F.size_ml = '700'; F.remaining_pct = '100';
   F.purchase_date = today(); F.bottler = 'Official (OB)';
+  /* 보관 위치 기본값 — 대부분 집에 둔다. AI 가 채우는 값이 아니라 **기본값**이다
+     (초안 배지도 붙지 않는다). 새 병에만 넣는다 — normalize() 에 넣으면 기존 병의
+     빈 보관 위치까지 소급해서 '집' 으로 바뀐다 */
+  F.storage = '집';
 
   /* 내 컬렉션이 첫 번째 검색원이다 — 내장 DB 보다 내 기록이 정확하다(내가 라벨을
      보고 고친 값이니까). 이름이 **정확히** 맞을 때만 쓴다 — 근사 일치로 다른 병의
@@ -3339,8 +3343,13 @@ function openDetail(id){
   ].map(([k, v]) => `<tr><th>${k}</th><td>${v ? esc(v) : '<span class="na">미기재</span>'}</td></tr>`).join('');
 
   const sc = bestScore(it), ssrc = scoreSrc(it);
-  const rl = [['Whisky Bible', it.rating_bible], ['Whiskybase', it.rating_wb], ['내 점수', it.rating_my]]
-    .filter(r => r[1]).map(([k, v]) => `<div><b>${k}</b><span>${esc(v)}</span></div>`).join('');
+  /* Whiskybase 는 값이 없어도 줄을 남긴다 — 빈 줄이 아예 사라지면 "아직 못 가져온 것"과
+     "찾아봤지만 없는 것"을 구별할 수 없고, 다시 시도할 대상인지도 알 수 없다.
+     나머지 평점은 전처럼 있을 때만 보여 준다(세 줄이 다 비면 자리만 먹는다). */
+  const rl = [['Whisky Bible', it.rating_bible], ['내 점수', it.rating_my]]
+    .filter(r => r[1])
+    .concat([['Whiskybase', it.rating_wb || '미보유']])
+    .map(([k, v]) => `<div><b>${k}</b><span>${esc(v)}</span></div>`).join('');
   const nm = encodeURIComponent((it.name_en || it.name_ko) + ' whisky');
 
   const body = `
@@ -3906,7 +3915,7 @@ function openEdit(id, draft){
   const isNew = !id;
   const base = isNew
     ? normalize({status:'미개봉', size_ml:'700', purchase_date: today(), remaining_pct:'100',
-        bottler:'Official (OB)', ...(draft ? draft.fields : {})})
+        bottler:'Official (OB)', storage:'집', ...(draft ? draft.fields : {})})
     : {...byId(id)};
   if (!base) return;
   const it = base;
@@ -3958,10 +3967,10 @@ function openEdit(id, draft){
          사라져 읽을 수가 없다. 편집 중인 병은 자기 자신을 중복으로 잡지 않는다. -->
     ${dupWarnHTML(it.name_ko || it.name_en || '', id)}
     <!-- AI 초안 — 위저드가 아니라 여기 둔다. 위저드는 곧 이 폼으로 넘어가 사라지고,
-         여기 있으면 **이미 등록한 병**에도 쓸 수 있다(도수가 빈 병이 그 대상이다).
-         빈 칸만 채운다 — 앞 검색원과 사용자가 넣은 값은 건드리지 않는다. -->
+         여기 있으면 **이미 등록한 병**에도 쓸 수 있다.
+         **빈 칸과 아직 초안인 칸**을 채운다 — 직접 고친 값은 건드리지 않는다. -->
     <div class="airow">
-      <button type="button" class="mini am" id="aiGo">${ic('refresh')}AI로 빈 칸 채우기</button>
+      <button type="button" class="mini am" id="aiGo">${ic('refresh')}AI로 빈 칸·초안 채우기</button>
       <span class="hint" id="aiMsg"></span>
     </div>
     <form id="ef" onsubmit="return false">
@@ -4159,7 +4168,10 @@ function openEdit(id, draft){
 
   /* ── AI 초안 ──
      빈 칸만 채운다. 채운 키를 들고 있어야 되돌릴 수 있다. */
-  let aiDone = [];
+  /* aiDone: 이번 호출로 채운 키. aiPrev: 덮기 전 값 —
+     초안까지 다시 채우게 되면서 되돌리기가 "비우기"로는 부족해졌다.
+     초안 엔진이 넣어 둔 값을 AI 가 덮었다면 되돌리기는 **그 값으로** 돌아가야 한다. */
+  let aiDone = [], aiPrev = {};
   const aiMsg = (t, bad) => {
     const m = $('#aiMsg'); if (!m) return;
     m.innerHTML = t; m.style.color = bad ? 'var(--danger)' : '';
@@ -4175,13 +4187,16 @@ function openEdit(id, draft){
       f.querySelectorAll('button[data-flav]').forEach(b =>
         b.classList.toggle('on', on.includes(b.dataset.flav)));
     }
-    /* 초안 배지 — 출처를 구분해 준다. 편집하면 f.oninput 이 지운다 */
+    /* 초안 배지 — 출처를 구분해 준다. 편집하면 f.oninput 이 지운다.
+       **이미 초안이던 칸도 문구를 갈아 준다** — AI 가 덮었는데 배지가 그냥 '초안' 으로
+       남아 있으면 값이 바뀐 사실을 알 수 없다(초안 재채움을 넣고 나서 드러난 문제다). */
     const box = el.closest('.f[data-fk]');
-    if (box && !box.classList.contains('drafted')){
+    if (box){
       box.classList.add('drafted');
       const lab = box.querySelector('label');
-      if (lab && !lab.querySelector('.dpill'))
-        lab.insertAdjacentHTML('beforeend', '<i class="dpill">초안 · AI</i>');
+      const p = lab && lab.querySelector('.dpill');
+      if (p) p.textContent = '초안 · AI';
+      else if (lab) lab.insertAdjacentHTML('beforeend', '<i class="dpill">초안 · AI</i>');
     }
     dk.add(k);
     return true;
@@ -4195,14 +4210,22 @@ function openEdit(id, draft){
     const name = (f.querySelector('[name="name_ko"]')?.value
       || f.querySelector('[name="name_en"]')?.value || '').trim();
     if (name.length < 2){ aiMsg('제품명을 먼저 넣어 주세요', true); return; }
-    /* 비어 있는 칸만 고른다 — 앞 검색원과 사용자가 넣은 값은 덮지 않는다 */
-    const want = Object.keys(AI_FIELDS).filter(k => fval(k) === '');
-    if (!want.length){ aiMsg('빈 칸이 없습니다'); return; }
+    /* 빈 칸 **그리고 아직 초안인 칸**을 고른다.
+       처음에는 빈 칸만 채웠는데, 내장 DB 에 없는 병은 초안 엔진이 근사 일치로 엉뚱한
+       값을 넣어 두고 그 칸이 "비어 있지 않다"는 이유로 건너뛰어졌다 — 틀린 값이
+       그대로 남았다. 초안 배지는 **아직 확인되지 않았다**는 뜻이므로 다시 채워도 된다.
+       사용자가 직접 고친 칸은 배지가 떨어져(dk 에서 빠져) 여기 걸리지 않는다. */
+    const want = Object.keys(AI_FIELDS).filter(k => fval(k) === '' || dk.has(k));
+    if (!want.length){ aiMsg('빈 칸도 초안도 없습니다 — 직접 고친 값은 덮지 않습니다'); return; }
+    const 초안수 = want.filter(k => fval(k) !== '').length;
 
     b.disabled = true;
-    aiMsg('<span class="spin"></span> ' + want.length + '개 칸을 물어보는 중…');
+    aiMsg('<span class="spin"></span> ' + want.length + '개 칸을 물어보는 중…'
+      + (초안수 ? ` (초안 ${초안수}개 재확인)` : ''));
     try{
       const r = await aiFill(name, want);
+      aiPrev = {};
+      [...r.keys].forEach(k => { aiPrev[k] = fval(k) ?? ''; });   // 덮기 전 값을 먼저 떠 둔다
       aiDone = [...r.keys].filter(k => setVal(k, r.F[k]));
       if (!aiDone.length) aiMsg('채울 값을 받지 못했습니다 — 이름 표기를 바꿔 보세요', true);
       else aiMsg(`${aiDone.length}개를 채웠습니다 — <b>라벨을 보고 확인</b>하세요. `
@@ -4216,17 +4239,28 @@ function openEdit(id, draft){
              dk 에서 뺀다 — 그것이 "이건 이제 내 값이다"라는 표시다. 그걸 무시하고
              비우면 사용자가 방금 입력한 값을 되돌리기가 지운다(실제로 그랬다). */
           if (!dk.has(k)) return;
-          el.value = '';
-          if (k === 'flavors') f.querySelectorAll('button[data-flav].on')
-            .forEach(x => x.classList.remove('on'));
+          /* 덮기 전 값으로 돌린다. 원래 비어 있었으면 비운다 */
+          const back = aiPrev[k] || '';
+          el.value = back;
+          if (k === 'flavors'){
+            const on = back.split(',').map(s => s.trim());
+            f.querySelectorAll('button[data-flav]').forEach(x =>
+              x.classList.toggle('on', !!back && on.includes(x.dataset.flav)));
+          }
           const box = el.closest('.f[data-fk]');
-          if (box){ box.classList.remove('drafted'); box.querySelector('.dpill')?.remove(); }
-          dk.delete(k); n++;
+          if (box){
+            /* 초안 엔진이 넣어 둔 값으로 돌아갔다면 그 칸은 여전히 초안이다 —
+               배지를 떼면 확인된 값처럼 보인다 */
+            const p = box.querySelector('.dpill');
+            if (back){ if (p) p.textContent = '초안'; }
+            else { box.classList.remove('drafted'); p?.remove(); dk.delete(k); }
+          }
+          n++;
         });
         const kept = aiDone.length - n;
-        aiMsg(`${n}개를 비웠습니다`
+        aiMsg(`${n}개를 되돌렸습니다`
           + (kept ? ` · 직접 고친 ${kept}개는 그대로 두었습니다` : ''));
-        aiDone = [];
+        aiDone = []; aiPrev = {};
       };
     }catch(e){
       aiMsg('실패 — ' + esc(String(e.message).slice(0, 300)), true);
@@ -4835,6 +4869,15 @@ const AI_FIELDS = {
   finish:     '여운 — 한국어 짧은 서술, 120자 이내',
   flavors:    '맛 프로필. 다음에서 1~3개를 쉼표로: ' + FLAVORS.join(' | '),
   tags:       '태그 2~4개를 쉼표로 (한국어)',
+  /* 사용자 요청으로 넣었다. 원래는 뺐던 항목이다 — 틀린 시장가는 어느 화면에도
+     이상으로 나타나지 않으면서 평가 손익·가성비순 정렬·위시 술장 예상 지출을 모두
+     바꿔 놓는다. 초안 배지가 붙고 사용자가 확인한다는 전제로 채운다.
+     한국 소비자가 쓰는 값이므로 **원화 국내 시세**를 요구한다 — 그냥 시장가라고만
+     하면 파운드·유로 기준 값이 숫자만 바뀌어 돌아온다. */
+  market_low: '국내 시장가 하단. 원화 숫자만 (예: 90000). 모르면 빈 문자열',
+  market_high:'국내 시장가 상단. 원화 숫자만 (예: 130000). 모르면 빈 문자열',
+  rating_wb:  'Whiskybase 평균 평점. 100점 만점 숫자만 (예: 85.42). '
+              + '확실하지 않으면 빈 문자열 — 지어내지 않는다',
 };
 /** 값이 규격 안인지 본다. 모델을 믿지 않는다 — 앱이 다시 검사한다 */
 const AI_CHECK = {
@@ -4848,6 +4891,15 @@ const AI_CHECK = {
                  : (Number(v) >= 1 && Number(v) <= 80 ? String(Number(v)) : ''),
   size_ml: v => { const n = Number(v); return n >= 50 && n <= 5000 ? String(n) : ''; },
   bottler: v => String(v).trim().slice(0, 60),
+  /* 돈은 범위를 좁게 본다. 모델이 파운드·달러 값을 그대로 주거나 자릿수를 빠뜨리면
+     통계가 조용히 망가진다 — 5천원 미만·1억 초과는 위스키 한 병의 시세가 아니다 */
+  market_low:  v => { const n = Number(String(v).replace(/[,\s원]/g, ''));
+                      return n >= 5000 && n <= 100000000 ? String(Math.round(n)) : ''; },
+  market_high: v => { const n = Number(String(v).replace(/[,\s원]/g, ''));
+                      return n >= 5000 && n <= 100000000 ? String(Math.round(n)) : ''; },
+  /* Whiskybase 는 100점 만점이다. 10점 척도로 답하는 경우가 있어 범위로 걸러낸다 */
+  rating_wb:   v => { const n = Number(String(v).replace(/[^\d.]/g, ''));
+                      return n >= 50 && n <= 100 ? String(Number(n.toFixed(2))) : ''; },
 };
 /** 서술 필드 길이 상한. 넘으면 **버린다** — 잘린 문장은 고치기가 더 번거롭다 */
 const AI_MAXLEN = {nose: 300, taste: 300, finish: 300, cask: 200, tags: 120,
