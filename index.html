@@ -257,6 +257,12 @@ header.top{
 }
 .sqb b:empty{display:none}
 .sqb.on{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent)}
+/* GAME 은 아이콘이 아니라 글자다 — 나머지 정사각 버튼과 성격이 달라(놀이) 눈에
+   띄어야 하고, 아이콘 하나로는 "게임" 이 읽히지 않는다. 폭만 글자에 맞춰 넓힌다. */
+.gameb{
+  width:auto;padding:0 11px;font:800 11.5px/1 var(--sans);letter-spacing:.06em;
+  background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent);
+}
 
 /* ══════════════ 3행 — 주종 ▾ + 타입 ▾ + 개수 + 보기 ══════════════
    가로 스크롤을 쓰지 않는다. 이 행에 스크롤을 두면 PC 에서 창을 좁혔을 때
@@ -1091,6 +1097,72 @@ pre.csv{
   text-align:center;letter-spacing:-.01em;word-break:keep-all;
 }
 .qrbox .qcap{font-size:12px;color:var(--ink2);text-align:center;line-height:1.6}
+
+/* ══════════════ 블라인드 테이스팅 게임 ══════════════
+   시트 안에서만 쓰인다. 카드·행·막대 세 모양이 전부다. */
+.glist{display:flex;flex-direction:column;gap:9px;margin:11px 0}
+.gcard,.grow{
+  display:flex;gap:11px;align-items:flex-start;width:100%;text-align:left;
+  padding:12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);
+  color:var(--ink);
+}
+.gcard:active{background:var(--surface2)}
+.grow{cursor:pointer}
+.grow input{flex:none;width:19px;height:19px;margin-top:1px;accent-color:var(--accent)}
+/* 고를 수 없는 항목은 숨기지 않고 흐리게 둔다 — 왜 못 고르는지 이유가 같이 보여야 한다 */
+.goff{opacity:.5}
+.gcard.goff{pointer-events:none}
+.gletter{
+  flex:none;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+  background:var(--surface2);border:1px solid var(--line);
+  font:700 15px/1 var(--serif);color:var(--ink2);
+}
+.gletter.on{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent)}
+.gletter svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.gmeta{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.gmeta b{font-size:14px;font-weight:700;word-break:keep-all}
+.gmeta b em{font-style:normal;font-size:11px;font-weight:600;color:var(--ink3)}
+.gmeta i{font-style:normal;font-size:11.5px;color:var(--accent);font-weight:600}
+.gmeta > span{font-size:12px;color:var(--ink2);line-height:1.55;word-break:keep-all}
+.gmeta .hint{margin:2px 0 0}
+.gmeta .hint b{font-size:12px;color:var(--accent);text-decoration:underline;cursor:pointer}
+/* 축별 정답 태그 수. 0 인 축이 왜 문제인지 색으로 먼저 보이게 한다 */
+.gtag{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.gtag i{
+  font-style:normal;font-size:10.5px;font-weight:600;padding:2px 6px;border-radius:6px;
+  background:var(--surface2);border:1px solid var(--line);color:var(--ink2);
+}
+.gtag i.bad{background:#fdeaea;border-color:#f2c3c3;color:#b2413f}
+.gtag i.na{color:var(--ink3)}
+.gsum{
+  margin:11px 0 0;padding:10px 12px;border-radius:10px;text-align:center;
+  background:var(--surface2);font-size:12.5px;color:var(--ink2);
+}
+.gsum.warn{background:#fdeaea;color:#8f3634;text-align:left;line-height:1.6;word-break:keep-all}
+.gsum.warn b{color:#8f3634}
+/* 총점 — 결과의 첫 화면. 숫자가 제일 크다 */
+.gsc{
+  display:flex;flex-direction:column;align-items:center;gap:2px;padding:16px;margin:0 0 13px;
+  border-radius:14px;background:var(--accent-bg);border:1px solid var(--accent-line);
+}
+.gsc b{font:600 42px/1 var(--serif);color:var(--accent)}
+.gsc span{font-size:12.5px;color:var(--ink2)}
+.gsc i{font-style:normal;font-size:11.5px;color:var(--ink3)}
+.gres{padding:12px;border-radius:12px;background:var(--surface);border:1px solid var(--line);margin-bottom:9px}
+.grh{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grh b{flex:1;min-width:110px;font-size:14px;font-weight:700;word-break:keep-all}
+.grh em{font-style:normal;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:6px}
+.grh em.ok{background:var(--accent-bg);color:var(--accent)}
+.grh em.no{background:#fdeaea;color:#b2413f}
+.grh u{text-decoration:none;font:600 17px/1 var(--serif);color:var(--ink)}
+/* 항목별 획득 막대. 라벨 · 막대 · 점수 · 사유가 한 줄이고, 좁아지면 사유만 아래로 떨어진다 */
+.gbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:7px;font-size:11.5px}
+.gbar i{flex:none;width:64px;font-style:normal;color:var(--ink2)}
+.gbar > span{flex:1;min-width:70px;height:7px;border-radius:4px;background:var(--surface2);overflow:hidden}
+.gbar > span b{display:block;height:100%;border-radius:4px;background:var(--accent)}
+.gbar u{flex:none;text-decoration:none;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.gbar em{flex:none;font-style:normal;color:var(--ink3)}
+.gres .gtag i{font-size:10px;line-height:1.5;white-space:normal;word-break:keep-all}
 </style>
 </head>
 <body>
@@ -1150,6 +1222,10 @@ pre.csv{
         <input id="q" type="search" placeholder="이름 · 증류소 · 캐스크 검색" autocomplete="off">
         <button class="cl" id="qClr" hidden aria-label="검색어 지우기">✕</button>
       </div>
+      <!-- 게임은 검색 옆(2행)이다. 3행(주종·타입·개수·보기)에 버튼을 더 넣으면
+           360px 에서 드롭다운이 93px 로 줄어 `주종 전체 (145)` 가 잘린다.
+           2행에 넣으면 검색이 193px 로 남아 쓸 수 있다. -->
+      <button class="sqb gameb" id="btnGame" aria-label="블라인드 테이스팅 게임">GAME</button>
       <!-- 필터 안에 정렬도 들어갔으므로 라벨이 아니라 아이콘 하나로 둔다.
            적용된 개수는 배지로 보인다(정렬이 기본이 아니면 그것도 센다). -->
       <button class="sqb" id="btnFilter" aria-label="필터와 정렬"><svg viewBox="0 0 24 24"
@@ -1240,8 +1316,16 @@ const LS_VER = 'wc.ver';       // 마지막으로 이력을 확인한 버전
    작은 수정마다 올라가고, 이것은 사용자에게 알릴 만한 변화에만 올린다.
    CHANGES 는 앱 안에 둔다 — 오프라인에서도 이력을 볼 수 있어야 한다.
    CHANGELOG.md 와 내용을 맞춘다(그쪽이 사람이 읽는 정식 보고서). */
-const APP_VER = '1.4.1';
+const APP_VER = '1.5.0';
 const CHANGES = [
+  { v: '1.5.0', d: '2026-08-08', items: [
+    '블라인드 테이스팅 게임이 생겼습니다 — 상단 GAME 버튼',
+    '컬렉션에서 2~6병을 골라 잔에 붓고, 어느 잔이 어느 병인지 맞힙니다',
+    '정답은 내가 기록해 둔 향·맛·여운 노트입니다 (같은 계열은 같은 뜻으로 인정합니다)',
+    '점수는 이름 10 · Whiskybase 20 · 향 20 · 맛 30 · 여운 20 비율입니다',
+    '향·맛·여운은 몇 개를 골라도 됩니다 — 맞히면 오르고 빗나가면 그 1/3 만큼 깎입니다',
+    '게임 결과는 시음 기록·평점·잔량에 영향을 주지 않습니다',
+  ]},
   { v: '1.4.1', d: '2026-08-08', items: [
     'PC에서 창을 좁혔을 때 타입 목록의 뒷부분에 마우스로 닿을 수 없던 문제를 고쳤습니다 — 타입도 드롭다운이 되었습니다',
     '필터를 걸어도 화면이 밀리지 않습니다 — 조건 칩 줄 대신 초기화 버튼 하나로 바꿨습니다',
@@ -1405,6 +1489,9 @@ const STORE_LABELS = STORES.map(s => s[0]);
 const placeLine = txt => String(txt || '').split('\n')[0]
   .match(new RegExp('^(' + PLACE_LABELS.join('|') + ') : ?(.*)$'));
 const NOTE_TOP = 10;   /* 10열 × 1줄 */
+/* 세 축의 순서. 시음 기록·편집 폼·블라인드 게임·채점이 모두 이 순서를 쓴다 —
+   따로 적어 두면 한 곳만 바뀌어 축이 어긋난다. */
+const NOTE_AXES = ['nose','taste','finish'];
 const NOTES = {
   nose: { label:'향', en:'Nose', icon:'flower', desc:'마시기 전에 코로 맡는 향', list: [
     ['바닐라',10,'vanilla'], ['셰리',10,'dried'], ['꿀',9,'honey'], ['오크',9,'oak'],
@@ -3503,31 +3590,47 @@ function openDetail(id){
   };
 }
 
+/* ── 시음 UI 공용 조각 ─────────────────────────
+   시음 기록과 블라인드 게임이 **같은 마크업**을 쓴다. 두 곳에 복제해 두면 한쪽만
+   고쳐져 축 순서나 기본값이 어긋난다. p 는 id 접두어다('ss' 시음 · 'gg' 게임). */
+/** 향·맛·여운 3축 레이더 + 슬라이더. 레이더는 결과 표시 전용이고 값은 슬라이더로 넣는다
+    (꼭짓점 드래그는 손가락으로 정확히 집기 어렵고 화면 낭독기로 다룰 수 없다). */
+function radarBlock(p, sub){
+  return `<div class="radbox">
+      <div class="radtop"><b id="${p}ScoreV">—</b><span>${esc(sub)}</span></div>
+      <div class="radbody">
+        <div class="radwrap" id="${p}Radar"></div>
+        <div class="radsl">
+          ${RAD_AX.map(([k, lab]) => `
+            <div class="rsl">
+              <label for="${p}_${k}">${ic(NOTES[k].icon)}${lab}</label>
+              <input id="${p}_${k}" type="range" min="0" max="100" step="1" value="${RAD_DEF}" data-rax="${k}">
+              <output id="${p}o_${k}">${RAD_DEF}</output>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+/** 향·맛·여운 디스크립터 선택 3단. pre 는 축별 초기 선택 문자열. */
+function noteSections(target, pre){
+  return NOTE_AXES.map(ax => `
+      <div class="nsec" data-nsec="${ax}" data-ntarget="${target}">
+        <div class="nhead">${ic(NOTES[ax].icon)}
+          <b>${NOTES[ax].label} (${NOTES[ax].en})</b>
+          <span>${NOTES[ax].desc}</span></div>
+        <div class="nwrap">${noteGrid(ax, (pre && pre[ax]) || '', false)}</div>
+      </div>`).join('');
+}
+
 /* ── 시음 기록 입력 ───────────────────────── */
 function openSession(id){
   const it = byId(id); if (!it) return;
   openSheet('시음 기록 · ' + fullName(it), `
     <!-- 향·맛·여운 3축 평가. 슬라이더로 넣고 삼각 레이더가 결과를 보여 준다.
-         세 축의 평균 × 10 이 내 점수로 들어가되, 직접 덮어쓸 수 있다. -->
-    <!-- 점수는 그래프 상단에 크게. 슬라이더로만 정한다 —
+         세 축의 평균 × 10 이 내 점수로 들어가되, 직접 덮어쓸 수 있다.
+         점수는 그래프 상단에 크게. 슬라이더로만 정한다 —
          숫자를 직접 넣으면 그래프와 어긋나 어느 쪽이 참인지 알 수 없었다. -->
-    <div class="radbox">
-      <div class="radtop">
-        <b id="ssScoreV">—</b>
-        <span>내 점수 · 향·맛·여운 합 ÷ 3</span>
-      </div>
-      <div class="radbody">
-        <div class="radwrap" id="ssRadar"></div>
-        <div class="radsl">
-          ${RAD_AX.map(([k, lab]) => `
-            <div class="rsl">
-              <label for="ss_${k}">${ic(NOTES[k].icon)}${lab}</label>
-              <input id="ss_${k}" type="range" min="0" max="100" step="1" value="${RAD_DEF}" data-rax="${k}">
-              <output id="sso_${k}">${RAD_DEF}</output>
-            </div>`).join('')}
-        </div>
-      </div>
-    </div>
+    ${radarBlock('ss', '내 점수 · 향·맛·여운 합 ÷ 3')}
     <div class="fg">
       <div class="f"><label>마신 날</label><input id="ssAt" type="date" value="${today()}"></div>
       <div class="f"><label>장소</label>
@@ -3538,13 +3641,7 @@ function openSession(id){
     </div>
     <!-- 향·맛·여운을 메모보다 위에 둔다 — 고른 결과가 메모에 쌓이므로
          고르는 곳이 위, 결과가 아래여야 순서대로 읽힌다 -->
-    ${['nose','taste','finish'].map(ax => `
-      <div class="nsec" data-nsec="${ax}" data-ntarget="ssNote">
-        <div class="nhead">${ic(NOTES[ax].icon)}
-          <b>${NOTES[ax].label} (${NOTES[ax].en})</b>
-          <span>${NOTES[ax].desc}</span></div>
-        <div class="nwrap">${noteGrid(ax, '', false)}</div>
-      </div>`).join('')}
+    ${noteSections('ssNote')}
     <div class="fg">
       <div class="f wide"><label>인상 · 메모</label>
         <textarea id="ssNote" rows="4" placeholder="위에서 고른 항목이 여기에 정리됩니다. 자유롭게 고치세요."></textarea></div>
@@ -3673,6 +3770,381 @@ function openSession(id){
     }
     it.updated_at = nowISO();
     save(); render(); openDetail(it.id); toast('시음 기록을 저장했습니다');
+  };
+}
+
+/* ══════════════ 블라인드 테이스팅 게임 ══════════════
+   내 컬렉션에서 몇 병을 골라 잔에 붓고, 어느 잔이 어느 병인지 맞힌다.
+
+   **정답은 내가 기록해 둔 노트다.** 처음 기획은 "공식 테이스팅 노트" 를 정답으로
+   두려 했지만 kb.js 의 제품 229개 중 노트가 있는 것은 3개뿐이고, 컬렉션의 노트는
+   초안 엔진이 넣은 산문이라(`짙은 피트 스모크, 타르`) 디스크립터 84개와 정확히
+   일치하는 것이 축당 0~2개였다. 정답을 내 노트로 두면 서버도 AI 도 필요 없고,
+   판정이 결정적이고, 정답의 출처를 사용자가 안다 — 그리고 게임의 질문이
+   "이 위스키의 객관적 노트를 맞혀라" 에서 "내가 적어 둔 내 감각을 내가 다시
+   알아맞히나" 로 바뀐다. 셀프 모드에서는 이쪽이 맞다.
+
+   ⚠ 게임 기록을 `it.sessions` 에 넣지 않는다. 그 배열은 rating_my(최근 점수)와
+   잔량 차감, 술장 통계로 전부 흘러간다 — 넣으면 컬렉션 통계가 게임 점수로 오염된다.
+   게임은 `wc.game` 에 따로 두고, DB 가 아니므로 동기화도 타지 않는다(기기 로컬). */
+const LS_GAME = 'wc.game';
+/* 배점은 **비율**이다 — 100% 를 이름 10 · WB 20 · 향 20 · 맛 30 · 여운 20 으로 나눈다. */
+const GAME_ALLOC = {name:10, wb:20, nose:20, taste:30, finish:20};
+/* 축 점수는 **정답 개수로 정규화한다.** 정답 태그가 10개인 맛(30%)이면 개당 3%,
+   다 맞히면 30%. 오답은 정답 하나의 1/3 만큼 깎으므로 개당 1%.
+   이 방식이라야 **축마다 정답 태그 수가 달라도(실측 2~7개) 난이도가 같아진다** —
+   개당 고정 점수로 두면 정답이 2개인 축은 만점이 쉽고 7개인 축은 만점이 불가능하다.
+   선택 상한도 필요 없다: 84개를 다 찍으면 오답 페널티가 정답을 넘어 자동으로 0점이다. */
+const GAME_PEN = 3;              /* 증가 : 감소 = 3 : 1 */
+const GAME_WB_FREE = 1;          /* kb.js 값은 `≈87 (참고)` 형태의 정수 근사치다 — 이 오차까지 만점 */
+const GAME_WB_ZERO = 9;          /* 이 오차부터 0점 */
+const GAME_LETTERS = 'ABCDEF';
+const GAME_MIN_G = 2, GAME_MAX_G = GAME_LETTERS.length;
+
+/* 게임 목록. **새 게임은 이 배열에 항목만 더하면 된다.**
+   할 수 없는 것은 켜 두지 않는다 — 멀티는 목록에 두되 왜 안 되는지 적고 잠근다. */
+const GAMES = [
+  {key:'self', name:'셀프 블라인드', icon:'sparkle', on:true, line:'잔 2~6개 · 혼자',
+   desc:'컬렉션에서 몇 병을 골라 잔에 붓고, 어느 잔이 어느 병인지 맞힙니다. '
+      + '정답은 <b>내가 기록해 둔 노트</b>입니다 — 내 감각이 내 기록과 얼마나 맞는지 재는 게임입니다.'},
+  {key:'multi', name:'멀티 블라인드', icon:'group', on:false, line:'여러 명 · 서버 필요',
+   desc:'여러 명이 같은 잔을 놓고 점수를 겨룹니다.',
+   off:'참가자끼리 결과를 주고받을 서버가 필요합니다. 이 앱은 서버 없이 오프라인에서 '
+     + '동작하도록 만들어져 있어 아직 넣지 않았습니다.'},
+];
+
+/* 디스크립터 → 아이콘 계열. 계열이 동의어·상위개념을 묶어 준다
+   (`건포도` · `말린 과일` · `셰리` = dried) — AI 없이 유의어 매칭이 되는 이유다. */
+const NOTE_FAM = (() => {
+  const m = {};
+  NOTE_AXES.forEach(ax => NOTES[ax].list.forEach(([n, , icn]) => { m[ax + '|' + n] = icn; }));
+  return m;
+})();
+/** 한 축의 정답 태그. ① 정확 일치 ② 부분 문자열(산문 안에 이름이 있으면 인정 —
+    `짙은 피트 스모크` → `피트`) ③ 같은 아이콘 계열까지 확장.
+    ①은 ②의 부분집합이라 `includes` 한 번으로 둘을 함께 잡는다. */
+function gameTags(ax, raw){
+  const s = String(raw || ''), list = NOTES[ax].list;
+  const hit = list.filter(([n]) => s.includes(n)).map(x => x[0]);
+  if (!hit.length) return [];
+  const fams = new Set(hit.map(n => NOTE_FAM[ax + '|' + n]));
+  return [...new Set([...hit, ...list.filter(([, , icn]) => fams.has(icn)).map(x => x[0])])];
+}
+/** 한 병의 정답. **셋업에서 한 번만 계산해 고정한다** — 컬렉션을 나중에 고쳐도
+    진행 중인 게임의 정답이 흔들리지 않아야 한다. */
+function gameAnswer(it){
+  const tags = {}, miss = [];
+  NOTE_AXES.forEach(ax => { tags[ax] = gameTags(ax, it[ax]); if (!tags[ax].length) miss.push(ax); });
+  const m = String(it.rating_wb ?? '').match(/\d{2,3}(?:\.\d+)?/);
+  return {wb: m ? parseFloat(m[0]) : null, tags, miss};
+}
+
+let GAME = null;                 /* 진행 중인 한 판 */
+function loadGame(){
+  try{ GAME = JSON.parse(localStorage.getItem(LS_GAME) || 'null'); }catch(e){ GAME = null; }
+}
+function saveGame(){
+  try{
+    if (GAME) localStorage.setItem(LS_GAME, JSON.stringify(GAME));
+    else localStorage.removeItem(LS_GAME);
+  }catch(e){}
+}
+
+/* ── 채점 ──────────────────────────────────
+   축 점수 = 배점 × clamp(0, 1, (일치 − 불일치/3) ÷ 정답개수).
+   정답 태그가 10개인 맛(30%)이면 개당 3%, 다 맞히면 30%. 오답 5개가 더 붙으면
+   30 − 5 = 25%. 정답 개수로 나누므로 **축마다 태그 수가 달라도 난이도가 같다.**
+   0 아래로는 내려가지 않으므로 한 축에서 잃는 최대치는 그 축의 배점뿐이다.
+
+   WB 점수가 **없는 병만** 그 20% 를 남은 항목에 비례 배분한다(사용자가 고칠 수 없는
+   결손이므로). 정답 태그가 빈 축은 배분하지 않는다 — 대신 셋업에서 그런 병을
+   고르지 못하게 막는다. */
+/** 25.0 을 `25` 로 — 정규화 때문에 소수가 나오지만 화면에서는 끝의 .0 을 떼야 읽힌다 */
+const gameNum = n => String(Math.round(n * 10) / 10).replace(/\.0$/, '');
+const gameWbPts = d => d == null ? 0
+  : Math.round(GAME_ALLOC.wb * Math.max(0, 1 - Math.max(0, d - GAME_WB_FREE) / (GAME_WB_ZERO - GAME_WB_FREE)));
+function scoreGlass(g){
+  const a = g.ans, my = g.my || {}, rows = [];
+  rows.push({k:'name', label:'이름', max:GAME_ALLOC.name,
+    got: my.guessId && my.guessId === g.itemId ? GAME_ALLOC.name : 0});
+  if (a.wb != null){
+    const d = my.wb == null || my.wb === '' ? null : Math.abs(Number(my.wb) - a.wb);
+    /* 라벨 칸이 64px 이라 'Whiskybase 점수' 는 두 줄로 접힌다 — 셋업 화면의 칩과 같은 'WB' 로 줄인다 */
+    rows.push({k:'wb', label:'WB 점수', max:GAME_ALLOC.wb, got: gameWbPts(d), diff:d});
+  }
+  NOTE_AXES.forEach(ax => {
+    const ans = new Set(a.tags[ax] || []), max = GAME_ALLOC[ax];
+    const picks = (my.tags && my.tags[ax]) || [];
+    const hit = picks.filter(p => ans.has(p)).length, mis = picks.length - hit;
+    const frac = ans.size ? Math.max(0, Math.min(1, (hit - mis / GAME_PEN) / ans.size)) : 0;
+    rows.push({k:ax, label:NOTES[ax].label, max, hit, miss:mis, na:!ans.size,
+      need:ans.size, got: Math.round(max * frac * 10) / 10});
+  });
+  const max = rows.reduce((s, r) => s + r.max, 0);
+  const got = rows.reduce((s, r) => s + r.got, 0);
+  return {rows, got, max, pct: max ? Math.round(got / max * 100) : 0};
+}
+const gameDone = () => (GAME?.glasses || []).filter(g => g.my && g.my.filled).length;
+
+/* ── 게임 목록 ───────────────────────────── */
+function openGames(){
+  /* 진행 중인 판이 있으면 그것을 먼저 보여 준다 — 목록으로 돌아왔을 때
+     이어서 할 방법이 없으면 판이 사라진 것처럼 보인다. */
+  if (GAME) return openGameBoard();
+  openSheet('GAME', `
+    <div class="glist">
+      ${GAMES.map(g => `
+        <button type="button" class="gcard${g.on ? '' : ' goff'}" data-game="${g.key}"
+          ${g.on ? '' : 'aria-disabled="true"'}>
+          <span class="gletter">${ic(g.icon)}</span>
+          <span class="gmeta">
+            <b>${esc(g.name)}${g.on ? '' : ' <em>준비 중</em>'}</b>
+            <i>${esc(g.line)}</i>
+            <span>${g.desc}</span>
+            ${g.off ? `<span class="hint">${esc(g.off)}</span>` : ''}
+          </span>
+        </button>`).join('')}
+    </div>`,
+    `<button class="btn" data-act="close">닫기</button>`);
+  $('#shBody').onclick = e => {
+    const c = e.target.closest('[data-game]'); if (!c) return;
+    const g = GAMES.find(x => x.key === c.dataset.game);
+    if (!g?.on) return toast('아직 준비 중입니다');
+    openGameSetup();
+  };
+  $('#shFoot').onclick = e => { if (e.target.closest('[data-act="close"]')) closeSheet(); };
+}
+
+/* ── 셀프 셋업 ───────────────────────────── */
+/* 축별 정답 태그 수를 그대로 보여 준다. 축이 빈 병은 고를 수 없다 —
+   빈 축을 20점 만점으로 채점하면 무엇을 골라도 0점이라 게임이 망가진다.
+   숨기지 않고 이유와 함께 보여 주고, 노트를 채우도록 편집으로 보낸다. */
+function openGameSetup(){
+  const rows = DB.items.map(it => ({it, a: gameAnswer(it)}))
+    .sort((x, y) => x.a.miss.length - y.a.miss.length
+      || fullName(x.it).localeCompare(fullName(y.it), 'ko'));
+  const usable = rows.filter(r => !r.a.miss.length).length;
+  openSheet('셀프 블라인드 · 병 고르기', `
+    <p class="hint">잔에 부을 병을 <b>${GAME_MIN_G}~${GAME_MAX_G}개</b> 고르세요.
+      고른 병은 순서를 섞어 <b>A · B · C…</b> 로 붙습니다 — 그 순서대로 잔에 부으세요.</p>
+    ${usable < GAME_MIN_G ? `<div class="gsum warn">채점할 수 있는 병이 ${usable}개뿐입니다.
+      향·맛·여운 <b>세 축 모두</b> 노트가 있어야 정답을 만들 수 있습니다.
+      아래에서 <b>노트 채우기</b>를 눌러 채워 주세요.</div>` : ''}
+    <div class="glist">
+      ${rows.map(({it, a}) => {
+        const bad = a.miss.length;
+        return `<label class="grow${bad ? ' goff' : ''}">
+          <input type="checkbox" data-gpick="${esc(it.id)}" ${bad ? 'disabled' : ''}>
+          <span class="gmeta">
+            <b>${esc(fullName(it))}</b>
+            <span class="gtag">
+              ${NOTE_AXES.map(ax => `<i class="${a.tags[ax].length ? '' : 'bad'}"
+                >${NOTES[ax].label} ${a.tags[ax].length}</i>`).join('')}
+              <i class="${a.wb == null ? 'na' : ''}">WB ${a.wb == null ? '없음' : a.wb}</i>
+            </span>
+            ${bad ? `<span class="hint">${a.miss.map(ax => NOTES[ax].label).join('·')} 노트가 비어 채점할 수 없습니다
+              — <b data-gedit="${esc(it.id)}">노트 채우기</b></span>` : ''}
+          </span>
+        </label>`; }).join('')}
+    </div>
+    <p class="hint">WB 점수가 없는 병은 그 20점을 나머지 항목에 비례로 나눕니다 — 총점은 늘 100점입니다.</p>`,
+    `<button class="btn" data-act="back">뒤로</button>
+     <button class="btn pri" data-act="start" disabled>시작 (<b id="gN">0</b>)</button>`);
+  const picks = () => [...document.querySelectorAll('[data-gpick]:checked')].map(c => c.dataset.gpick);
+  const refresh = () => {
+    const n = picks().length;
+    $('#gN').textContent = n;
+    $('[data-act="start"]').disabled = n < GAME_MIN_G;
+    /* 상한에 닿으면 나머지를 잠근다 — 7개째를 누른 뒤 거절하는 것보다 낫다 */
+    document.querySelectorAll('[data-gpick]').forEach(c => {
+      if (!c.checked && !c.disabled) c.closest('.grow').classList.toggle('goff', n >= GAME_MAX_G);
+    });
+  };
+  $('#shBody').onchange = refresh;
+  $('#shBody').onclick = e => {
+    const ed = e.target.closest('[data-gedit]');
+    if (ed){ e.preventDefault(); return openEdit(ed.dataset.gedit); }
+    const c = e.target.closest('[data-gpick]');
+    if (c && !c.checked && picks().length >= GAME_MAX_G){ e.preventDefault(); toast(`최대 ${GAME_MAX_G}개까지입니다`); }
+  };
+  $('#shFoot').onclick = e => {
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    if (a.dataset.act === 'back') return openGames();
+    gameStart(picks());
+  };
+  refresh();
+}
+
+/** 고른 병을 섞어 판을 만든다. 정답은 여기서 고정된다. */
+function gameStart(ids){
+  const items = ids.map(byId).filter(Boolean);
+  if (items.length < GAME_MIN_G) return toast('두 병 이상 골라 주세요');
+  for (let i = items.length - 1; i > 0; i--){       // Fisher–Yates
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+  GAME = {v:1, mode:'self', at:nowISO(), revealed:false,
+    glasses: items.map((it, i) => ({letter: GAME_LETTERS[i], itemId: it.id, ans: gameAnswer(it), my:null}))};
+  saveGame();
+  openGameBoard();
+}
+
+/* ── 잔 목록 ─────────────────────────────── */
+function openGameBoard(){
+  if (!GAME) return openGames();
+  const gs = GAME.glasses, done = gameDone();
+  /* 정답을 공개했으면 결과로 보낸다 */
+  if (GAME.revealed) return openGameResult();
+  openSheet(`셀프 블라인드 · 잔 ${gs.length}개`, `
+    <p class="hint">아래 순서대로 잔에 부으세요. 어느 잔이 어느 병인지는
+      <b>다 입력한 뒤</b> 공개됩니다.</p>
+    <div class="glist">
+      ${gs.map((g, i) => `
+        <button type="button" class="gcard" data-glass="${i}">
+          <span class="gletter${g.my?.filled ? ' on' : ''}">${g.letter}</span>
+          <span class="gmeta">
+            <b>잔 ${g.letter}</b>
+            <span>${g.my?.filled
+              ? `${esc(nameOfGuess(g))} · 향 ${(g.my.tags.nose || []).length} · 맛 ${(g.my.tags.taste || []).length} · 여운 ${(g.my.tags.finish || []).length}`
+              : '아직 입력하지 않았습니다'}</span>
+          </span>
+        </button>`).join('')}
+    </div>
+    <div class="gsum">${done} / ${gs.length} 잔 입력</div>`,
+    `<button class="btn" data-act="quit">판 버리기</button>
+     <button class="btn pri" data-act="reveal" ${done < gs.length ? 'disabled' : ''}>정답 공개</button>`);
+  $('#shBody').onclick = e => {
+    const c = e.target.closest('[data-glass]'); if (!c) return;
+    openGameGlass(Number(c.dataset.glass));
+  };
+  $('#shFoot').onclick = e => {
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    if (a.dataset.act === 'quit'){
+      if (!confirm('이 판을 버릴까요?\n입력한 내용은 사라집니다.')) return;
+      GAME = null; saveGame(); closeSheet(); toast('판을 버렸습니다');
+      return;
+    }
+    GAME.revealed = true; saveGame(); openGameResult();
+  };
+}
+const nameOfGuess = g => {
+  const it = g.my?.guessId ? byId(g.my.guessId) : null;
+  return it ? fullName(it) : '이름 미선택';
+};
+
+/* ── 잔 하나 입력 (블라인드) ─────────────────
+   시음 기록과 같은 조각(radarBlock · noteSections)을 쓰되 **저장 경로가 완전히 다르다**
+   — openSession 안에서 분기하지 않고 형제 함수로 둔다. 저장부를 분기하면
+   it.sessions 오염을 막을 방법이 없다. 마신 날·장소·메모·함께한 사람·잔량 차감은
+   블라인드에 뜻이 없으므로 아예 없다. */
+function openGameGlass(i){
+  const g = GAME?.glasses?.[i]; if (!g) return openGameBoard();
+  const my = g.my || {tags:{}, wb:'', guessId:''};
+  const pre = {}; NOTE_AXES.forEach(ax => { pre[ax] = (my.tags[ax] || []).join(', '); });
+  openSheet(`잔 ${g.letter}`, `
+    ${radarBlock('gg', '내 점수 · 향·맛·여운 합 ÷ 3')}
+    ${noteSections('', pre)}
+    <div class="fg">
+      <div class="f wide"><label for="ggGuess">어느 병일까요</label>
+        <select id="ggGuess">
+          <option value="">— 고르지 않음 —</option>
+          ${GAME.glasses.map(x => byId(x.itemId)).filter(Boolean)
+            .sort((a, b) => fullName(a).localeCompare(fullName(b), 'ko'))
+            .map(it => `<option value="${esc(it.id)}"${my.guessId === it.id ? ' selected' : ''}
+              >${esc(fullName(it))}</option>`).join('')}
+        </select></div>
+      <div class="f"><label for="ggWb">Whiskybase 예상 점수</label>
+        <input id="ggWb" type="number" min="0" max="100" step="0.1" inputmode="decimal"
+          placeholder="예: 86.5" value="${esc(my.wb ?? '')}"></div>
+    </div>
+    <p class="hint">이 판에 담긴 병 ${GAME.glasses.length}개 중에서 고릅니다.
+      같은 병을 두 잔에 골라도 막지 않습니다 — 확신이 없을 때 둘 다 걸어 보는 것도 전략입니다.</p>
+    <p class="hint">향·맛·여운은 <b>몇 개를 고르든 상관없습니다.</b> 맞힌 태그가 그 축의 배점을
+      정답 개수로 나눈 만큼 올려 주고, 빗나간 태그는 그 <b>1/3</b> 만큼 깎습니다 —
+      확신 없는 것을 더 찍으면 손해입니다.</p>`,
+    `<button class="btn" data-act="back">뒤로</button>
+     <button class="btn pri" data-act="save">잔 ${g.letter} 저장</button>`);
+  const R = {nose: RAD_DEF, taste: RAD_DEF, finish: RAD_DEF};
+  if (my.rad) Object.assign(R, my.rad);
+  NOTE_AXES.forEach(ax => { const el = $('#gg_' + ax); if (el){ el.value = R[ax]; $('#ggo_' + ax).textContent = R[ax]; } });
+  const paint = () => { $('#ggRadar').innerHTML = radarSVG(R); $('#ggScoreV').textContent = radarScore(R) || '—'; };
+  $('#shBody').oninput = e => {
+    const r = e.target.closest('[data-rax]'); if (!r) return;
+    R[r.dataset.rax] = Number(r.value);
+    $('#ggo_' + r.dataset.rax).textContent = r.value;
+    paint();
+  };
+  const picksOf = ax => [...document.querySelectorAll(`[data-nsec="${ax}"] .ncell.on`)].map(b => b.dataset.npick);
+  $('#shBody').onclick = e => {
+    const pk = e.target.closest('[data-npick]');
+    if (pk){
+      /* 선택 상한을 두지 않는다 — 비율 채점이 스스로 막는다. 84개를 다 찍으면
+         오답 페널티가 정답을 넘어 0점이 되므로, 확신 없는 것을 더 찍을 이유가 없다. */
+      pk.classList.toggle('on');
+      pk.setAttribute('aria-pressed', pk.classList.contains('on'));
+      return;
+    }
+    const mr = e.target.closest('[data-nmore]');
+    if (mr){
+      const sec = mr.closest('[data-nsec]'), ax = sec.dataset.nsec;
+      const on = picksOf(ax).join(', ');
+      const open = !mr.dataset.nopen;
+      sec.querySelector('.nwrap').innerHTML = noteGrid(ax, on, open);
+      if (open) sec.querySelector('[data-nmore]').dataset.nopen = '1';
+    }
+  };
+  paint();
+  $('#shFoot').onclick = e => {
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    if (a.dataset.act === 'back') return openGameBoard();
+    const tags = {}; NOTE_AXES.forEach(ax => { tags[ax] = picksOf(ax); });
+    const anyTag = NOTE_AXES.some(ax => tags[ax].length);
+    const guessId = $('#ggGuess').value, wb = $('#ggWb').value.trim();
+    if (!anyTag && !guessId && !wb) return toast('하나라도 입력해 주세요');
+    g.my = {filled:true, tags, guessId, wb, rad:{...R}, score: radarScore(R)};
+    saveGame(); openGameBoard(); toast(`잔 ${g.letter} 저장`);
+  };
+}
+
+/* ── 결과 ────────────────────────────────── */
+function openGameResult(){
+  if (!GAME) return openGames();
+  const res = GAME.glasses.map(g => ({g, s: scoreGlass(g), it: byId(g.itemId)}));
+  const tot = Math.round(res.reduce((s, r) => s + r.s.pct, 0) / res.length);
+  const best = res.reduce((a, b) => b.s.pct > a.s.pct ? b : a);
+  openSheet('셀프 블라인드 · 결과', `
+    <div class="gsc"><b>${tot}</b><span>평균 점수 · ${res.length}잔</span>
+      <i>가장 잘 맞힌 잔 ${best.g.letter} · ${best.s.pct}점</i></div>
+    ${res.map(({g, s, it}) => {
+      const right = g.my?.guessId === g.itemId;
+      return `<div class="gres">
+        <div class="grh"><span class="gletter on">${g.letter}</span>
+          <b>${esc(it ? fullName(it) : '(삭제된 병)')}</b>
+          <em class="${right ? 'ok' : 'no'}">${right ? '맞힘' : '틀림'}</em>
+          <u>${s.pct}점</u></div>
+        <div class="hint">내 예상 · ${esc(nameOfGuess(g))}</div>
+        ${s.rows.map(r => {
+          const bar = r.max ? Math.round(r.got / r.max * 100) : 0;
+          const detail = r.k === 'wb'
+            ? (r.diff == null ? '미입력' : `오차 ${r.diff.toFixed(1)}점`)
+            : r.k === 'name' ? (right ? '정답' : '오답')
+            : r.na ? '정답 노트 없음'
+            : `일치 ${r.hit}/${r.need} · 오답 ${r.miss}`;
+          return `<div class="gbar"><i>${esc(r.label)}</i>
+            <span><b style="width:${bar}%"></b></span>
+            <u>${gameNum(r.got)} / ${r.max}</u><em>${esc(detail)}</em></div>`; }).join('')}
+        <div class="gtag">${NOTE_AXES.map(ax =>
+          `<i>${NOTES[ax].label} 정답: ${esc((g.ans.tags[ax] || []).join(', ') || '—')}</i>`).join('')}</div>
+      </div>`; }).join('')}
+    <p class="hint">정답은 <b>내가 기록해 둔 노트</b>에서 뽑았습니다
+      (같은 아이콘 계열은 같은 뜻으로 인정합니다). 노트를 고치면 다음 판의 정답이 달라집니다.</p>`,
+    `<button class="btn" data-act="close">닫기</button>
+     <button class="btn pri" data-act="again">새 판</button>`);
+  $('#shFoot').onclick = e => {
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    GAME = null; saveGame();
+    if (a.dataset.act === 'again') return openGameSetup();
+    closeSheet();
   };
 }
 
@@ -5893,6 +6365,7 @@ $('#emptyBox').onclick = e => {
   render();
 };
 $('#btnAdd').onclick = openWizard;
+$('#btnGame').onclick = openGames;
 $('#btnStats').onclick = openStats;
 $('#btnVer').onclick = openChanges;
 $('#btnChanges').onclick = openChanges;
@@ -5994,6 +6467,9 @@ async function retrofitThumbs(opt){
 try{ const t = localStorage.getItem(LS_THEME); if (t) setTheme(t); }catch(e){}
 loadSync();
 load();
+/* 진행 중인 게임 한 판을 되살린다. DB 와 별개라 동기화를 타지 않는다 —
+   잔을 눈앞에 두고 하는 놀이라서 기기 로컬이 맞다. */
+loadGame();
 /* 대부분이 위스키이므로 위스키 탭에서 시작한다 (다른 주종이 섞여 있을 때만 의미가 있다) */
 {
   const c = {};
