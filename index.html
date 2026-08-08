@@ -1216,6 +1216,32 @@ pre.csv{
   flex:1;min-width:0;height:31px;padding:0 8px;border-radius:8px;font-size:11.5px;
   background:var(--surface);border:1px solid var(--line);color:var(--ink);
 }
+/* 맞힐 항목 — 켜고 끄면 배점이 자동으로 다시 나뉜다. 나뉜 결과를 바로 아래에
+   숫자로 보여 준다: 켰을 때 무엇이 얼마나 줄어드는지 눈으로 보여야 고를 수 있다. */
+.gcats{margin-top:11px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.gcats > span{flex:none;width:100%;font-size:11.5px;color:var(--ink2);font-weight:600}
+.gcatb{
+  flex:none;padding:6px 11px;border-radius:999px;font-size:12px;
+  background:var(--surface);border:1px solid var(--line);color:var(--ink3);
+}
+.gcatb.on{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent);font-weight:700}
+.gcats > i{
+  flex:none;width:100%;font-style:normal;font-size:10.5px;line-height:1.5;
+  color:var(--ink3);word-break:keep-all;
+}
+.gcats > i b{color:var(--ink2)}
+.gcatw{
+  flex:none;width:100%;display:flex;flex-wrap:wrap;gap:4px;
+  padding:8px;border-radius:9px;background:var(--surface2);
+}
+.gcatw em{font-style:normal;font-size:10.5px;color:var(--ink2)}
+.gcatw em b{color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}
+/* 힌트 — 축 머리 맨 오른쪽. 대가가 있는 동작이라 강조색을 쓰지 않는다 */
+.nhint{
+  flex:none;padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:600;
+  background:var(--surface2);border:1px solid var(--line);color:var(--ink2);
+}
+.nhint:active{background:var(--accent-bg);color:var(--accent)}
 </style>
 </head>
 <body>
@@ -1379,6 +1405,9 @@ const CHANGES = [
     '난이도를 고를 수 있습니다 — 초급은 후보를 좁혀 주고 빗나가도 깎지 않습니다',
     '중급은 정답 개수만, 고급은 아무것도 알려 주지 않고 같은 계열도 인정하지 않습니다',
     '직접 을 고르면 네 가지 규칙을 하나씩 켜고 끌 수 있습니다',
+    '맞힐 항목도 고릅니다 — 이름 · WB 점수 · 도수 · 숙성연수 · 지역',
+    '켠 항목의 배점이 합 100 이 되게 자동으로 나뉩니다 (표로 미리 보여 드립니다)',
+    '막히면 축 머리의 힌트 — 정답 하나를 켜 주고, 그 하나는 점수에 넣지 않습니다',
     '향·맛·여운은 몇 개를 골라도 됩니다 — 맞히면 오르고 빗나가면 그 1/3 만큼 깎입니다',
     '맨 위 내 점수가 그 술의 Whiskybase 점수 예상을 겸합니다 (따로 입력하지 않습니다)',
     '결과를 시음 기록으로 옮길 수 있습니다 — 고른 향·맛·여운과 점수가 채워져 열립니다',
@@ -3683,7 +3712,7 @@ function radarBlock(p, sub){
     need 를 주면 축 머리에 **정답이 몇 개인지** 적는다 — 배점이 정답 개수로 정규화되므로
     개수를 모르면 몇 개를 골라야 할지 판단할 수가 없다(게임에서는 필수 정보다).
     몇 개인지만 알려 주고 **무엇인지는 알려 주지 않는다.** */
-function noteSections(target, pre, need, cand){
+function noteSections(target, pre, need, cand, hint){
   return NOTE_AXES.map(ax => {
     const only = cand && cand[ax];
     return `
@@ -3692,7 +3721,8 @@ function noteSections(target, pre, need, cand){
           <b>${NOTES[ax].label} (${NOTES[ax].en})</b>
           <span>${need && need[ax] ? `정답 <b class="nnum">${need[ax]}개</b>`
             : only ? `후보 <b class="nnum">${only.length}개</b>` : NOTES[ax].desc}</span>
-          ${need || only ? `<u class="nsel" data-ncnt="${ax}">0 고름</u>` : ''}</div>
+          ${need || only ? `<u class="nsel" data-ncnt="${ax}">0 고름</u>` : ''}
+          ${hint ? `<button type="button" class="nhint" data-nhint="${ax}">힌트</button>` : ''}</div>
         <div class="nwrap">${noteGrid(ax, (pre && pre[ax]) || '', false, only)}</div>
       </div>`; }).join('');
 }
@@ -3877,8 +3907,38 @@ function openSession(id, pre){
    잔량 차감, 술장 통계로 전부 흘러간다 — 넣으면 컬렉션 통계가 게임 점수로 오염된다.
    게임은 `wc.game` 에 따로 두고, DB 가 아니므로 동기화도 타지 않는다(기기 로컬). */
 const LS_GAME = 'wc.game';
-/* 배점은 **비율**이다 — 100% 를 이름 10 · WB 20 · 향 20 · 맛 30 · 여운 20 으로 나눈다. */
+/* 배점은 **비율**이다. 아래 가중치는 절대 점수가 아니라 비율의 재료다 —
+   켜진 항목의 가중치 합이 100 이 되도록 `gameAlloc` 이 비례 배분한다.
+   기본(도수·숙성·지역 꺼짐)의 합이 정확히 100 이므로 기본 배점은
+   이름 10 · WB 20 · 향 20 · 맛 30 · 여운 20 그대로다. */
 const GAME_ALLOC = {name:10, wb:20, nose:20, taste:30, finish:20};
+/* 맞힐 항목. `on` 은 기본 켜짐 여부다. 켜고 끄면 배점이 자동으로 다시 나뉜다.
+   전부 이미 있는 필드로 채점한다 — 새 데이터를 요구하지 않는다.
+   dist 가 있으면 거리 채점이다: 오차 free 이하는 만점, zero 에서 0점, 사이는 선형. */
+const GAME_CATS = [
+  {k:'name',   label:'이름',     w:10, on:true,  kind:'pick'},
+  {k:'wb',     label:'WB 점수',  w:20, on:true,  kind:'dist', free:1,   zero:9,  unit:''},
+  {k:'abv',    label:'도수',     w:10, on:false, kind:'dist', free:0.5, zero:6,  unit:'%'},
+  {k:'age',    label:'숙성연수',  w:5,  on:false, kind:'dist', free:1,   zero:10, unit:'년'},
+  {k:'region', label:'지역',     w:5,  on:false, kind:'exact'},
+  {k:'nose',   label:'향',       w:20, on:true,  kind:'axis'},
+  {k:'taste',  label:'맛',       w:30, on:true,  kind:'axis'},
+  {k:'finish', label:'여운',     w:20, on:true,  kind:'axis'},
+];
+const GAME_CAT = Object.fromEntries(GAME_CATS.map(c => [c.k, c]));
+/* 향·맛·여운은 끌 수 없다 — 이 게임의 본체이고, 셋을 다 끄면 남는 것이 없다 */
+const GAME_CAT_FIXED = ['nose','taste','finish'];
+const GAME_CATS_OPT = GAME_CATS.filter(c => !GAME_CAT_FIXED.includes(c.k));
+const gameCatsDefault = () => GAME_CATS.filter(c => c.on).map(c => c.k);
+/* 고른 항목은 판과 별개로 기억한다 — 난이도(wc.glv)와 같은 성격이다 */
+const LS_GCATS = 'wc.gcats';
+const loadCats = () => { try{
+  const v = JSON.parse(localStorage.getItem(LS_GCATS) || 'null');
+  if (!Array.isArray(v)) return gameCatsDefault();
+  /* 향·맛·여운은 끌 수 없으므로 저장된 값이 무엇이든 되돌려 넣는다 */
+  return [...new Set([...v.filter(k => GAME_CAT[k]), ...GAME_CAT_FIXED])];
+}catch(e){ return gameCatsDefault(); } };
+const saveCats = a => { try{ localStorage.setItem(LS_GCATS, JSON.stringify(a)); }catch(e){} };
 /* 축 점수는 **정답 개수로 정규화한다.** 정답 태그가 10개인 맛(30%)이면 개당 3%,
    다 맞히면 30%. 오답은 정답 하나의 1/3 만큼 깎으므로 개당 1%.
    이 방식이라야 **축마다 정답 태그 수가 달라도(실측 2~7개) 난이도가 같아진다** —
@@ -3987,8 +4047,15 @@ function gameAnswer(it, opt){
   const fam = !opt || opt.fam !== false;
   const tags = {}, miss = [];
   NOTE_AXES.forEach(ax => { tags[ax] = gameTags(ax, it[ax], fam); if (!tags[ax].length) miss.push(ax); });
-  const m = String(it.rating_wb ?? '').match(/\d{2,3}(?:\.\d+)?/);
-  return {wb: m ? parseFloat(m[0]) : null, tags, miss};
+  const num = v => { const m = String(v ?? '').match(/\d+(?:\.\d+)?/); return m ? parseFloat(m[0]) : null; };
+  /* 숙성연수는 `NAS`(미표기) 가 있고 지역도 비어 있을 수 있다. 값이 없는 항목은
+     `dead` 에 담아 배점을 비례로 흘려보낸다.
+     ⚠ `miss` 와 섞지 않는다 — miss 는 **향·맛·여운 축이 비었다**는 뜻이고 셋업이
+     그 병을 잠그는 근거다. NAS 라는 이유로 병이 잠기면 안 된다. */
+  const a = {wb: num(it.rating_wb), abv: num(it.abv), age: num(it.age),
+    region: String(it.region || '').trim() || null, tags, miss, dead: []};
+  ['wb','abv','age','region'].forEach(k => { if (a[k] == null) a.dead.push(k); });
+  return a;
 }
 /** 후보 좁히기(초급) — 정답 전부 + 오답 n 개를 섞어 돌려준다.
     **판을 만들 때 한 번만 뽑아 고정한다** — 잔을 다시 열 때마다 후보가 바뀌면
@@ -4030,42 +4097,73 @@ function saveGame(){
    고르지 못하게 막는다. */
 /** 25.0 을 `25` 로 — 정규화 때문에 소수가 나오지만 화면에서는 끝의 .0 을 떼야 읽힌다 */
 const gameNum = n => String(Math.round(n * 10) / 10).replace(/\.0$/, '');
-/** 모드별 배점. **셀프 테스트는 병을 알고 시작하므로 `이름` 10% 가 뜻이 없다** —
-    맞힐 것이 없는 항목을 0점으로 남겨 두면 총점이 늘 90점을 넘지 못하므로,
-    그 10% 를 세 축에 고루 나눈다(각 +3.33). WB 는 남긴다 — 병을 알아도
-    "세계가 이 술을 몇 점으로 보는가" 는 여전히 맞히는 문제다. */
-function gameAlloc(mode){
-  if (mode !== 'solo') return GAME_ALLOC;
-  const share = GAME_ALLOC.name / NOTE_AXES.length;
-  return {name:0, wb:GAME_ALLOC.wb, nose:GAME_ALLOC.nose + share,
-    taste:GAME_ALLOC.taste + share, finish:GAME_ALLOC.finish + share};
+/** 배점을 낸다. 켜진 항목의 가중치 합이 100 이 되도록 **비례 배분**한다 —
+    항목을 켜고 끌 때마다 표를 고쳐 쓰지 않아도 총점이 늘 100 이다.
+
+    **셀프 테스트는 병을 알고 시작하므로 `이름` 이 뜻이 없다** — 맞힐 것이 없는 항목을
+    0점으로 남기면 총점이 만점에 닿지 못하므로, 그 몫을 **세 축에 고루** 나눈다.
+    비례가 아니라 균등인 것은 결정된 규칙이다(WB 로도 흘리지 않는다).
+
+    `miss` 는 이 병에서 **데이터가 없어 채점할 수 없는** 항목이다(WB 없음, NAS 등).
+    사용자가 고칠 수 없는 결손이므로 그 몫도 비례로 흘려보낸다. */
+function gameAlloc(mode, cats, miss){
+  const on = new Set(cats && cats.length ? cats : gameCatsDefault());
+  const dead = new Set(miss || []);
+  const w = {};
+  GAME_CATS.forEach(c => { w[c.k] = (on.has(c.k) && !dead.has(c.k)) ? c.w : 0; });
+  if (mode === 'solo' && w.name){
+    const share = w.name / NOTE_AXES.length;
+    NOTE_AXES.forEach(ax => { w[ax] += share; });
+    w.name = 0;
+  }
+  const sum = Object.values(w).reduce((a, b) => a + b, 0);
+  if (sum) Object.keys(w).forEach(k => { w[k] = w[k] / sum * 100; });
+  return w;
 }
-const gameWbPts = (d, max) => d == null ? 0
-  : Math.round(max * Math.max(0, 1 - Math.max(0, d - GAME_WB_FREE) / (GAME_WB_ZERO - GAME_WB_FREE)));
+/** 거리 채점 — 오차 free 이하는 만점, zero 에서 0점, 사이는 선형 */
+const gameDistPts = (d, max, c) => d == null ? 0
+  : Math.round(max * Math.max(0, 1 - Math.max(0, d - c.free) / (c.zero - c.free)) * 10) / 10;
 function scoreGlass(g, mode){
   const a = g.ans, my = g.my || {}, rows = [];
-  const AL = gameAlloc(mode || (GAME && GAME.mode));
-  /* 셀프 테스트는 이름 항목 자체를 만들지 않는다 — 0/0 짜리 빈 줄이 결과에 남으면
-     "맞혀야 했는데 못 맞혔다"로 읽힌다 */
-  if (AL.name) rows.push({k:'name', label:'이름', max:AL.name,
-    got: my.guessId && my.guessId === g.itemId ? AL.name : 0});
-  if (a.wb != null){
-    /* WB 예상 점수는 **레이더의 내 점수(세 축 평균)를 그대로 쓴다.** 따로 입력칸을 두면
-       같은 것을 두 번 묻는 셈이다 — 향·맛·여운을 매긴 결과가 곧 "이 술을 몇 점으로
-       보는가"이고, 그것을 세계 평점과 견주는 것이 이 항목의 뜻이다. */
-    const mine = my.score === '' || my.score == null ? null : Number(my.score);
-    const d = mine == null ? null : Math.abs(mine - a.wb);
-    /* 라벨 칸이 64px 이라 'Whiskybase 점수' 는 두 줄로 접힌다 — 셋업 화면의 칩과 같은 'WB' 로 줄인다 */
-    rows.push({k:'wb', label:'WB 점수', max:AL.wb, got: gameWbPts(d, AL.wb), diff:d, mine});
-  }
-  NOTE_AXES.forEach(ax => {
-    const ans = new Set(a.tags[ax] || []), max = AL[ax];
-    const picks = (my.tags && my.tags[ax]) || [];
+  const md = mode || (GAME && GAME.mode);
+  const AL = gameAlloc(md, g.cats || (GAME && GAME.cats), a.dead);
+  const pd = gameOpt().penDiv;      /* 감점 분모. 0 이면 초급(빗나가도 깎지 않는다) */
+  GAME_CATS.forEach(c => {
+    const max = AL[c.k];
+    /* 배점이 0 인 항목은 줄을 만들지 않는다 — 껐거나 데이터가 없어 채점 대상이 아니고,
+       `0/0` 짜리 빈 줄이 결과에 남으면 "맞혀야 했는데 못 맞혔다"로 읽힌다 */
+    if (!max) return;
+    if (c.kind === 'pick'){
+      rows.push({k:c.k, label:c.label, max,
+        got: my.guessId && my.guessId === g.itemId ? max : 0});
+      return;
+    }
+    if (c.kind === 'dist'){
+      /* WB 는 **레이더의 내 점수(세 축 평균)를 그대로 쓴다.** 따로 입력칸을 두면 같은
+         것을 두 번 묻는 셈이다. 도수·숙성연수는 각자 입력칸이 있다. */
+      const raw = c.k === 'wb' ? my.score : (my[c.k] ?? '');
+      const mine = raw === '' || raw == null ? null : Number(raw);
+      const d = mine == null || isNaN(mine) ? null : Math.abs(mine - a[c.k]);
+      rows.push({k:c.k, label:c.label, max, got: gameDistPts(d, max, c),
+        diff:d, mine, real:a[c.k], unit:c.unit});
+      return;
+    }
+    if (c.kind === 'exact'){
+      const mine = (my[c.k] || '').trim();
+      rows.push({k:c.k, label:c.label, max, mine, real:a[c.k],
+        got: mine && mine === a[c.k] ? max : 0});
+      return;
+    }
+    /* 축(향·맛·여운) — 정답 개수로 정규화한다.
+       **힌트로 받은 답은 일치에서 뺀다**(hinted). 정보는 주되 점수는 주지 않는 것이
+       힌트의 대가다 — 이러면 힌트 값을 따로 정하지 않아도 스스로 균형이 잡힌다. */
+    const ans = new Set(a.tags[c.k] || []);
+    const picks = (my.tags && my.tags[c.k]) || [];
+    const hinted = ((my.hints && my.hints[c.k]) || []).filter(h => ans.has(h)).length;
     const hit = picks.filter(p => ans.has(p)).length, mis = picks.length - hit;
-    /* 감점 비율은 난이도가 정한다 — 0 이면 초급(빗나가도 깎지 않는다) */
-    const pd = gameOpt().penDiv;
-    const frac = ans.size ? Math.max(0, Math.min(1, (hit - (pd ? mis / pd : 0)) / ans.size)) : 0;
-    rows.push({k:ax, label:NOTES[ax].label, max, hit, miss:mis, na:!ans.size,
+    const frac = ans.size
+      ? Math.max(0, Math.min(1, (hit - hinted - (pd ? mis / pd : 0)) / ans.size)) : 0;
+    rows.push({k:c.k, label:c.label, max, hit, miss:mis, hinted, na:!ans.size,
       need:ans.size, got: Math.round(max * frac * 10) / 10});
   });
   const max = rows.reduce((s, r) => s + r.max, 0);
@@ -4107,10 +4205,12 @@ function openGames(){
 /* 축별 정답 태그 수를 그대로 보여 준다. 축이 빈 병은 고를 수 없다 —
    빈 축을 20점 만점으로 채점하면 무엇을 골라도 0점이라 게임이 망가진다.
    숨기지 않고 이유와 함께 보여 주고, 노트를 채우도록 편집으로 보낸다. */
-function openGameSetup(mode, lvKey){
+function openGameSetup(mode, lvKey, catsIn){
   const solo = mode === 'solo';
   const lo = solo ? 1 : GAME_MIN_G, hi = solo ? 1 : GAME_MAX_G;
   const lv = gameLevel(lvKey || loadLv());
+  /* 맞힐 항목. 셀프 테스트는 병을 알고 시작하므로 `이름` 을 물을 수 없다 — 목록에서 뺀다 */
+  let cats = (catsIn || loadCats()).filter(k => !(solo && k === 'name'));
   /* 난이도가 정답 범위를 바꾸므로(fam) **고를 수 있는 병 목록도 난이도마다 다르다.**
      난이도를 바꾸면 이 화면을 다시 그린다 — 안 그리면 고급에서 못 쓸 병이 켜져 있다. */
   const rows = DB.items.map(it => ({it, a: gameAnswer(it, lv.opt)}))
@@ -4123,6 +4223,15 @@ function openGameSetup(mode, lvKey){
         `<button type="button" class="glvb${l.key === lv.key ? ' on' : ''}"
           data-glv="${l.key}">${l.name}</button>`).join('')}</div>
       <p>${lv.desc}</p>
+      <div class="gcats">
+        <span>맞힐 항목</span>
+        ${GAME_CATS_OPT.map(c => `<button type="button" class="gcatb${cats.includes(c.k) ? ' on' : ''}"
+          data-gcat="${c.k}">${c.label}</button>`).join('')}
+        <i>향·맛·여운은 늘 채점합니다. 켠 항목의 배점이 <b>합 100</b>이 되게 자동으로 나뉩니다.</i>
+        <div class="gcatw">${(() => { const A = gameAlloc(mode, cats);
+          return GAME_CATS.filter(c => A[c.k] > 0)
+            .map(c => `<em>${c.label} <b>${gameNum(A[c.k])}</b></em>`).join(''); })()}</div>
+      </div>
       ${lv.key !== 'custom' ? '' : `<div class="gopt">
         <label><input type="checkbox" data-go="showCount" ${lv.opt.showCount ? 'checked' : ''}>
           <span>축마다 정답이 <b>몇 개인지</b> 알려 준다</span></label>
@@ -4216,20 +4325,29 @@ function openGameSetup(mode, lvKey){
       /* 난이도를 바꾸면 정답 범위가 바뀌므로 화면을 다시 그린다. 고른 병은 버린다 —
          고급에서 못 쓰게 된 병이 선택된 채로 남으면 시작할 수 없는 판이 만들어진다 */
       saveLv(b.dataset.glv);
-      openGameSetup(mode, b.dataset.glv);
+      return openGameSetup(mode, b.dataset.glv, cats);
+    }
+    const gc = e.target.closest('[data-gcat]');
+    if (gc){
+      const k = gc.dataset.gcat;
+      const next = cats.includes(k) ? cats.filter(x => x !== k) : [...cats, k];
+      saveCats(next);
+      /* 배점 요약이 바뀌므로 다시 그린다. 병 선택은 이 변경과 무관하지만, 셋업을
+         다시 그리는 것이 배점 표를 부분 갱신하는 것보다 어긋날 여지가 없다 */
+      return openGameSetup(mode, lv.key, next);
     }
   };
   $('#shFoot').onclick = e => {
     const a = e.target.closest('[data-act]'); if (!a) return;
     if (a.dataset.act === 'back') return openGames();
-    gameStart(picks(), mode, lv.key);
+    gameStart(picks(), mode, lv.key, cats);
   };
   refresh();
 }
 
 /** 고른 병으로 판을 만든다. 정답은 여기서 고정된다.
     블라인드는 순서를 섞고 A·B·C 를 붙이지만, 셀프 테스트는 병을 알고 하므로 섞지 않는다. */
-function gameStart(ids, mode, lvKey){
+function gameStart(ids, mode, lvKey, cats){
   const solo = mode === 'solo';
   const lv = gameLevel(lvKey);
   const items = ids.map(byId).filter(Boolean);
@@ -4241,8 +4359,8 @@ function gameStart(ids, mode, lvKey){
   /* 난이도(opt)와 후보(cand)를 판에 **고정한다** — 정답과 같은 이유다.
      도중에 난이도를 바꿔 채점 기준이 흔들리거나, 잔을 다시 열 때 후보가 재추첨되어
      앞서 고른 것이 목록에서 사라지는 일이 없어야 한다. */
-  GAME = {v:2, mode: solo ? 'solo' : 'self', at:nowISO(), revealed:false,
-    lv: lv.key, opt: {...lv.opt},
+  GAME = {v:3, mode: solo ? 'solo' : 'self', at:nowISO(), revealed:false,
+    lv: lv.key, opt: {...lv.opt}, cats: [...(cats && cats.length ? cats : gameCatsDefault())],
     glasses: items.map((it, i) => {
       const ans = gameAnswer(it, lv.opt);
       const cand = lv.opt.narrow
@@ -4318,10 +4436,14 @@ function openGameGlass(i){
   const opt = gameOpt();
   const need = {};
   if (opt.showCount) NOTE_AXES.forEach(ax => { need[ax] = (g.ans.tags[ax] || []).length; });
+  /* 이 병에서 실제로 채점되는 항목만 묻는다 — 껐거나 데이터가 없는 항목(NAS 등)을
+     물으면 답해도 점수가 없어 속은 기분이 된다 */
+  const AL = gameAlloc(GAME.mode, GAME.cats, g.ans.dead);
+  const ask = k => AL[k] > 0;
   openSheet(solo ? `셀프 테스트 · ${it ? fullName(it) : ''}` : `잔 ${g.letter}`, `
-    ${radarBlock('gg', '내 점수 · Whiskybase 예상 점수로도 채점됩니다')}
-    ${noteSections('', pre, opt.showCount ? need : null, g.cand)}
-    ${solo ? '' : `<div class="fg">
+    ${radarBlock('gg', ask('wb') ? '내 점수 · Whiskybase 예상 점수로도 채점됩니다' : '내 점수 · 향·맛·여운 합 ÷ 3')}
+    ${noteSections('', pre, opt.showCount ? need : null, g.cand, true)}
+    ${!ask('name') ? '' : `<div class="fg">
       <div class="f wide"><label for="ggGuess">어느 병일까요</label>
         <select id="ggGuess">
           <option value="">— 고르지 않음 —</option>
@@ -4333,11 +4455,26 @@ function openGameGlass(i){
     </div>
     <p class="hint">이 판에 담긴 병 ${GAME.glasses.length}개 중에서 고릅니다.
       같은 병을 두 잔에 골라도 막지 않습니다 — 확신이 없을 때 둘 다 걸어 보는 것도 전략입니다.</p>`}
+    ${!(ask('abv') || ask('age') || ask('region')) ? '' : `<div class="fg">
+      ${ask('abv') ? `<div class="f"><label for="ggAbv">도수 예상</label>
+        <input id="ggAbv" type="number" min="30" max="70" step="0.1" inputmode="decimal"
+          placeholder="예: 43" value="${esc(my.abv ?? '')}"></div>` : ''}
+      ${ask('age') ? `<div class="f"><label for="ggAge">숙성연수 예상</label>
+        <input id="ggAge" type="number" min="0" max="60" step="1" inputmode="numeric"
+          placeholder="예: 12" value="${esc(my.age ?? '')}"></div>` : ''}
+      ${ask('region') ? `<div class="f wide"><label for="ggRegion">지역 예상</label>
+        <select id="ggRegion"><option value="">— 고르지 않음 —</option>
+          ${Object.keys(REGION_COUNTRY).map(r =>
+            `<option value="${esc(r)}"${my.region === r ? ' selected' : ''}>${esc(r)}</option>`).join('')}
+        </select></div>` : ''}
+    </div>`}
     <p class="hint">향·맛·여운은 <b>몇 개를 고르든 상관없습니다.</b> 맞힌 태그가 그 축의 배점을
       정답 개수로 나눈 만큼 올려 줍니다. ${opt.penDiv
         ? `빗나간 태그는 그 <b>1/${opt.penDiv}</b> 만큼 깎으므로 확신 없는 것을 더 찍으면 손해입니다.`
         : '이 난이도에서는 <b>빗나가도 깎지 않습니다</b> — 마음껏 찍어 보세요.'}
-      맨 위 <b>내 점수</b>는 이 술의 Whiskybase 점수 예상으로도 채점됩니다.</p>`,
+      ${ask('wb') ? '맨 위 <b>내 점수</b>는 이 술의 Whiskybase 점수 예상으로도 채점됩니다.' : ''}</p>
+    <p class="hint">막히면 축 머리의 <b>힌트</b>를 누르세요 — 정답 하나를 켜 줍니다.
+      대신 <b>그 하나는 점수에 넣지 않습니다.</b></p>`,
     `<button class="btn" data-act="back">${solo ? '취소' : '뒤로'}</button>
      <button class="btn pri" data-act="save">${solo ? '채점하기' : `잔 ${g.letter} 저장`}</button>`);
   const R = {nose: RAD_DEF, taste: RAD_DEF, finish: RAD_DEF};
@@ -4351,11 +4488,13 @@ function openGameGlass(i){
     paint();
   };
   const picksOf = ax => [...document.querySelectorAll(`[data-nsec="${ax}"] .ncell.on`)].map(b => b.dataset.npick);
-  /** 축 머리의 `N 고름` 을 갱신한다. 정답 개수에 닿으면 강조해 "이제 그만 골라도 된다" 를 보인다 */
+  /* 힌트로 받은 답. 정보는 주되 점수는 주지 않는다 — 채점에서 일치 수에서 뺀다. */
+  const hints = {}; NOTE_AXES.forEach(ax => { hints[ax] = [...((my.hints && my.hints[ax]) || [])]; });
+  /** 축 머리의 `N 고름` 을 갱신한다. 힌트를 쓴 축은 몇 개를 받았는지 함께 적는다 */
   const paintCnt = () => NOTE_AXES.forEach(ax => {
     const el = document.querySelector(`[data-ncnt="${ax}"]`); if (!el) return;
-    const n = picksOf(ax).length;
-    el.textContent = n + ' 고름';
+    const n = picksOf(ax).length, h = hints[ax].length;
+    el.textContent = n + ' 고름' + (h ? ` · 힌트 ${h}` : '');
     el.classList.toggle('on', n > 0);
   });
   $('#shBody').onclick = e => {
@@ -4366,6 +4505,26 @@ function openGameGlass(i){
       pk.classList.toggle('on');
       pk.setAttribute('aria-pressed', pk.classList.contains('on'));
       paintCnt();
+      return;
+    }
+    const hb = e.target.closest('[data-nhint]');
+    if (hb){
+      /* 아직 안 고른 정답 하나를 켜 준다. **그 하나는 점수에 넣지 않는다** —
+         힌트 값을 따로 정하지 않아도 이러면 스스로 균형이 잡힌다. */
+      const ax = hb.dataset.nhint;
+      const ans = g.ans.tags[ax] || [], on = new Set(picksOf(ax));
+      const left = ans.filter(t => !on.has(t));
+      if (!left.length) return toast(ans.length ? '이미 정답을 다 골랐습니다' : '이 축은 정답이 없습니다');
+      const pickOne = left[Math.floor(Math.random() * left.length)];
+      hints[ax].push(pickOne);
+      /* 좁힌 후보 밖의 답일 수 있으니 목록을 다시 그려 넣는다 */
+      const sec = hb.closest('[data-nsec]');
+      sec.querySelector('.nwrap').innerHTML =
+        noteGrid(ax, [...on, pickOne].join(', '), true, g.cand && g.cand[ax]);
+      const mr = sec.querySelector('[data-nmore]');
+      if (mr) mr.dataset.nopen = '1';
+      paintCnt();
+      toast(`힌트 · ${pickOne} (점수에는 넣지 않습니다)`);
       return;
     }
     const mr = e.target.closest('[data-nmore]');
@@ -4390,12 +4549,15 @@ function openGameGlass(i){
     }
     const tags = {}; NOTE_AXES.forEach(ax => { tags[ax] = picksOf(ax); });
     const anyTag = NOTE_AXES.some(ax => tags[ax].length);
-    const guessId = solo ? g.itemId : $('#ggGuess').value;
+    const gs = $('#ggGuess');
+    const guessId = solo ? g.itemId : (gs ? gs.value : '');
     if (!anyTag && !(solo ? false : guessId))
       return toast(solo ? '향·맛·여운을 골라 주세요' : '향·맛·여운이나 예상 병을 골라 주세요');
+    const val = id => { const el = $(id); return el ? el.value.trim() : ''; };
     /* score(세 축 평균)가 WB 예상 점수를 겸한다 — 별도 wb 필드는 두지 않는다.
        solo 는 병을 알고 하므로 guessId 를 정답으로 채워 둔다(이름 배점은 0 이라 점수에 안 쓴다) */
-    g.my = {filled:true, tags, guessId, rad:{...R}, score: radarScore(R)};
+    g.my = {filled:true, tags, guessId, rad:{...R}, score: radarScore(R), hints,
+      abv: val('#ggAbv'), age: val('#ggAge'), region: val('#ggRegion')};
     saveGame();
     if (solo){ GAME.revealed = true; saveGame(); return openGameResult(); }
     openGameBoard(); toast(`잔 ${g.letter} 저장`);
@@ -4424,12 +4586,15 @@ function openGameResult(){
         ${solo ? '' : `<div class="hint">내 예상 · ${esc(nameOfGuess(g))}</div>`}
         ${s.rows.map(r => {
           const bar = r.max ? Math.round(r.got / r.max * 100) : 0;
-          const detail = r.k === 'wb'
+          const c = GAME_CAT[r.k] || {};
+          const detail = c.kind === 'dist'
             ? (r.diff == null ? '미입력'
-               : `내 ${gameNum(r.mine)} · 실제 ${gameNum(g.ans.wb)} · 오차 ${gameNum(r.diff)}`)
-            : r.k === 'name' ? (right ? '정답' : '오답')
+               : `내 ${gameNum(r.mine)}${c.unit} · 실제 ${gameNum(r.real)}${c.unit} · 오차 ${gameNum(r.diff)}${c.unit}`)
+            : c.kind === 'exact'
+            ? (!r.mine ? '미입력' : `내 ${r.mine} · 실제 ${r.real}`)
+            : c.kind === 'pick' ? (right ? '정답' : '오답')
             : r.na ? '정답 노트 없음'
-            : `일치 ${r.hit}/${r.need} · 오답 ${r.miss}`;
+            : `일치 ${r.hit}/${r.need} · 오답 ${r.miss}${r.hinted ? ` · 힌트 ${r.hinted}` : ''}`;
           return `<div class="gbar"><i>${esc(r.label)}</i>
             <span><b style="width:${bar}%"></b></span>
             <u>${gameNum(r.got)} / ${gameNum(r.max)}</u><em>${esc(detail)}</em></div>`; }).join('')}
@@ -4456,9 +4621,9 @@ function openGameResult(){
   };
   $('#shFoot').onclick = e => {
     const a = e.target.closest('[data-act]'); if (!a) return;
-    const mode = GAME.mode, lv = GAME.lv;
+    const mode = GAME.mode, lv = GAME.lv, cats = GAME.cats;
     GAME = null; saveGame();
-    if (a.dataset.act === 'again') return openGameSetup(mode, lv);
+    if (a.dataset.act === 'again') return openGameSetup(mode, lv, cats);
     closeSheet();
   };
 }
