@@ -1199,6 +1199,23 @@ pre.csv{
   word-break:keep-all;
 }
 .glv p b{color:var(--accent)}
+/* 직접 설정 — 난이도를 만드는 레버 넷을 그대로 노출한다. `직접` 을 골랐을 때만 나온다.
+   위의 요약 한 줄(.glv p)이 지금 조합을 읽어 주므로 여기서는 조작만 한다. */
+.gopt{
+  margin-top:9px;padding:11px;border-radius:11px;
+  background:var(--surface2);display:flex;flex-direction:column;gap:9px;
+}
+.gopt label{display:flex;gap:8px;align-items:flex-start;cursor:pointer}
+.gopt label input{flex:none;width:17px;height:17px;margin-top:1px;accent-color:var(--accent)}
+.gopt label span{font-size:11.5px;line-height:1.5;color:var(--ink2);word-break:keep-all}
+.gopt label b{color:var(--ink);font-weight:700}
+.gopt label i{display:block;font-style:normal;font-size:10.5px;color:var(--ink3);margin-top:1px}
+.gor{display:flex;gap:8px;align-items:center}
+.gor > span{flex:none;font-size:11.5px;color:var(--ink2)}
+.gor select{
+  flex:1;min-width:0;height:31px;padding:0 8px;border-radius:8px;font-size:11.5px;
+  background:var(--surface);border:1px solid var(--line);color:var(--ink);
+}
 </style>
 </head>
 <body>
@@ -1361,6 +1378,7 @@ const CHANGES = [
     '정답은 내가 기록해 둔 향·맛·여운 노트입니다 (같은 계열은 같은 뜻으로 인정합니다)',
     '난이도를 고를 수 있습니다 — 초급은 후보를 좁혀 주고 빗나가도 깎지 않습니다',
     '중급은 정답 개수만, 고급은 아무것도 알려 주지 않고 같은 계열도 인정하지 않습니다',
+    '직접 을 고르면 네 가지 규칙을 하나씩 켜고 끌 수 있습니다',
     '향·맛·여운은 몇 개를 골라도 됩니다 — 맞히면 오르고 빗나가면 그 1/3 만큼 깎입니다',
     '맨 위 내 점수가 그 술의 Whiskybase 점수 예상을 겸합니다 (따로 입력하지 않습니다)',
     '결과를 시음 기록으로 옮길 수 있습니다 — 고른 향·맛·여운과 점수가 채워져 열립니다',
@@ -3889,14 +3907,38 @@ const GAME_LEVELS = [
   {key:'hard', name:'고급', opt:{showCount:false, narrow:0, penDiv:2, fam:false},
    desc:'아무것도 알려 주지 않습니다. 같은 계열도 인정하지 않고, 빗나가면 <b>절반</b>을 깎습니다.'},
 ];
-const gameLevel = k => GAME_LEVELS.find(l => l.key === k) || GAME_LEVELS[1];
+/* 레버를 직접 만지는 난이도. 프리셋 셋으로 안 맞는 조합이 있고(예: 후보는 좁히되
+   감점은 남기고 싶다), 무엇이 난이도를 만드는지 눈으로 보게 하는 값도 있다.
+   고른 값은 `wc.gopt` 에 남아 다음 판에도 이어진다. */
+const LS_GOPT = 'wc.gopt';
+const GAME_NARROW = [0, 4, 6, 10];      /* 후보에 섞을 오답 수. 0 = 좁히지 않음 */
+const GAME_PENS = [0, 3, 2];            /* 감점 분모. 0 = 감점 없음 */
+const loadOpt = () => { try{
+  const o = JSON.parse(localStorage.getItem(LS_GOPT) || 'null');
+  return {...GAME_LEVELS[1].opt, ...(o && typeof o === 'object' ? o : {})};
+}catch(e){ return {...GAME_LEVELS[1].opt}; } };
+const saveOpt = o => { try{ localStorage.setItem(LS_GOPT, JSON.stringify(o)); }catch(e){} };
+/** 옵션 조합을 한 줄로 읽어 준다 — 직접 설정에서는 이름이 규칙을 설명해 주지 않는다 */
+const optDesc = o => [
+  o.showCount ? '정답 개수 <b>알려 줌</b>' : '정답 개수 <b>감춤</b>',
+  o.narrow ? `후보 <b>정답 + 오답 ${o.narrow}개</b>` : '후보 <b>84개 전부</b>',
+  o.penDiv ? `오답 <b>1/${o.penDiv}</b> 감점` : '오답 <b>감점 없음</b>',
+  o.fam ? '같은 계열 <b>인정</b>' : '<b>정확히 일치</b>만',
+].join(' · ');
+function gameLevel(k){
+  if (k === 'custom'){
+    const opt = loadOpt();
+    return {key:'custom', name:'직접', opt, desc: optDesc(opt)};
+  }
+  return GAME_LEVELS.find(l => l.key === k) || GAME_LEVELS[1];
+}
 /** 난이도는 게임을 시작할 때 판에 **고정한다** — 도중에 바뀌면 채점 기준이 흔들린다.
     옛 판(v1.5.0)에는 opt 가 없으므로 중급으로 읽는다. */
 const gameOpt = () => (GAME && GAME.opt) || gameLevel(GAME_LV).opt;
 const LS_GLV = 'wc.glv';         /* 마지막에 고른 난이도 — 판과 별개로 기억한다 */
 const loadLv = () => { try{
   const v = localStorage.getItem(LS_GLV);
-  return GAME_LEVELS.some(l => l.key === v) ? v : GAME_LV;
+  return v === 'custom' || GAME_LEVELS.some(l => l.key === v) ? v : GAME_LV;
 }catch(e){ return GAME_LV; } };
 const saveLv = k => { try{ localStorage.setItem(LS_GLV, k); }catch(e){} };
 const GAME_WB_FREE = 1;          /* kb.js 값은 `≈87 (참고)` 형태의 정수 근사치다 — 이 오차까지 만점 */
@@ -4077,10 +4119,25 @@ function openGameSetup(mode, lvKey){
   const usable = rows.filter(r => !r.a.miss.length).length;
   openSheet(solo ? '셀프 테스트 · 병 고르기' : '셀프 블라인드 · 병 고르기', `
     <div class="glv">
-      <div class="glvseg">${GAME_LEVELS.map(l =>
+      <div class="glvseg">${[...GAME_LEVELS, {key:'custom', name:'직접'}].map(l =>
         `<button type="button" class="glvb${l.key === lv.key ? ' on' : ''}"
           data-glv="${l.key}">${l.name}</button>`).join('')}</div>
       <p>${lv.desc}</p>
+      ${lv.key !== 'custom' ? '' : `<div class="gopt">
+        <label><input type="checkbox" data-go="showCount" ${lv.opt.showCount ? 'checked' : ''}>
+          <span>축마다 정답이 <b>몇 개인지</b> 알려 준다</span></label>
+        <label><input type="checkbox" data-go="fam" ${lv.opt.fam ? 'checked' : ''}>
+          <span>같은 <b>아이콘 계열</b>을 정답으로 인정한다
+            <i>끄면 정답이 좁아져 쓸 수 있는 병도 줄어듭니다</i></span></label>
+        <div class="gor"><span>후보 좁히기</span>
+          <select data-go="narrow">${GAME_NARROW.map(n =>
+            `<option value="${n}"${n === lv.opt.narrow ? ' selected' : ''}
+              >${n ? `정답 + 오답 ${n}개` : '좁히지 않음 (84개)'}</option>`).join('')}</select></div>
+        <div class="gor"><span>오답 감점</span>
+          <select data-go="penDiv">${GAME_PENS.map(n =>
+            `<option value="${n}"${n === lv.opt.penDiv ? ' selected' : ''}
+              >${n ? `정답 하나의 1/${n}` : '감점 없음'}</option>`).join('')}</select></div>
+      </div>`}
     </div>
     <p class="hint">${solo
       ? '지금 마실 병 <b>하나</b>를 고르세요. 이름을 맞히는 게임이 아니므로 병을 알고 시작합니다 — '
@@ -4130,6 +4187,15 @@ function openGameSetup(mode, lvKey){
      `!c.checked` 로 "켜려는 중" 을 판별할 수 없다 — 그렇게 쓰면 조건이 영영 거짓이라
      상한이 아예 걸리지 않는다(실제로 그렇게 새어 있었다). */
   $('#shBody').onchange = e => {
+    /* 직접 설정의 레버. 어느 것이든 채점 기준이 바뀌므로 화면을 다시 그린다 —
+       특히 fam 은 쓸 수 있는 병 목록까지 바꾼다 */
+    const go = e.target.closest('[data-go]');
+    if (go){
+      const k = go.dataset.go;
+      const v = go.type === 'checkbox' ? go.checked : Number(go.value);
+      saveOpt({...loadOpt(), [k]: v});
+      return openGameSetup(mode, 'custom');
+    }
     const c = e.target.closest('[data-gpick]');
     if (c && c.checked){
       const on = [...document.querySelectorAll('[data-gpick]:checked')];
