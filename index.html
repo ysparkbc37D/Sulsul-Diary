@@ -1236,6 +1236,43 @@ pre.csv{
 }
 .gcatw em{font-style:normal;font-size:10.5px;color:var(--ink2)}
 .gcatw em b{color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}
+/* 멀티 설정 — 참가자 수와 제한시간. 병 고르기보다 위에 둔다(판의 규칙이 먼저다) */
+.gmp{
+  margin:0 0 13px;padding:11px;border-radius:11px;
+  background:var(--surface2);display:flex;flex-direction:column;gap:9px;
+}
+.gmp > i{
+  font-style:normal;font-size:11px;line-height:1.6;color:var(--ink2);word-break:keep-all;
+}
+.gmp > i b{color:var(--ink)}
+/* 넘겨주기 — 기기를 넘기는 사이 화면. 앞 사람의 입력을 가리는 것이 이 화면의 목적이라
+   내용을 비우고 이름만 크게 둔다 */
+.ghand{
+  display:flex;flex-direction:column;align-items:center;gap:9px;
+  padding:26px 16px;margin:0 0 13px;border-radius:14px;
+  background:var(--accent-bg);border:1px solid var(--accent-line);text-align:center;
+}
+.ghand .gletter{width:52px;height:52px;border-radius:14px;font-size:22px}
+.ghand b{font:600 22px/1.2 var(--serif);color:var(--ink)}
+.ghand p{margin:0;font-size:13px;line-height:1.7;color:var(--ink2);word-break:keep-all}
+.ghand p b{font-family:var(--sans);font-size:13px;font-weight:700;color:var(--accent)}
+.ghand i{
+  font-style:normal;font-size:11px;line-height:1.6;color:var(--ink3);word-break:keep-all;
+}
+.ghand i b{color:var(--ink2);font-weight:700}
+/* 차례 머리 — 잔 입력 맨 위. 누가 하는 차례인지와 남은 시간 */
+.gturn{
+  display:flex;align-items:center;gap:10px;margin:0 0 11px;padding:9px 11px;
+  border-radius:11px;background:var(--surface2);
+}
+.gturn .gletter{width:32px;height:32px;border-radius:9px;font-size:14px}
+.gturn b{flex:1;min-width:0;font-size:14px;font-weight:700;color:var(--ink)}
+.gturn u{
+  flex:none;text-decoration:none;font:700 17px/1 var(--sans);color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.gturn u.off{font-size:11.5px;font-weight:600;color:var(--ink3)}
+.gturn u.warn{color:#b2413f}
 /* 힌트 — 축 머리 맨 오른쪽. 대가가 있는 동작이라 강조색을 쓰지 않는다 */
 .nhint{
   flex:none;padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:600;
@@ -1395,8 +1432,17 @@ const LS_VER = 'wc.ver';       // 마지막으로 이력을 확인한 버전
    작은 수정마다 올라가고, 이것은 사용자에게 알릴 만한 변화에만 올린다.
    CHANGES 는 앱 안에 둔다 — 오프라인에서도 이력을 볼 수 있어야 한다.
    CHANGELOG.md 와 내용을 맞춘다(그쪽이 사람이 읽는 정식 보고서). */
-const APP_VER = '1.5.0';
+const APP_VER = '1.6.0';
 const CHANGES = [
+  { v: '1.6.0', d: '2026-08-08', items: [
+    '블라인드는 한 판에 최대 20잔까지 놓을 수 있습니다 (채점 가능한 병 수까지)',
+    '멀티 블라인드가 열렸습니다 — 서버 없이 기기 하나를 돌려 씁니다 (2~10명)',
+    '잔 A 를 모두가 차례로 평가한 뒤 잔 B 로 넘어갑니다',
+    '차례마다 빈 양식으로 시작하고 넘겨주기 화면이 끼어듭니다 — 앞 사람의 답은 보이지 않습니다',
+    '공정하게 하려면 제한시간을 30초~10분으로 걸어 두세요',
+    '시간이 끝나면 입력한 것을 저장하고 다음 사람으로 넘어갑니다 (입력을 버리지 않습니다)',
+    '결과는 참가자별 순위표입니다. 이름을 누르면 잔별 채점 상세가 열립니다',
+  ]},
   { v: '1.5.0', d: '2026-08-08', items: [
     '테이스팅 게임이 생겼습니다 — 상단 GAME 버튼',
     '셀프 테스트 : 병 하나로 바로 합니다. 향·맛·여운을 매기면 내가 기록해 둔 노트와 맞춰 채점합니다',
@@ -3178,6 +3224,10 @@ function openDonate(){
   $('#qrOpen').onclick = () => window.open(DONATE.page, '_blank', 'noopener');
 }
 function openSheet(title, body, foot){
+  /* 게임 제한시간 시계를 반드시 끈다. 화면 이동은 전부 이 함수를 지나므로 여기서
+     정리하면 빠뜨릴 경로가 없다 — 남아 돌면 다른 화면에서 차례가 넘어간다.
+     (필요한 화면이 자기 시계를 다시 켠다.) */
+  if (typeof stopClock === 'function') stopClock();
   $('#shTitle').textContent = title;
   $('#shBody').innerHTML = body;
   $('#shFoot').innerHTML = foot || '';
@@ -3194,6 +3244,7 @@ function openSheet(title, body, foot){
 }
 /** fromBack: popstate 로 호출된 경우 history 를 다시 건드리지 않는다 */
 function closeSheet(fromBack){
+  if (typeof stopClock === 'function') stopClock();   // 시트를 닫으면 시계도 멈춘다
   const wasOpen = $('#sheet').classList.contains('on');
   $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on');
   if (wasOpen) unlockScroll();
@@ -4003,8 +4054,41 @@ const loadLv = () => { try{
 const saveLv = k => { try{ localStorage.setItem(LS_GLV, k); }catch(e){} };
 const GAME_WB_FREE = 1;          /* kb.js 값은 `≈87 (참고)` 형태의 정수 근사치다 — 이 오차까지 만점 */
 const GAME_WB_ZERO = 9;          /* 이 오차부터 0점 */
-const GAME_LETTERS = 'ABCDEF';
+/* 잔 이름. 20잔까지 A~T 로 붙는다 — 동호회 시음회는 열 잔을 넘기므로 6잔은 좁았다.
+   실제 상한은 `gameMaxG` 가 정한다: 채점할 수 있는 병 수를 넘겨 고를 수는 없다. */
+const GAME_LETTERS = 'ABCDEFGHIJKLMNOPQRST';
 const GAME_MIN_G = 2, GAME_MAX_G = GAME_LETTERS.length;
+/** 이 난이도에서 실제로 고를 수 있는 잔 수의 상한 */
+const gameMaxG = usable => Math.max(GAME_MIN_G, Math.min(GAME_MAX_G, usable));
+
+/* ── 멀티(핫시트) ──────────────────────────
+   **서버 없이** 여러 명이 겨룬다. 기기 하나를 돌려 쓰는 방식이라 물리적 시음회의
+   흐름과 같다 — 잔 A 를 참가자 1~N 이 차례로 평가하고, 다 돌면 잔 B 로 넘어간다.
+   (잔이 바깥 루프인 것은 실제 시음회가 그렇게 움직이기 때문이다: 모두가 A 를 맛본 뒤
+   함께 B 로 간다. 참가자를 바깥 루프로 두면 한 사람이 전부 마시고 넘겨야 한다.)
+
+   기기를 넘기므로 **앞 사람의 답이 보이지 않아야 한다** — 차례마다 빈 양식으로
+   시작하고, 사이에 넘겨주기 화면을 끼운다. */
+const GAME_MIN_P = 2, GAME_MAX_P = 10;
+const GAME_TITLE = {solo:'셀프 테스트', self:'셀프 블라인드', multi:'멀티 블라인드'};
+/* 참가자 수와 제한시간은 판과 별개로 기억한다 — 같은 모임이 다시 하면 같은 설정이다 */
+const LS_GP = 'wc.gp', LS_GT = 'wc.gt';
+const loadP = () => { try{
+  const n = Number(localStorage.getItem(LS_GP));
+  return n >= GAME_MIN_P && n <= GAME_MAX_P ? n : 4;
+}catch(e){ return 4; } };
+const loadT = () => { try{
+  const n = Number(localStorage.getItem(LS_GT));
+  return GAME_TIMES.includes(n) ? n : 120;
+}catch(e){ return 120; } };
+const saveP = n => { try{ localStorage.setItem(LS_GP, String(n)); }catch(e){} };
+const saveT = n => { try{ localStorage.setItem(LS_GT, String(n)); }catch(e){} };
+/* 제한시간. 30초 단위로 10분까지. 0 은 제한 없음.
+   공정성 장치다 — 뒤에 하는 사람이 더 오래 굴릴 수 있으면 순서가 유리해진다. */
+const GAME_TIMES = [0, 30, 60, 90, 120, 150, 180, 240, 300, 360, 420, 480, 540, 600];
+const timeLabel = s => !s ? '제한 없음'
+  : s < 60 ? `${s}초` : s % 60 ? `${Math.floor(s / 60)}분 ${s % 60}초` : `${s / 60}분`;
+const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 /* 게임 목록. **새 게임은 이 배열에 항목만 더하면 된다.**
    할 수 없는 것은 켜 두지 않는다 — 멀티는 목록에 두되 왜 안 되는지 적고 잠근다. */
@@ -4014,13 +4098,13 @@ const GAMES = [
   {key:'solo', name:'셀프 테스트', icon:'sparkle', on:true, line:'1병 · 감각 점검',
    desc:'병 하나를 정해 놓고 향·맛·여운을 매깁니다. 이름을 맞히는 것이 아니므로 그 10% 는 '
       + '세 축에 고루 나눕니다. 결과를 <b>시음 기록으로 옮길 수 있습니다.</b>'},
-  {key:'self', name:'셀프 블라인드', icon:'group', on:true, line:'잔 2~6개 · 혼자',
+  {key:'self', name:'셀프 블라인드', icon:'sparkle', on:true, line:`잔 2~${GAME_MAX_G}개 · 혼자`,
    desc:'컬렉션에서 몇 병을 골라 잔에 붓고, 어느 잔이 어느 병인지 맞힙니다. '
       + '정답은 <b>내가 기록해 둔 노트</b>입니다 — 내 감각이 내 기록과 얼마나 맞는지 재는 게임입니다.'},
-  {key:'multi', name:'멀티 블라인드', icon:'dots', on:false, line:'여러 명 · 서버 필요',
-   desc:'여러 명이 같은 잔을 놓고 점수를 겨룹니다.',
-   off:'참가자끼리 결과를 주고받을 서버가 필요합니다. 이 앱은 서버 없이 오프라인에서 '
-     + '동작하도록 만들어져 있어 아직 넣지 않았습니다.'},
+  {key:'multi', name:'멀티 블라인드', icon:'group', on:true, line:`${GAME_MIN_P}~${GAME_MAX_P}명 · 기기 하나로`,
+   desc:'여러 명이 같은 잔을 놓고 겨룹니다. <b>서버가 필요 없습니다</b> — 기기 하나를 '
+      + '돌려 씁니다. 잔 A 를 모두가 차례로 평가한 뒤 잔 B 로 넘어갑니다. '
+      + '공정하게 하려면 <b>제한시간</b>을 걸어 두세요.'},
 ];
 
 /* 디스크립터 → 아이콘 계열. 계열이 동의어·상위개념을 묶어 준다
@@ -4076,8 +4160,12 @@ function gameCand(ax, answer, n){
 }
 
 let GAME = null;                 /* 진행 중인 한 판 */
+const GAME_VER = 4;              /* 답안이 참가자별 배열(mys)로 바뀐 판 */
 function loadGame(){
   try{ GAME = JSON.parse(localStorage.getItem(LS_GAME) || 'null'); }catch(e){ GAME = null; }
+  /* 옛 판은 버린다. 한 판은 한 자리에서 끝나는 것이라 이어 붙일 값이 없고,
+     답안 모양(my → mys)이 달라 억지로 읽으면 조용히 0점이 된다. */
+  if (GAME && GAME.v !== GAME_VER){ GAME = null; saveGame(); }
 }
 function saveGame(){
   try{
@@ -4085,6 +4173,40 @@ function saveGame(){
     else localStorage.removeItem(LS_GAME);
   }catch(e){}
 }
+/** 참가자 pi 의 답안. 혼자 하는 모드는 참가자가 한 명이라 늘 0 번이다. */
+const myOf = (g, pi) => (g && g.mys && g.mys[pi || 0]) || null;
+
+/* ── 제한시간 시계 ──────────────────────────
+   ⚠ 이 앱은 타이머 기반 동작을 두지 않는 원칙이 있다(동기화에서 지웠다).
+   이것은 예외이지만 성격이 다르다 — 사용자가 명시적으로 켠, 화면이 열려 있는 동안만
+   도는 유한한 카운트다운이고, 만료되면 스스로 멈춘다.
+
+   **누수가 유일한 위험이다.** 시계가 남아 돌면 다른 화면에서 갑자기 차례가 넘어간다.
+   그래서 `openSheet` 에서 **무조건** 정리한다 — 이 앱의 모든 화면 이동이 그 함수를
+   지나므로, 정리를 한 곳에 두면 빠뜨릴 경로가 없다. */
+let GCLOCK = null;
+function stopClock(){
+  if (GCLOCK){ clearInterval(GCLOCK); GCLOCK = null; }
+}
+/** sec 초를 세고 0 에서 done() 을 부른다. `#ggClock` 이 있으면 남은 시간을 그린다. */
+function startClock(sec, done){
+  stopClock();
+  let left = sec;
+  const draw = () => {
+    const el = $('#ggClock'); if (!el) return;
+    el.textContent = mmss(left);
+    /* 마지막 30초는 붉게 — 남은 시간을 숫자로만 두면 눈치채지 못한다 */
+    el.classList.toggle('warn', left <= 30);
+  };
+  draw();
+  GCLOCK = setInterval(() => {
+    left--;
+    if (left <= 0){ stopClock(); draw(); done(); return; }
+    draw();
+  }, 1000);
+}
+const gamePlayers = () => (GAME && GAME.players) || ['나'];
+const isMulti = () => !!(GAME && GAME.mode === 'multi');
 
 /* ── 채점 ──────────────────────────────────
    축 점수 = 배점 × clamp(0, 1, (일치 − 불일치/3) ÷ 정답개수).
@@ -4123,8 +4245,8 @@ function gameAlloc(mode, cats, miss){
 /** 거리 채점 — 오차 free 이하는 만점, zero 에서 0점, 사이는 선형 */
 const gameDistPts = (d, max, c) => d == null ? 0
   : Math.round(max * Math.max(0, 1 - Math.max(0, d - c.free) / (c.zero - c.free)) * 10) / 10;
-function scoreGlass(g, mode){
-  const a = g.ans, my = g.my || {}, rows = [];
+function scoreGlass(g, mode, pi){
+  const a = g.ans, my = myOf(g, pi) || {}, rows = [];
   const md = mode || (GAME && GAME.mode);
   const AL = gameAlloc(md, g.cats || (GAME && GAME.cats), a.dead);
   const pd = gameOpt().penDiv;      /* 감점 분모. 0 이면 초급(빗나가도 깎지 않는다) */
@@ -4170,7 +4292,21 @@ function scoreGlass(g, mode){
   const got = rows.reduce((s, r) => s + r.got, 0);
   return {rows, got, max, pct: max ? Math.round(got / max * 100) : 0};
 }
-const gameDone = () => (GAME?.glasses || []).filter(g => g.my && g.my.filled).length;
+/** 참가자 pi 가 입력을 마친 잔 수 */
+const gameDone = (pi) => (GAME?.glasses || []).filter(g => myOf(g, pi)?.filled).length;
+/** 전체 차례 수 / 끝난 차례 수 — 멀티의 진행률은 잔 × 참가자다 */
+const gameTurns = () => (GAME?.glasses?.length || 0) * gamePlayers().length;
+const gameFilled = () => (GAME?.glasses || [])
+  .reduce((s, g) => s + gamePlayers().reduce((t, _, pi) => t + (myOf(g, pi)?.filled ? 1 : 0), 0), 0);
+/** 다음으로 입력해야 할 차례 {gi, pi}. 없으면 null (전부 끝) —
+    잔이 바깥 루프다: 잔 A 를 참가자 전원이 마친 뒤 잔 B 로 간다. */
+function gameNextTurn(){
+  const gs = GAME?.glasses || [], n = gamePlayers().length;
+  for (let gi = 0; gi < gs.length; gi++)
+    for (let pi = 0; pi < n; pi++)
+      if (!myOf(gs[gi], pi)?.filled) return {gi, pi};
+  return null;
+}
 
 /* ── 게임 목록 ───────────────────────────── */
 function openGames(){
@@ -4205,9 +4341,10 @@ function openGames(){
 /* 축별 정답 태그 수를 그대로 보여 준다. 축이 빈 병은 고를 수 없다 —
    빈 축을 20점 만점으로 채점하면 무엇을 골라도 0점이라 게임이 망가진다.
    숨기지 않고 이유와 함께 보여 주고, 노트를 채우도록 편집으로 보낸다. */
-function openGameSetup(mode, lvKey, catsIn){
+function openGameSetup(mode, lvKey, catsIn, pIn, tIn){
   const solo = mode === 'solo';
-  const lo = solo ? 1 : GAME_MIN_G, hi = solo ? 1 : GAME_MAX_G;
+  const lo = solo ? 1 : GAME_MIN_G;
+  let hi = solo ? 1 : GAME_MAX_G;
   const lv = gameLevel(lvKey || loadLv());
   /* 맞힐 항목. 셀프 테스트는 병을 알고 시작하므로 `이름` 을 물을 수 없다 — 목록에서 뺀다 */
   let cats = (catsIn || loadCats()).filter(k => !(solo && k === 'name'));
@@ -4217,7 +4354,26 @@ function openGameSetup(mode, lvKey, catsIn){
     .sort((x, y) => x.a.miss.length - y.a.miss.length
       || fullName(x.it).localeCompare(fullName(y.it), 'ko'));
   const usable = rows.filter(r => !r.a.miss.length).length;
-  openSheet(solo ? '셀프 테스트 · 병 고르기' : '셀프 블라인드 · 병 고르기', `
+  /* 상한은 **채점할 수 있는 병 수까지**다. 20개를 허용해도 쓸 수 있는 병이 8개면
+     8개가 상한이다 — 고를 수 없는 수를 안내에 적으면 거짓말이 된다. */
+  if (!solo) hi = gameMaxG(usable);
+  const nP = Math.min(GAME_MAX_P, Math.max(GAME_MIN_P, pIn || loadP()));
+  const tSec = tIn == null ? loadT() : tIn;
+  openSheet(`${GAME_TITLE[mode] || '블라인드'} · 병 고르기`, `
+    ${mode !== 'multi' ? '' : `<div class="gmp">
+      <div class="gor"><span>참가자</span>
+        <select data-gmp="n">${Array.from({length: GAME_MAX_P - GAME_MIN_P + 1}, (_, i) => i + GAME_MIN_P)
+          .map(n => `<option value="${n}"${n === nP ? ' selected' : ''}>${n}명</option>`).join('')}</select></div>
+      <div class="gor"><span>제한시간</span>
+        <select data-gmp="t">${GAME_TIMES.map(s =>
+          `<option value="${s}"${s === tSec ? ' selected' : ''}>${timeLabel(s)}</option>`).join('')}</select></div>
+      <i>기기 하나를 돌려 씁니다. 잔 A 를 <b>${nP}명이 차례로</b> 평가한 뒤 잔 B 로 넘어갑니다.
+        차례마다 빈 양식으로 시작하므로 <b>앞 사람의 답은 보이지 않습니다.</b>
+        ${tSec ? `제한시간이 끝나면 입력한 것을 저장하고 다음 사람으로 넘어갑니다.`
+               : '제한시간을 걸면 순서에 따른 유리함을 없앨 수 있습니다.'}</i>
+      <div class="gcatw"><em>차례 <b>${nP} × 잔 수</b></em>${
+        tSec ? `<em>한 차례 <b>${timeLabel(tSec)}</b></em>` : ''}</div>
+    </div>`}
     <div class="glv">
       <div class="glvseg">${[...GAME_LEVELS, {key:'custom', name:'직접'}].map(l =>
         `<button type="button" class="glvb${l.key === lv.key ? ' on' : ''}"
@@ -4251,7 +4407,9 @@ function openGameSetup(mode, lvKey, catsIn){
     <p class="hint">${solo
       ? '지금 마실 병 <b>하나</b>를 고르세요. 이름을 맞히는 게임이 아니므로 병을 알고 시작합니다 — '
         + '향·맛·여운을 내 감각대로 매기면, 내가 기록해 둔 노트와 맞춰 채점합니다.'
-      : `잔에 부을 병을 <b>${lo}~${hi}개</b> 고르세요.
+      : `잔에 부을 병을 <b>${lo}~${hi}개</b> 고르세요${
+           usable > GAME_MAX_G ? ` (채점 가능한 ${usable}개 중, 한 판 최대 ${GAME_MAX_G}개)` :
+           usable < GAME_MAX_G ? ` — 채점 가능한 병이 ${usable}개입니다` : ''}.
          고른 병은 순서를 섞어 <b>A · B · C…</b> 로 붙습니다 — 그 순서대로 잔에 부으세요.`}</p>
     ${usable < lo ? `<div class="gsum warn">이 난이도에서 채점할 수 있는 병이 ${usable}개뿐입니다.
       향·맛·여운 <b>세 축 모두</b> 노트가 있어야 정답을 만들 수 있습니다.
@@ -4296,6 +4454,13 @@ function openGameSetup(mode, lvKey, catsIn){
      `!c.checked` 로 "켜려는 중" 을 판별할 수 없다 — 그렇게 쓰면 조건이 영영 거짓이라
      상한이 아예 걸리지 않는다(실제로 그렇게 새어 있었다). */
   $('#shBody').onchange = e => {
+    /* 멀티의 참가자 수·제한시간. 안내문과 차례 수가 함께 바뀌므로 다시 그린다 */
+    const mp = e.target.closest('[data-gmp]');
+    if (mp){
+      const v = Number(mp.value);
+      if (mp.dataset.gmp === 'n'){ saveP(v); return openGameSetup(mode, lv.key, cats, v, tSec); }
+      saveT(v); return openGameSetup(mode, lv.key, cats, nP, v);
+    }
     /* 직접 설정의 레버. 어느 것이든 채점 기준이 바뀌므로 화면을 다시 그린다 —
        특히 fam 은 쓸 수 있는 병 목록까지 바꾼다 */
     const go = e.target.closest('[data-go]');
@@ -4303,7 +4468,7 @@ function openGameSetup(mode, lvKey, catsIn){
       const k = go.dataset.go;
       const v = go.type === 'checkbox' ? go.checked : Number(go.value);
       saveOpt({...loadOpt(), [k]: v});
-      return openGameSetup(mode, 'custom');
+      return openGameSetup(mode, 'custom', cats, nP, tSec);
     }
     const c = e.target.closest('[data-gpick]');
     if (c && c.checked){
@@ -4325,7 +4490,7 @@ function openGameSetup(mode, lvKey, catsIn){
       /* 난이도를 바꾸면 정답 범위가 바뀌므로 화면을 다시 그린다. 고른 병은 버린다 —
          고급에서 못 쓰게 된 병이 선택된 채로 남으면 시작할 수 없는 판이 만들어진다 */
       saveLv(b.dataset.glv);
-      return openGameSetup(mode, b.dataset.glv, cats);
+      return openGameSetup(mode, b.dataset.glv, cats, nP, tSec);
     }
     const gc = e.target.closest('[data-gcat]');
     if (gc){
@@ -4334,20 +4499,20 @@ function openGameSetup(mode, lvKey, catsIn){
       saveCats(next);
       /* 배점 요약이 바뀌므로 다시 그린다. 병 선택은 이 변경과 무관하지만, 셋업을
          다시 그리는 것이 배점 표를 부분 갱신하는 것보다 어긋날 여지가 없다 */
-      return openGameSetup(mode, lv.key, next);
+      return openGameSetup(mode, lv.key, next, nP, tSec);
     }
   };
   $('#shFoot').onclick = e => {
     const a = e.target.closest('[data-act]'); if (!a) return;
     if (a.dataset.act === 'back') return openGames();
-    gameStart(picks(), mode, lv.key, cats);
+    gameStart(picks(), mode, lv.key, cats, nP, tSec);
   };
   refresh();
 }
 
 /** 고른 병으로 판을 만든다. 정답은 여기서 고정된다.
     블라인드는 순서를 섞고 A·B·C 를 붙이지만, 셀프 테스트는 병을 알고 하므로 섞지 않는다. */
-function gameStart(ids, mode, lvKey, cats){
+function gameStart(ids, mode, lvKey, cats, nP, tSec){
   const solo = mode === 'solo';
   const lv = gameLevel(lvKey);
   const items = ids.map(byId).filter(Boolean);
@@ -4356,50 +4521,96 @@ function gameStart(ids, mode, lvKey, cats){
     const j = Math.floor(Math.random() * (i + 1));
     [items[i], items[j]] = [items[j], items[i]];
   }
+  /* 참가자. 혼자 하는 모드는 한 명이다 — 답안을 늘 배열(mys)로 두어 모양을 하나로
+     유지한다. 두 모양을 쓰면 채점부가 분기되어 한쪽만 고쳐진다. */
+  const players = mode === 'multi'
+    ? Array.from({length: Math.min(GAME_MAX_P, Math.max(GAME_MIN_P, nP || loadP()))},
+        (_, i) => `참가자 ${i + 1}`)
+    : ['나'];
   /* 난이도(opt)와 후보(cand)를 판에 **고정한다** — 정답과 같은 이유다.
      도중에 난이도를 바꿔 채점 기준이 흔들리거나, 잔을 다시 열 때 후보가 재추첨되어
      앞서 고른 것이 목록에서 사라지는 일이 없어야 한다. */
-  GAME = {v:3, mode: solo ? 'solo' : 'self', at:nowISO(), revealed:false,
+  GAME = {v:GAME_VER, mode, at:nowISO(), revealed:false,
     lv: lv.key, opt: {...lv.opt}, cats: [...(cats && cats.length ? cats : gameCatsDefault())],
+    players, timer: mode === 'multi' ? (tSec == null ? loadT() : tSec) : 0,
     glasses: items.map((it, i) => {
       const ans = gameAnswer(it, lv.opt);
       const cand = lv.opt.narrow
         ? Object.fromEntries(NOTE_AXES.map(ax => [ax, gameCand(ax, ans.tags[ax] || [], lv.opt.narrow)]))
         : null;
-      return {letter: solo ? '' : GAME_LETTERS[i], itemId: it.id, ans, cand, my:null};
+      return {letter: solo ? '' : GAME_LETTERS[i], itemId: it.id, ans, cand,
+        mys: players.map(() => null)};
     })};
   saveGame();
-  /* 1병이면 잔 목록을 거칠 이유가 없다 — 바로 입력으로 보낸다 */
-  solo ? openGameGlass(0) : openGameBoard();
+  /* 1병이면 잔 목록을 거칠 이유가 없다 — 바로 입력으로 보낸다.
+     멀티는 첫 차례(잔 A · 참가자 1)를 넘겨주기 화면으로 안내한다. */
+  if (solo) return openGameGlass(0);
+  if (mode === 'multi') return openGameHandoff();
+  openGameBoard();
+}
+
+/* ── 넘겨주기 (멀티) ────────────────────────
+   기기를 넘기는 사이에 끼우는 화면이다. **앞 사람의 입력이 화면에 남은 채로 넘기면
+   공정성이 무너진다** — 여기서 한 번 끊어 주고, 다음 사람이 스스로 시작을 누른다.
+   제한시간도 이 버튼을 누른 순간부터 재기 시작한다. */
+function openGameHandoff(){
+  if (!GAME) return openGames();
+  const t = gameNextTurn();
+  if (!t){ GAME.revealed = true; saveGame(); return openGameResult(); }
+  const g = GAME.glasses[t.gi], who = gamePlayers()[t.pi];
+  openSheet('다음 차례', `
+    <div class="ghand">
+      <span class="gletter on">${g.letter}</span>
+      <b>${esc(who)}</b>
+      <p>잔 <b>${g.letter}</b> 를 평가할 차례입니다.<br>
+        기기를 <b>${esc(who)}</b> 에게 넘겨 주세요.</p>
+      ${GAME.timer ? `<i>시작을 누르면 <b>${timeLabel(GAME.timer)}</b> 가 흐르기 시작합니다.
+        시간이 끝나면 입력한 것을 저장하고 다음 사람으로 넘어갑니다.</i>` : ''}
+    </div>
+    <div class="gsum">${gameFilled()} / ${gameTurns()} 차례 · 잔 ${t.gi + 1}/${GAME.glasses.length}</div>`,
+    `<button class="btn" data-act="quit">판 버리기</button>
+     <button class="btn pri" data-act="go">${esc(who)} 시작</button>`);
+  $('#shFoot').onclick = e => {
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    if (a.dataset.act === 'quit'){
+      if (!confirm('이 판을 버릴까요?\n입력한 내용은 사라집니다.')) return;
+      GAME = null; saveGame(); closeSheet(); toast('판을 버렸습니다');
+      return;
+    }
+    openGameGlass(t.gi, t.pi);
+  };
 }
 
 /* ── 잔 목록 ─────────────────────────────── */
 function openGameBoard(){
   if (!GAME) return openGames();
-  const gs = GAME.glasses, done = gameDone();
   /* 정답을 공개했으면 결과로 보낸다 */
   if (GAME.revealed) return openGameResult();
-  openSheet(`셀프 블라인드 · 잔 ${gs.length}개`, `
+  /* 멀티는 순서가 정해져 있으므로 목록에서 아무 잔이나 고르게 하지 않는다 —
+     넘겨주기 화면이 다음 차례를 안내한다 */
+  if (isMulti()) return openGameHandoff();
+  const gs = GAME.glasses, done = gameDone(0);
+  openSheet(`${GAME_TITLE[GAME.mode]} · 잔 ${gs.length}개`, `
     <p class="hint">아래 순서대로 잔에 부으세요. 어느 잔이 어느 병인지는
       <b>다 입력한 뒤</b> 공개됩니다.</p>
     <div class="glist">
-      ${gs.map((g, i) => `
+      ${gs.map((g, i) => { const my = myOf(g, 0); return `
         <button type="button" class="gcard" data-glass="${i}">
-          <span class="gletter${g.my?.filled ? ' on' : ''}">${g.letter}</span>
+          <span class="gletter${my?.filled ? ' on' : ''}">${g.letter}</span>
           <span class="gmeta">
             <b>잔 ${g.letter}</b>
-            <span>${g.my?.filled
-              ? `${esc(nameOfGuess(g))} · 향 ${(g.my.tags.nose || []).length} · 맛 ${(g.my.tags.taste || []).length} · 여운 ${(g.my.tags.finish || []).length}`
+            <span>${my?.filled
+              ? `${esc(nameOfGuess(g, 0))} · 향 ${(my.tags.nose || []).length} · 맛 ${(my.tags.taste || []).length} · 여운 ${(my.tags.finish || []).length}`
               : '아직 입력하지 않았습니다'}</span>
           </span>
-        </button>`).join('')}
+        </button>`; }).join('')}
     </div>
     <div class="gsum">${done} / ${gs.length} 잔 입력</div>`,
     `<button class="btn" data-act="quit">판 버리기</button>
      <button class="btn pri" data-act="reveal" ${done < gs.length ? 'disabled' : ''}>정답 공개</button>`);
   $('#shBody').onclick = e => {
     const c = e.target.closest('[data-glass]'); if (!c) return;
-    openGameGlass(Number(c.dataset.glass));
+    openGameGlass(Number(c.dataset.glass), 0);
   };
   $('#shFoot').onclick = e => {
     const a = e.target.closest('[data-act]'); if (!a) return;
@@ -4411,8 +4622,9 @@ function openGameBoard(){
     GAME.revealed = true; saveGame(); openGameResult();
   };
 }
-const nameOfGuess = g => {
-  const it = g.my?.guessId ? byId(g.my.guessId) : null;
+const nameOfGuess = (g, pi) => {
+  const my = myOf(g, pi);
+  const it = my?.guessId ? byId(my.guessId) : null;
   return it ? fullName(it) : '이름 미선택';
 };
 
@@ -4424,11 +4636,13 @@ const nameOfGuess = g => {
 
    셀프 테스트(solo)와 블라인드의 차이는 두 곳뿐이다 — 제목에 병 이름을 쓰는지,
    `어느 병일까요` 를 묻는지. */
-function openGameGlass(i){
+function openGameGlass(i, pi){
   const g = GAME?.glasses?.[i]; if (!g) return openGameBoard();
   const solo = GAME.mode === 'solo';
+  const multi = isMulti();
+  const p = pi || 0, who = gamePlayers()[p] || '나';
   const it = byId(g.itemId);
-  const my = g.my || {tags:{}, guessId:''};
+  const my = myOf(g, p) || {tags:{}, guessId:''};
   const pre = {}; NOTE_AXES.forEach(ax => { pre[ax] = (my.tags[ax] || []).join(', '); });
   /* 정답 개수를 축 머리에 적는다. **몇 개인지만** 알려 주고 무엇인지는 알려 주지 않는다 —
      배점이 정답 개수로 나뉘므로 이 정보가 없으면 몇 개를 골라야 할지 판단할 수가 없다.
@@ -4440,7 +4654,13 @@ function openGameGlass(i){
      물으면 답해도 점수가 없어 속은 기분이 된다 */
   const AL = gameAlloc(GAME.mode, GAME.cats, g.ans.dead);
   const ask = k => AL[k] > 0;
-  openSheet(solo ? `셀프 테스트 · ${it ? fullName(it) : ''}` : `잔 ${g.letter}`, `
+  openSheet(solo ? `셀프 테스트 · ${it ? fullName(it) : ''}`
+    : multi ? `잔 ${g.letter} · ${who}` : `잔 ${g.letter}`, `
+    ${!multi ? '' : `<div class="gturn">
+      <span class="gletter on">${g.letter}</span>
+      <b>${esc(who)}</b>
+      ${GAME.timer ? `<u id="ggClock">${mmss(GAME.timer)}</u>` : '<u class="off">제한 없음</u>'}
+    </div>`}
     ${radarBlock('gg', ask('wb') ? '내 점수 · Whiskybase 예상 점수로도 채점됩니다' : '내 점수 · 향·맛·여운 합 ÷ 3')}
     ${noteSections('', pre, opt.showCount ? need : null, g.cand, true)}
     ${!ask('name') ? '' : `<div class="fg">
@@ -4475,8 +4695,9 @@ function openGameGlass(i){
       ${ask('wb') ? '맨 위 <b>내 점수</b>는 이 술의 Whiskybase 점수 예상으로도 채점됩니다.' : ''}</p>
     <p class="hint">막히면 축 머리의 <b>힌트</b>를 누르세요 — 정답 하나를 켜 줍니다.
       대신 <b>그 하나는 점수에 넣지 않습니다.</b></p>`,
-    `<button class="btn" data-act="back">${solo ? '취소' : '뒤로'}</button>
-     <button class="btn pri" data-act="save">${solo ? '채점하기' : `잔 ${g.letter} 저장`}</button>`);
+    `<button class="btn" data-act="back">${solo ? '취소' : multi ? '판 버리기' : '뒤로'}</button>
+     <button class="btn pri" data-act="save">${
+       solo ? '채점하기' : multi ? '다음 사람' : `잔 ${g.letter} 저장`}</button>`);
   const R = {nose: RAD_DEF, taste: RAD_DEF, finish: RAD_DEF};
   if (my.rad) Object.assign(R, my.rad);
   NOTE_AXES.forEach(ax => { const el = $('#gg_' + ax); if (el){ el.value = R[ax]; $('#ggo_' + ax).textContent = R[ax]; } });
@@ -4540,50 +4761,83 @@ function openGameGlass(i){
     }
   };
   paint(); paintCnt();
+
+  /** 지금 화면에 입력된 것을 이 참가자의 답안으로 굳힌다.
+      제한시간 만료도 같은 경로를 쓴다 — 시간이 끝났다고 입력을 버리면 억울하다. */
+  const commit = () => {
+    const tags = {}; NOTE_AXES.forEach(ax => { tags[ax] = picksOf(ax); });
+    const gs = $('#ggGuess');
+    const val = id => { const el = $(id); return el ? el.value.trim() : ''; };
+    /* score(세 축 평균)가 WB 예상 점수를 겸한다 — 별도 wb 필드는 두지 않는다.
+       solo 는 병을 알고 하므로 guessId 를 정답으로 채워 둔다(이름 배점은 0 이라 점수에 안 쓴다) */
+    g.mys[p] = {filled:true, tags, guessId: solo ? g.itemId : (gs ? gs.value : ''),
+      rad:{...R}, score: radarScore(R), hints,
+      abv: val('#ggAbv'), age: val('#ggAge'), region: val('#ggRegion')};
+    saveGame();
+  };
+  /* 제한시간. 0 이면 걸지 않는다. 만료되면 입력한 것을 저장하고 다음 차례로 넘긴다 —
+     뒤에 하는 사람이 더 오래 굴릴 수 있으면 순서가 유리해지므로 공정성 장치다. */
+  if (multi && GAME.timer) startClock(GAME.timer, () => {
+    commit();
+    toast('시간 종료 — 다음 사람으로 넘어갑니다');
+    openGameHandoff();
+  });
+
   $('#shFoot').onclick = e => {
     const a = e.target.closest('[data-act]'); if (!a) return;
     if (a.dataset.act === 'back'){
-      /* 1병 모드에는 잔 목록이 없다 — 취소하면 판을 버리고 목록으로 돌아간다 */
+      /* 1병 모드와 멀티에는 되돌아갈 잔 목록이 없다 — 판을 버리는 것이 유일한 출구다 */
       if (solo){ GAME = null; saveGame(); return openGames(); }
+      if (multi){
+        if (!confirm('이 판을 버릴까요?\n입력한 내용은 사라집니다.')) return;
+        GAME = null; saveGame(); closeSheet(); return toast('판을 버렸습니다');
+      }
       return openGameBoard();
     }
-    const tags = {}; NOTE_AXES.forEach(ax => { tags[ax] = picksOf(ax); });
-    const anyTag = NOTE_AXES.some(ax => tags[ax].length);
+    const anyTag = NOTE_AXES.some(ax => picksOf(ax).length);
     const gs = $('#ggGuess');
     const guessId = solo ? g.itemId : (gs ? gs.value : '');
     if (!anyTag && !(solo ? false : guessId))
       return toast(solo ? '향·맛·여운을 골라 주세요' : '향·맛·여운이나 예상 병을 골라 주세요');
-    const val = id => { const el = $(id); return el ? el.value.trim() : ''; };
-    /* score(세 축 평균)가 WB 예상 점수를 겸한다 — 별도 wb 필드는 두지 않는다.
-       solo 는 병을 알고 하므로 guessId 를 정답으로 채워 둔다(이름 배점은 0 이라 점수에 안 쓴다) */
-    g.my = {filled:true, tags, guessId, rad:{...R}, score: radarScore(R), hints,
-      abv: val('#ggAbv'), age: val('#ggAge'), region: val('#ggRegion')};
-    saveGame();
+    commit();
     if (solo){ GAME.revealed = true; saveGame(); return openGameResult(); }
+    if (multi) return openGameHandoff();
     openGameBoard(); toast(`잔 ${g.letter} 저장`);
   };
 }
 
 /* ── 결과 ────────────────────────────────── */
+/** 참가자별 평균 점수 순위. 멀티의 payoff 다 — 서버 없이도 순위표는 낼 수 있다. */
+function gameRank(){
+  const gs = GAME.glasses;
+  return gamePlayers().map((name, pi) => {
+    const each = gs.map(g => scoreGlass(g, GAME.mode, pi).pct);
+    const avg = each.length ? Math.round(each.reduce((a, b) => a + b, 0) / each.length) : 0;
+    const hits = gs.filter(g => myOf(g, pi)?.guessId === g.itemId).length;
+    return {pi, name, avg, each, hits};
+  }).sort((a, b) => b.avg - a.avg || b.hits - a.hits);
+}
 function openGameResult(){
   if (!GAME) return openGames();
-  const solo = GAME.mode === 'solo';
-  const res = GAME.glasses.map(g => ({g, s: scoreGlass(g), it: byId(g.itemId)}));
+  const solo = GAME.mode === 'solo', multi = isMulti();
+  /* 멀티는 참가자별 순위를 먼저 보여 준다 — 잔별 상세는 그 아래 */
+  if (multi) return openGameRankSheet();
+  const res = GAME.glasses.map(g => ({g, s: scoreGlass(g, GAME.mode, 0), it: byId(g.itemId)}));
   const tot = Math.round(res.reduce((s, r) => s + r.s.pct, 0) / res.length);
   const best = res.reduce((a, b) => b.s.pct > a.s.pct ? b : a);
-  openSheet(solo ? '셀프 테스트 · 결과' : '셀프 블라인드 · 결과', `
+  openSheet(`${GAME_TITLE[GAME.mode]} · 결과`, `
     <div class="gsc"><b>${tot}</b><span>${solo
       ? '내 감각이 내 기록과 맞은 정도'
       : `평균 점수 · ${res.length}잔`} · ${esc(gameLevel(GAME.lv).name)}</span>
       <i>${solo ? esc(res[0].it ? fullName(res[0].it) : '') : `가장 잘 맞힌 잔 ${best.g.letter} · ${best.s.pct}점`}</i></div>
     ${res.map(({g, s, it}) => {
-      const right = g.my?.guessId === g.itemId;
+      const right = myOf(g, 0)?.guessId === g.itemId;
       return `<div class="gres">
         <div class="grh">${solo ? '' : `<span class="gletter on">${g.letter}</span>`}
           <b>${esc(it ? fullName(it) : '(삭제된 병)')}</b>
           ${solo ? '' : `<em class="${right ? 'ok' : 'no'}">${right ? '맞힘' : '틀림'}</em>`}
           <u>${s.pct}점</u></div>
-        ${solo ? '' : `<div class="hint">내 예상 · ${esc(nameOfGuess(g))}</div>`}
+        ${solo ? '' : `<div class="hint">내 예상 · ${esc(nameOfGuess(g, 0))}</div>`}
         ${s.rows.map(r => {
           const bar = r.max ? Math.round(r.got / r.max * 100) : 0;
           const c = GAME_CAT[r.k] || {};
@@ -4616,8 +4870,8 @@ function openGameResult(){
   $('#shBody').onclick = e => {
     const b = e.target.closest('[data-gsess]'); if (!b) return;
     const g = GAME.glasses.find(x => x.itemId === b.dataset.gsess);
-    if (!g?.my) return;
-    openSession(b.dataset.gsess, {rad: g.my.rad, tags: g.my.tags});
+    const my = myOf(g, 0); if (!my) return;
+    openSession(b.dataset.gsess, {rad: my.rad, tags: my.tags});
   };
   $('#shFoot').onclick = e => {
     const a = e.target.closest('[data-act]'); if (!a) return;
@@ -4625,6 +4879,89 @@ function openGameResult(){
     GAME = null; saveGame();
     if (a.dataset.act === 'again') return openGameSetup(mode, lv, cats);
     closeSheet();
+  };
+}
+
+/* ── 멀티 결과 · 순위표 ─────────────────────
+   서버 없이도 순위는 낼 수 있다 — 답안이 모두 이 기기에 있다.
+   참가자를 누르면 그 사람의 잔별 상세로 들어간다. */
+function openGameRankSheet(){
+  if (!GAME) return openGames();
+  const rank = gameRank(), gs = GAME.glasses;
+  const win = rank[0];
+  openSheet('멀티 블라인드 · 순위', `
+    <div class="gsc"><b>${esc(win.name)}</b>
+      <span>1위 · 평균 ${win.avg}점 · 이름 ${win.hits}/${gs.length} 맞힘</span>
+      <i>${gs.length}잔 · ${rank.length}명 · ${esc(gameLevel(GAME.lv).name)}${
+        GAME.timer ? ` · 한 차례 ${timeLabel(GAME.timer)}` : ''}</i></div>
+    <div class="glist">
+      ${rank.map((r, i) => `
+        <button type="button" class="gcard" data-gp="${r.pi}">
+          <span class="gletter${i === 0 ? ' on' : ''}">${i + 1}</span>
+          <span class="gmeta">
+            <b>${esc(r.name)}</b>
+            <i>평균 ${r.avg}점 · 이름 ${r.hits}/${gs.length}</i>
+            <span>${gs.map((g, gi) => `${g.letter} ${r.each[gi]}`).join(' · ')}</span>
+          </span>
+        </button>`).join('')}
+    </div>
+    <div class="gres">
+      <div class="grh"><b>정답</b></div>
+      ${gs.map(g => { const it = byId(g.itemId); return `<div class="gbar">
+        <i>잔 ${g.letter}</i><span></span>
+        <em>${esc(it ? fullName(it) : '(삭제된 병)')}</em></div>`; }).join('')}
+    </div>
+    <p class="hint">참가자를 누르면 그 사람의 잔별 채점 상세가 열립니다.
+      게임 점수는 컬렉션의 평점·잔량·통계에 영향을 주지 않습니다.</p>`,
+    `<button class="btn" data-act="close">닫기</button>
+     <button class="btn pri" data-act="again">새 판</button>`);
+  $('#shBody').onclick = e => {
+    const b = e.target.closest('[data-gp]'); if (!b) return;
+    openGamePlayerSheet(Number(b.dataset.gp));
+  };
+  $('#shFoot').onclick = e => {
+    const a = e.target.closest('[data-act]'); if (!a) return;
+    const mode = GAME.mode, lv = GAME.lv, cats = GAME.cats;
+    const nP = gamePlayers().length, t = GAME.timer;
+    GAME = null; saveGame();
+    if (a.dataset.act === 'again') return openGameSetup(mode, lv, cats, nP, t);
+    closeSheet();
+  };
+}
+/** 한 참가자의 잔별 채점 상세 */
+function openGamePlayerSheet(pi){
+  if (!GAME) return openGames();
+  const who = gamePlayers()[pi] || '';
+  const res = GAME.glasses.map(g => ({g, s: scoreGlass(g, GAME.mode, pi), it: byId(g.itemId)}));
+  const tot = Math.round(res.reduce((s, r) => s + r.s.pct, 0) / res.length);
+  openSheet(`${esc(who)} · 상세`, `
+    <div class="gsc"><b>${tot}</b><span>평균 점수 · ${res.length}잔</span>
+      <i>${esc(who)}</i></div>
+    ${res.map(({g, s, it}) => {
+      const right = myOf(g, pi)?.guessId === g.itemId;
+      return `<div class="gres">
+        <div class="grh"><span class="gletter on">${g.letter}</span>
+          <b>${esc(it ? fullName(it) : '(삭제된 병)')}</b>
+          <em class="${right ? 'ok' : 'no'}">${right ? '맞힘' : '틀림'}</em>
+          <u>${s.pct}점</u></div>
+        <div class="hint">예상 · ${esc(nameOfGuess(g, pi))}</div>
+        ${s.rows.map(r => {
+          const bar = r.max ? Math.round(r.got / r.max * 100) : 0;
+          const c = GAME_CAT[r.k] || {};
+          const detail = c.kind === 'dist'
+            ? (r.diff == null ? '미입력'
+               : `${gameNum(r.mine)}${c.unit} → ${gameNum(r.real)}${c.unit} · 오차 ${gameNum(r.diff)}${c.unit}`)
+            : c.kind === 'exact' ? (!r.mine ? '미입력' : `${r.mine} → ${r.real}`)
+            : c.kind === 'pick' ? (right ? '정답' : '오답')
+            : r.na ? '정답 노트 없음'
+            : `일치 ${r.hit}/${r.need} · 오답 ${r.miss}${r.hinted ? ` · 힌트 ${r.hinted}` : ''}`;
+          return `<div class="gbar"><i>${esc(r.label)}</i>
+            <span><b style="width:${bar}%"></b></span>
+            <u>${gameNum(r.got)} / ${gameNum(r.max)}</u><em>${esc(detail)}</em></div>`; }).join('')}
+      </div>`; }).join('')}`,
+    `<button class="btn" data-act="back">순위로</button>`);
+  $('#shFoot').onclick = e => {
+    if (e.target.closest('[data-act="back"]')) openGameRankSheet();
   };
 }
 
