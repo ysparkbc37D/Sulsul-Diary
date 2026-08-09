@@ -1521,7 +1521,7 @@ const LS_VER = 'wc.ver';       // 마지막으로 이력을 확인한 버전
    작은 수정마다 올라가고, 이것은 사용자에게 알릴 만한 변화에만 올린다.
    CHANGES 는 앱 안에 둔다 — 오프라인에서도 이력을 볼 수 있어야 한다.
    CHANGELOG.md 와 내용을 맞춘다(그쪽이 사람이 읽는 정식 보고서). */
-const APP_VER = '1.9.0';
+const APP_VER = '2.0.0';
 const CHANGES = [
   { v: '1.9.0', d: '2026-08-09', items: [
     '시음 노트 아래 텍스트에서 태그 찾기 버튼이 생겼습니다',
@@ -4257,13 +4257,20 @@ const GAME_PEN = 3;              /* 증가 : 감소 = 3 : 1 (중급 기본값) *
    ⚠ fam 을 끄면 정답 태그가 줄어 **채점할 수 있는 병도 줄어든다.** 고급에서 고를 수
    있는 병이 적어지는 것은 버그가 아니라 난이도다 — 셋업이 그 이유를 그대로 보여 준다. */
 const GAME_LV = 'normal';
+/* 난이도를 가르는 **점수 문턱**. matchTags 가 내는 단계별 점수를 그대로 쓴다.
+   계열 확장(0.7)은 어느 문턱에도 못 미치므로 정답에 들어가지 않는다.
+   ⚠ GAME_LEVELS 리터럴이 이 값을 참조한다 — **반드시 그보다 위에 있어야 한다.**
+   아래에 두면 TDZ 로 스크립트 전체가 조용히 멈춘다(실록 V-8). */
+const GAME_MIN_SC = 0.75;    /* 기본 — 정확·부분·동의어·어형 */
+const GAME_STRICT_SC = 0.9;  /* 고급 — 정확·부분만. 동의어와 어형을 인정하지 않는다 */
 const GAME_LEVELS = [
-  {key:'easy', name:'초급', opt:{showCount:true, narrow:6, penDiv:0, fam:true},
+  {key:'easy', name:'초급', opt:{showCount:true, narrow:6, penDiv:0, minScore:GAME_MIN_SC},
    desc:'정답 개수와 <b>후보</b>를 알려 줍니다. 빗나가도 깎지 않습니다.'},
-  {key:'normal', name:'중급', opt:{showCount:true, narrow:0, penDiv:GAME_PEN, fam:true},
+  {key:'normal', name:'중급', opt:{showCount:true, narrow:0, penDiv:GAME_PEN, minScore:GAME_MIN_SC},
    desc:'정답 개수만 알려 줍니다. 84개에서 직접 고르고, 빗나가면 <b>1/3</b> 만큼 깎입니다.'},
-  {key:'hard', name:'고급', opt:{showCount:false, narrow:0, penDiv:2, fam:false},
-   desc:'아무것도 알려 주지 않습니다. 같은 계열도 인정하지 않고, 빗나가면 <b>절반</b>을 깎습니다.'},
+  {key:'hard', name:'고급', opt:{showCount:false, narrow:0, penDiv:2, minScore:GAME_STRICT_SC},
+   desc:'아무것도 알려 주지 않습니다. <b>동의어·어형</b>을 인정하지 않아 정답이 좁고, '
+      + '빗나가면 <b>절반</b>을 깎습니다.'},
 ];
 /* 레버를 직접 만지는 난이도. 프리셋 셋으로 안 맞는 조합이 있고(예: 후보는 좁히되
    감점은 남기고 싶다), 무엇이 난이도를 만드는지 눈으로 보게 하는 값도 있다.
@@ -4281,7 +4288,7 @@ const optDesc = o => [
   o.showCount ? '정답 개수 <b>알려 줌</b>' : '정답 개수 <b>감춤</b>',
   o.narrow ? `후보 <b>정답 + 오답 ${o.narrow}개</b>` : '후보 <b>84개 전부</b>',
   o.penDiv ? `오답 <b>1/${o.penDiv}</b> 감점` : '오답 <b>감점 없음</b>',
-  o.fam ? '같은 계열 <b>인정</b>' : '<b>정확히 일치</b>만',
+  o.minScore >= GAME_STRICT_SC ? '<b>정확히 적힌 말</b>만' : '동의어·어형 <b>인정</b>',
 ].join(' · ');
 function gameLevel(k){
   if (k === 'custom'){
@@ -4361,23 +4368,24 @@ const NOTE_FAM = (() => {
   NOTE_AXES.forEach(ax => NOTES[ax].list.forEach(([n, , icn]) => { m[ax + '|' + n] = icn; }));
   return m;
 })();
-/** 한 축의 정답 태그. ① 정확 일치 ② 부분 문자열(산문 안에 이름이 있으면 인정 —
-    `짙은 피트 스모크` → `피트`) ③ 같은 아이콘 계열까지 확장.
-    ①은 ②의 부분집합이라 `includes` 한 번으로 둘을 함께 잡는다. */
-function gameTags(ax, raw, fam){
-  const s = String(raw || ''), list = NOTES[ax].list;
-  const hit = list.filter(([n]) => s.includes(n)).map(x => x[0]);
-  /* fam === false 는 고급 난이도다 — 계열 확장을 건너뛰어 정답을 좁힌다 */
-  if (!hit.length || fam === false) return hit;
-  const fams = new Set(hit.map(n => NOTE_FAM[ax + '|' + n]));
-  return [...new Set([...hit, ...list.filter(([, , icn]) => fams.has(icn)).map(x => x[0])])];
-}
+/* 게임의 정답도 **편집 화면과 같은 matchTags 를 쓴다**(v2.0.0).
+   전에는 gameTags 라는 별도 추출기가 아이콘 계열까지 무조건 넓혔다. 그래서 카드에
+   보이는 태그와 게임 정답이 어긋났다 — 글렌피딕 `서양배, 풋사과, 옅은 오크 바닐라,
+   꽃향` 에서 문장에 없는 **무화과·장미** 가 정답에 들어갔다(`꽃` 과 같은 계열이라서).
+   계열 확장이 필요했던 이유는 정답이 너무 적어서였는데, matchTags 의 동의어·어형
+   매칭이 그 문제를 해결했다(실측 매칭률 52% → 100%). 이제 넓힐 이유가 없다.
+
+   난이도는 **점수 문턱**으로 가른다 — matchTags 가 이미 단계별 점수를 낸다.
+   계열(0.7)은 어느 문턱에도 못 미치므로 정답에 들어가지 않는다. */
 /** 한 병의 정답. **셋업에서 한 번만 계산해 고정한다** — 컬렉션을 나중에 고쳐도
-    진행 중인 게임의 정답이 흔들리지 않아야 한다. opt.fam 으로 계열 인정 여부가 갈린다. */
+    진행 중인 게임의 정답이 흔들리지 않아야 한다. */
 function gameAnswer(it, opt){
-  const fam = !opt || opt.fam !== false;
+  const min = (opt && opt.minScore) || GAME_MIN_SC;
   const tags = {}, miss = [];
-  NOTE_AXES.forEach(ax => { tags[ax] = gameTags(ax, it[ax], fam); if (!tags[ax].length) miss.push(ax); });
+  NOTE_AXES.forEach(ax => {
+    tags[ax] = matchTags(ax, it[ax]).filter(x => x.score >= min).map(x => x.name);
+    if (!tags[ax].length) miss.push(ax);
+  });
   const num = v => { const m = String(v ?? '').match(/\d+(?:\.\d+)?/); return m ? parseFloat(m[0]) : null; };
   /* 숙성연수는 `NAS`(미표기) 가 있고 지역도 비어 있을 수 있다. 값이 없는 항목은
      `dead` 에 담아 배점을 비례로 흘려보낸다.
@@ -4407,7 +4415,9 @@ function gameCand(ax, answer, n){
 }
 
 let GAME = null;                 /* 진행 중인 한 판 */
-const GAME_VER = 4;              /* 답안이 참가자별 배열(mys)로 바뀐 판 */
+/* 5: 정답 추출이 matchTags 로 바뀌고 난이도가 fam(불리언) → minScore(점수 문턱)가 된 판.
+   옛 판을 그대로 읽으면 opt.fam 이 무시돼 조용히 기본 문턱으로 채점된다 — 버린다. */
+const GAME_VER = 5;
 function loadGame(){
   try{ GAME = JSON.parse(localStorage.getItem(LS_GAME) || 'null'); }catch(e){ GAME = null; }
   /* 옛 판은 버린다. 한 판은 한 자리에서 끝나는 것이라 이어 붙일 값이 없고,
@@ -4719,9 +4729,10 @@ function openGameSetup(mode, lvKey, catsIn, pIn, tIn){
       ${lv.key !== 'custom' ? '' : `<div class="gopt">
         <label><input type="checkbox" data-go="showCount" ${lv.opt.showCount ? 'checked' : ''}>
           <span>축마다 정답이 <b>몇 개인지</b> 알려 준다</span></label>
-        <label><input type="checkbox" data-go="fam" ${lv.opt.fam ? 'checked' : ''}>
-          <span>같은 <b>아이콘 계열</b>을 정답으로 인정한다
-            <i>끄면 정답이 좁아져 쓸 수 있는 병도 줄어듭니다</i></span></label>
+        <label><input type="checkbox" data-go="strict" ${lv.opt.minScore >= GAME_STRICT_SC ? 'checked' : ''}>
+          <span><b>정확히 적힌 말</b>만 정답으로 친다
+            <i>켜면 동의어(감귤류→시트러스)와 어형(스파이스→스파이시)을 인정하지 않아
+              정답이 좁아지고, 쓸 수 있는 병도 줄어듭니다</i></span></label>
         <div class="gor"><span>후보 좁히기</span>
           <select data-go="narrow">${GAME_NARROW.map(n =>
             `<option value="${n}"${n === lv.opt.narrow ? ' selected' : ''}
@@ -4741,8 +4752,8 @@ function openGameSetup(mode, lvKey, catsIn, pIn, tIn){
          고른 병은 순서를 섞어 <b>A · B · C…</b> 로 붙습니다 — 그 순서대로 잔에 부으세요.`}</p>
     ${usable < lo ? `<div class="gsum warn">이 난이도에서 채점할 수 있는 병이 ${usable}개뿐입니다.
       향·맛·여운 <b>세 축 모두</b> 노트가 있어야 정답을 만들 수 있습니다.
-      ${lv.opt.fam === false
-        ? '<b>고급</b>은 같은 계열을 인정하지 않아 정답이 더 좁습니다 — 난이도를 낮추거나, '
+      ${lv.opt.minScore >= GAME_STRICT_SC
+        ? '<b>고급</b>은 동의어·어형을 인정하지 않아 정답이 더 좁습니다 — 난이도를 낮추거나, '
         : ''}아래에서 <b>노트 채우기</b>를 눌러 채워 주세요.</div>` : ''}
     <div class="glist">
       ${rows.map(({it, a}) => {
@@ -4794,6 +4805,12 @@ function openGameSetup(mode, lvKey, catsIn, pIn, tIn){
     const go = e.target.closest('[data-go]');
     if (go){
       const k = go.dataset.go;
+      /* strict 체크박스는 **점수 문턱**으로 저장한다 — 난이도가 fam 불리언이 아니라
+         minScore 로 갈리기 때문이다(matchTags 의 단계별 점수를 그대로 쓴다) */
+      if (k === 'strict'){
+        saveOpt({...loadOpt(), minScore: go.checked ? GAME_STRICT_SC : GAME_MIN_SC});
+        return openGameSetup(mode, 'custom', cats, nP, tSec);
+      }
       const v = go.type === 'checkbox' ? go.checked : Number(go.value);
       saveOpt({...loadOpt(), [k]: v});
       return openGameSetup(mode, 'custom', cats, nP, tSec);
