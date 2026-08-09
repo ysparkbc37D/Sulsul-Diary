@@ -1041,9 +1041,22 @@ pre.csv{
 /* 텍스트에서 찾기 — 추천 등급(0.5~0.75)은 **켜지 않고** 점선으로만 알린다.
    확신이 낮은 것을 켜 두면 사용자가 하나씩 꺼야 해서 도움이 아니라 일이 된다. */
 .ncell.sug{border-style:dashed;border-color:var(--accent-line);color:var(--accent)}
-.nfind{margin-top:8px;align-items:center}
-.nfind .hint{flex:1;min-width:110px}
-.nfind .hint b{color:var(--accent)}
+/* 문장에서 자동으로 잡힌 칩 — 내가 직접 켠 것(.on)과 구분되게 옅게 채운다.
+   같은 표시를 쓰면 무엇이 내 선택이고 무엇이 자동인지 알 수 없다. */
+.ncell.auto{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent)}
+.ncell.auto span{opacity:.85}
+/* 자동 등록 줄 — 텍스트와 섞이지 않게 아래에 따로 낸다 */
+.nauto{margin:7px 0 0;font-size:11px;line-height:1.8;color:var(--ink3)}
+.nauto:empty{display:none}
+.nauto b{color:var(--ink2);font-weight:700;margin-right:4px}
+.nauto i{
+  font-style:normal;display:inline-block;margin:0 3px 3px 0;padding:2px 7px;border-radius:6px;
+  background:var(--accent-bg);color:var(--accent);font-weight:600;
+}
+.nauto .sg{display:block;color:var(--ink3);margin-top:2px}
+/* 섹션 제목 옆의 `모두 수정` */
+h4.sec{display:flex;align-items:center;gap:8px}
+h4.sec .nedit{margin-left:auto}
 /* 편집 폼의 접이식 — 한 번 넣으면 잘 안 고치는 것들 */
 .efold{margin-top:16px;border-top:1px solid var(--line);padding-top:4px}
 .efold > summary{
@@ -1853,6 +1866,8 @@ function matchTags(ax, raw){
   if (!s.trim()) return [];
   const list = NOTES[ax].list.map(x => x[0]);
   const parts = new Set(String(raw || '').split(/[,·/\n]/).map(x => x.trim()).filter(Boolean));
+  /* 어형 비교용 낱말 — 조사·수식어가 붙은 덩어리를 공백·쉼표로 쪼갠다 */
+  const toks = s.split(/[\s,·/\n]+/).map(x => x.replace(/[한의로된]$/, '')).filter(x => x.length >= 2);
   const hit = new Map();
   const put = (n, how) => {
     const sc = MATCH_W[how];
@@ -1862,7 +1877,16 @@ function matchTags(ax, raw){
     if (parts.has(n)) return put(n, 'exact');           // 쉼표 조각과 완전히 같다
     if (s.includes(n.toLowerCase())) return put(n, 'sub');  // 문장 안에 이름이 들어 있다
     const vs = SYN[n];
-    if (vs && vs.some(v => s.includes(v.toLowerCase()))) put(n, 'syn');
+    if (vs && vs.some(v => s.includes(v.toLowerCase()))) return put(n, 'syn');
+    /* 어형 변화 — `스파이시` 와 `스파이스` 처럼 끝 글자만 다른 외래어를 잡는다.
+       조건을 좁게 둔다: 둘 다 공백이 없고, 3글자 이상이며, 앞 3글자가 같고,
+       길이 차가 1 이하. 공백을 막는 이유는 `다크 체리` / `다크 초콜릿` 이 앞 3글자를
+       공유하기 때문이다 — 디스크립터 84개 중 유일한 충돌이고, 이 조건이 그것을 뺀다. */
+    if (n.length >= 3 && !n.includes(' ')){
+      const head = n.slice(0, 3).toLowerCase();
+      if (toks.some(t => t.length >= 3 && !t.includes(' ')
+          && t.slice(0, 3) === head && Math.abs(t.length - n.length) <= 1)) put(n, 'syn');
+    }
   });
   /* 같은 아이콘 계열까지 넓힌다 — 추천 등급으로만 낸다(자동으로 켜지지 않는다) */
   const fams = new Set([...hit.keys()].map(n => NOTE_FAM[ax + '|' + n]));
@@ -1873,15 +1897,19 @@ function matchTags(ax, raw){
 /** 선택 그리드 HTML. open=true 면 전체, false 면 가중치 상위 + 선택된 것.
     only 를 주면 **그 목록만** 후보로 둔다(게임 초급의 후보 좁히기).
     좁힌 목록은 전부 보여야 뜻이 있으므로 접지 않는다. */
-function noteGrid(axis, raw, open, only){
+function noteGrid(axis, raw, open, only, extra){
   const g = NOTES[axis];
   const { picked } = notePicked(axis, raw);
   const set = new Set(picked);
+  /* extra: 켜지지는 않지만 **항상 보여야 하는** 이름(문장에서 자동으로 잡힌 것).
+     접힌 그리드는 상위 10개만 내는데, 자동으로 잡힌 태그가 그 밖이면 표시할 칸이
+     아예 없어 사용자가 무엇이 잡혔는지 볼 수 없다. */
+  const ex = new Set(extra || []);
   const list = only
     ? g.list.filter(x => only.includes(x[0]) || set.has(x[0]))
     : g.list;
   const shown = (open || only) ? list
-    : list.filter((x, i) => i < NOTE_TOP || set.has(x[0]));
+    : list.filter((x, i) => i < NOTE_TOP || set.has(x[0]) || ex.has(x[0]));
   const hidden = list.length - shown.length;
   return `<div class="ngrid" data-naxis="${axis}">${shown.map(([n, , ic2]) =>
       `<button type="button" class="ncell${set.has(n) ? ' on' : ''}" data-npick="${esc(n)}"
@@ -2138,7 +2166,8 @@ function closeLightbox(fromBack){
   const wasOn = $('#lightbox').classList.contains('on');
   $('#lightbox').classList.remove('on');
   if (wasOn) unlockScroll();
-  if (!fromBack && history.state?.wc === 'lb'){ try{ history.back(); }catch(e){} }
+  /* guardBack: 이 back() 이 만든 popstate 는 건너뛴다 — 안 그러면 아래 시트까지 닫힌다 */
+  if (!fromBack && history.state?.wc === 'lb') guardBack();
 }
 function drawLightbox(){
   $('#lbImg').src = LB.list[LB.i];
@@ -3359,8 +3388,16 @@ let backArmed = false, backTid = 0;
 function pushGuard(kind){
   try{ history.pushState({wc: kind}, ''); }catch(e){}
 }
+/* 우리가 **스스로** 부른 history.back() 이 만든 popstate 를 한 번 건너뛴다.
+   ⚠ 이것이 없으면: 확대 사진을 닫을 때 closeLightbox 가 클래스를 먼저 지우고
+   history.back() 을 부르는데, 그때 popstate 핸들러가 보기엔 라이트박스가 이미 닫혀
+   있어 **다음 분기인 closeSheet 로 떨어져 상세 화면까지 함께 닫혔다.**
+   사용자에게는 "사진 닫았더니 목록으로 튕김" 으로 보였다. */
+let backSkip = 0;
+const guardBack = () => { backSkip++; try{ history.back(); }catch(e){ backSkip--; } };
 window.addEventListener('popstate', () => {
-  if ($('#lightbox')?.classList.contains('on')){ closeLightbox(); pushGuard('root'); return; }
+  if (backSkip > 0){ backSkip--; return; }
+  if ($('#lightbox')?.classList.contains('on')){ closeLightbox(true); pushGuard('root'); return; }
   if ($('#sheet').classList.contains('on')){ closeSheet(true); pushGuard('root'); return; }
   if (backArmed){ backArmed = false; history.back(); return; }   // 두 번째 → 실제로 나감
   backArmed = true;
@@ -3457,7 +3494,8 @@ function closeSheet(fromBack){
   const wasOpen = $('#sheet').classList.contains('on');
   $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on');
   if (wasOpen) unlockScroll();
-  if (!fromBack && history.state?.wc === 'sheet'){ try{ history.back(); }catch(e){} }
+  /* 시트도 같다 — 이 back() 이 만든 popstate 가 흘러가면 "뒤로가기 한 번 더" 토스트가 뜬다 */
+  if (!fromBack && history.state?.wc === 'sheet') guardBack();
 }
 
 /* ── 본문 스크롤 잠금 (iOS 대응) ─────────────
@@ -5713,7 +5751,9 @@ function openEdit(id, draft){
       <h4 class="sec">관리</h4>
       ${G(['status','opened_at','remaining_pct','storage'])}
 
-      <h4 class="sec">시음 · 평점</h4>
+      <h4 class="sec">시음 · 평점
+        <!-- 축을 하나씩 여닫으면 세 번 눌러야 한다. 보통은 셋 다 함께 본다(사용자 요청) -->
+        <button type="button" class="nedit" id="nAll">모두 수정</button></h4>
       ${G(['rating_wb','rating_my','flavors'])}
       <!-- 향·맛·여운 아이콘 그리드는 657px 를 먹는다. 노트는 한 번 쓰면 자주 고치지 않으므로
            평소에는 접어 두고 '수정' 으로 편다. 축별로 따로 편다 — 셋을 한꺼번에 펴면
@@ -5728,13 +5768,10 @@ function openEdit(id, draft){
           <div class="nbody" data-nbody="${ax}" hidden>
             <div class="nwrap">${noteGrid(ax, it[ax], false)}</div>
             ${G([ax])}
-            <!-- 자동으로 켜지 않는다. 타이핑 도중 일부러 끈 칩이 되살아나면 짜증난다 —
-                 누를 때만 훑는다(초안 배지가 "손댄 값은 안 건드린다" 와 같은 결). -->
-            <div class="mrow nfind">
-              <button type="button" class="mini am" data-nfind="${ax}"
-                >${ic('sparkle')}텍스트에서 태그 찾기</button>
-              <span class="hint" data-nfmsg="${ax}"></span>
-            </div>
+            <!-- 자동 매칭 결과는 **별도 줄**에 낸다. 텍스트에 합쳐 넣으면 내가 쓴 문장과
+                 자동으로 붙은 것이 섞여 나중에 구분할 수 없다(사용자 지적).
+                 matchTags 가 결정적이라 저장할 필요도 없다 — 열 때마다 문장에서 다시 낸다. -->
+            <p class="nauto" data-nauto="${ax}"></p>
           </div>
         </div>`).join('')}
 
@@ -5781,52 +5818,77 @@ function openEdit(id, draft){
     const b = f.querySelector(`[data-nbody="${ax}"]`);
     if (b && openTools) b.hidden = false;
   });
+  /** 한 축을 여닫는다. show 를 주면 그 상태로 맞춘다 */
+  const noteOpen = (ax, show) => {
+    const b = f.querySelector(`[data-nbody="${ax}"]`);
+    const btn = f.querySelector(`[data-nedit="${ax}"]`);
+    if (!b || !btn) return;
+    b.hidden = show == null ? !b.hidden : !show;
+    btn.classList.toggle('on', !b.hidden);
+    btn.textContent = b.hidden ? '수정' : '접기';
+  };
   f.querySelectorAll('[data-nedit]').forEach(btn => {
     btn.classList.toggle('on', openTools);
     btn.onclick = () => {
-      const ax = btn.dataset.nedit, b = f.querySelector(`[data-nbody="${ax}"]`);
-      b.hidden = !b.hidden;
-      btn.classList.toggle('on', !b.hidden);
-      btn.textContent = b.hidden ? '수정' : '접기';
+      noteOpen(btn.dataset.nedit);
+      const b = f.querySelector(`[data-nbody="${btn.dataset.nedit}"]`);
       if (!b.hidden) b.scrollIntoView({block:'nearest'});
+      syncAllBtn();
     };
   });
-  /* 텍스트에서 태그 찾기. 0.75 이상은 켜고, 0.5~0.75 는 추천으로만 표시한다.
-     **이미 켜 둔 칩은 끄지 않는다** — 찾기는 더해 주는 동작이지 덮어쓰는 동작이 아니다. */
-  f.querySelectorAll('[data-nfind]').forEach(btn => {
-    btn.onclick = () => {
-      const ax = btn.dataset.nfind;
-      const ta = f.querySelector(`[name="${ax}"]`);
-      const msg = f.querySelector(`[data-nfmsg="${ax}"]`);
-      const hits = matchTags(ax, ta ? ta.value : '');
-      if (!hits.length){ msg.textContent = '텍스트에서 찾은 태그가 없습니다'; return; }
-      const sec = f.querySelector(`[data-nsec="${ax}"]`);
-      /* **텍스트에 합쳐 넣는다.** 저장되는 것은 이 textarea 이고 칩은 그 파생이라,
-         칩만 켜 두면 다시 열었을 때 사라진다(`오렌지` 라는 글자로는 `시트러스` 가
-         정확 일치하지 않는다). 수동 클릭과 같은 경로를 써서 결과를 남긴다. */
-      const { picked, free } = notePicked(ax, ta.value);
-      const add = hits.filter(h => h.score >= MATCH_ON).map(h => h.name);
-      const next = [...new Set([...picked, ...add])];
-      const order = NOTES[ax].list.map(x => x[0]);
-      next.sort((a, b) => order.indexOf(a) - order.indexOf(b));
-      ta.value = [...next, ...free].join(', ');
-      ta.dispatchEvent(new Event('input', {bubbles: true}));   // 초안 배지 해제
-      /* 후보가 상위 10개 밖에 있을 수 있으니 목록을 모두 펼친 뒤 표시한다 */
-      sec.querySelector('.nwrap').innerHTML = noteGrid(ax, ta.value, true);
-      const more = sec.querySelector('[data-nmore]'); if (more) more.dataset.nopen = '1';
-      const on = picked;
-      /* 추천 등급은 점선으로만 — 켜지지는 않는다 */
-      const sug = hits.filter(h => h.score >= MATCH_SUG && h.score < MATCH_ON).map(h => h.name);
-      sug.forEach(n => {
-        const c = sec.querySelector(`[data-npick="${CSS.escape(n)}"]`);
-        if (c && !c.classList.contains('on')) c.classList.add('sug');
-      });
-      const added = add.filter(n => !on.includes(n));
-      msg.innerHTML = `<b>${added.length}개</b> 켰습니다${
-        sug.length ? ` · 추천 ${sug.length}개(점선)` : ''}`;
-      repaintSum();
-    };
-  });
+  /* 셋을 한 번에. 하나라도 접혀 있으면 모두 펴고, 다 펴져 있으면 모두 접는다 */
+  const anyClosed = () => NOTE_AXES.some(ax => f.querySelector(`[data-nbody="${ax}"]`)?.hidden);
+  const syncAllBtn = () => {
+    const b = $('#nAll'); if (!b) return;
+    const closed = anyClosed();
+    b.textContent = closed ? '모두 수정' : '모두 접기';
+    b.classList.toggle('on', !closed);
+  };
+  $('#nAll').onclick = () => {
+    const show = anyClosed();
+    NOTE_AXES.forEach(ax => noteOpen(ax, show));
+    syncAllBtn();
+  };
+  syncAllBtn();
+  /** 값이 채워진 칸이 접혀 있으면 펼친다 — 바뀐 것이 보여야 확인할 수 있다.
+      AI 는 19칸을 채우는데 그중 16칸이 접힌 안에 있었다. */
+  const revealFilled = keys => {
+    if (!keys || !keys.length) return;
+    NOTE_AXES.forEach(ax => { if (keys.includes(ax)) noteOpen(ax, true); });
+    syncAllBtn();
+    const fold = f.querySelector('.efold');
+    if (fold && !fold.open && keys.some(k => fold.querySelector(`[name="${k}"]`))) fold.open = true;
+    repaintSum(); paintAutoAll();
+  };
+  /** 자동 매칭 줄을 다시 그린다. **텍스트는 건드리지 않는다** — 내가 쓴 문장과
+      자동으로 붙은 태그가 섞이지 않게 별도 줄에만 낸다. 저장도 하지 않는다
+      (matchTags 가 결정적이라 열 때마다 문장에서 다시 낸다). */
+  const paintAuto = ax => {
+    const box = f.querySelector(`[data-nauto="${ax}"]`);
+    const ta = f.querySelector(`[name="${ax}"]`);
+    if (!box || !ta) return;
+    const { picked } = notePicked(ax, ta.value);      // 내가 직접 고른 것
+    const hits = matchTags(ax, ta.value);
+    const auto = hits.filter(h => h.score >= MATCH_ON).map(h => h.name)
+      .filter(n => !picked.includes(n));             // 이미 고른 것은 자동으로 세지 않는다
+    const sug = hits.filter(h => h.score >= MATCH_SUG && h.score < MATCH_ON).map(h => h.name);
+    box.innerHTML = auto.length
+      ? `<b>자동 등록</b> ${auto.map(n => `<i>${esc(n)}</i>`).join('')}${
+          sug.length ? `<span class="sg">추천 ${sug.slice(0,4).map(esc).join(', ')}</span>` : ''}`
+      : '';
+    /* 자동으로 잡힌 칩을 그리드에도 낸다 — 켠 것과 구분되게 다른 표시를 쓴다.
+       상위 10개 밖이면 칸 자체가 없으므로 extra 로 넘겨 강제로 그린다. */
+    const sec = f.querySelector(`[data-nsec="${ax}"]`);
+    const more = sec.querySelector('[data-nmore]');
+    const open = !!(more && more.dataset.nopen);
+    sec.querySelector('.nwrap').innerHTML = noteGrid(ax, ta.value, open, null, auto);
+    if (open){ const m2 = sec.querySelector('[data-nmore]'); if (m2) m2.dataset.nopen = '1'; }
+    sec.querySelectorAll('.ncell').forEach(c => {
+      c.classList.toggle('auto', auto.includes(c.dataset.npick));
+      c.classList.toggle('sug', sug.includes(c.dataset.npick) && !c.classList.contains('on'));
+    });
+  };
+  const paintAutoAll = () => NOTE_AXES.forEach(paintAuto);
   /** 노트 요약과 스펙 배지를 지금 입력값으로 다시 그린다 */
   const repaintSum = () => {
     NOTE_AXES.forEach(ax => {
@@ -5979,9 +6041,10 @@ function openEdit(id, draft){
     /* 접힌 노트의 요약과 이름 아래 배지를 따라가게 한다 — 접이식 안에서 도수·지역을
        고쳤는데 위의 배지가 옛 값이면 어느 쪽이 참인지 알 수 없다 */
     const n = e.target.name;
-    if (n && ['nose','taste','finish','region','abv','age','type'].includes(n)) repaintSum();
+    if (n && NOTE_AXES.includes(n)){ repaintSum(); paintAuto(n); }
+    else if (n && ['region','abv','age','type'].includes(n)) repaintSum();
   };
-  repaintSum();
+  repaintSum(); paintAutoAll();
 
   /* ── AI 초안 ──
      빈 칸만 채운다. 채운 키를 들고 있어야 되돌릴 수 있다. */
@@ -6050,6 +6113,10 @@ function openEdit(id, draft){
       aiPrev = {};
       [...r.keys].forEach(k => { aiPrev[k] = fval(k) ?? ''; });   // 덮기 전 값을 먼저 떠 둔다
       aiDone = [...r.keys].filter(k => setVal(k, r.F[k]));
+      /* **채운 곳을 펼친다.** AI 는 19칸을 채우는데 그중 16칸이 접힌 안에 있어,
+         펴 주지 않으면 무엇이 바뀌었는지 보이지 않는다 — 사용자에게는 "상세 사양만
+         채우는 것 같다" 로 보였다. 초안 배지도 접혀 있으면 무용지물이다. */
+      revealFilled(aiDone);
       if (!aiDone.length) aiMsg('채울 값을 받지 못했습니다 — 이름 표기를 바꿔 보세요', true);
       else aiMsg(`${aiDone.length}개를 채웠습니다 — <b>라벨을 보고 확인</b>하세요. `
         + `<button type="button" class="mini" id="aiUndo">되돌리기</button>`);
