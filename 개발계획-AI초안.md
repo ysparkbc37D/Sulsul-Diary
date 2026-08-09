@@ -57,7 +57,7 @@ AI 는 `enrich` 옆에 **네 번째 검색원**으로 들어간다.
 | 등급 | 필드 | 이유 |
 | :--- | :--- | :--- |
 | **채운다** | `name_en` `type` `distillery` `country` `region` `abv` `age` `cask` `bottler` `size_ml` `nose` `taste` `finish` `flavors` `tags` · **`market_low` `market_high` `rating_wb`** · **`notes`**(덧붙임) | 전부 `초안` 배지를 달고 들어간다. 사용자가 라벨을 보고 확인·수정한다 |
-| **건드리지 않는다** | `purchase_price` `purchase_date` `purchase_place` `rating_my` `rating_bible` `status` `remaining_pct` `opened_at` `storage` | **내 기록**이다 — 얼마에 어디서 샀고 지금 얼마 남았는지는 AI 가 알 수 없다 |
+| **건드리지 않는다** | `purchase_price` `purchase_date` `purchase_place` `rating_my` `status` `remaining_pct` `opened_at` `storage` | **내 기록**이다 — 얼마에 어디서 샀고 지금 얼마 남았는지는 AI 가 알 수 없다 |
 
 **2차 갱신 (2026-08-07, 사용자 요청)** — 처음에는 시장가와 평점을 전부 뺐지만
 `market_low`·`market_high`·`rating_wb` 를 **넣기로 했다.** 위험은 그대로다(아래) —
