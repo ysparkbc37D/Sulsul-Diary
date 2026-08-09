@@ -1038,6 +1038,12 @@ pre.csv{
   background:var(--surface2);border:1px solid var(--line);color:var(--ink2);
 }
 .nedit.on{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent)}
+/* 텍스트에서 찾기 — 추천 등급(0.5~0.75)은 **켜지 않고** 점선으로만 알린다.
+   확신이 낮은 것을 켜 두면 사용자가 하나씩 꺼야 해서 도움이 아니라 일이 된다. */
+.ncell.sug{border-style:dashed;border-color:var(--accent-line);color:var(--accent)}
+.nfind{margin-top:8px;align-items:center}
+.nfind .hint{flex:1;min-width:110px}
+.nfind .hint b{color:var(--accent)}
 /* 편집 폼의 접이식 — 한 번 넣으면 잘 안 고치는 것들 */
 .efold{margin-top:16px;border-top:1px solid var(--line);padding-top:4px}
 .efold > summary{
@@ -1502,8 +1508,18 @@ const LS_VER = 'wc.ver';       // 마지막으로 이력을 확인한 버전
    작은 수정마다 올라가고, 이것은 사용자에게 알릴 만한 변화에만 올린다.
    CHANGES 는 앱 안에 둔다 — 오프라인에서도 이력을 볼 수 있어야 한다.
    CHANGELOG.md 와 내용을 맞춘다(그쪽이 사람이 읽는 정식 보고서). */
-const APP_VER = '1.8.0';
+const APP_VER = '1.9.0';
 const CHANGES = [
+  { v: '1.9.0', d: '2026-08-09', items: [
+    '시음 노트 아래 텍스트에서 태그 찾기 버튼이 생겼습니다',
+    '자유롭게 쓴 문장에서 향·맛·여운 태그를 찾아 켜 줍니다',
+    '감귤류·오렌지 → 시트러스 처럼 다르게 쓴 말도 알아봅니다',
+    '확신이 낮은 것은 켜지 않고 점선으로만 추천합니다',
+    '이미 켜 둔 태그는 끄지 않습니다 — 더해 주기만 합니다',
+    '여운에 중간 여운 을 더했습니다 (긴/짧은 둘뿐이라 대다수가 고를 칩이 없었습니다)',
+    '편집 화면이 조금 더 짧아졌습니다 — AI 버튼이 제목 옆으로 올라갔습니다',
+    '사진 도구에서 네이버를 뺐고 버튼이 한 줄로 들어갑니다',
+  ]},
   { v: '1.8.0', d: '2026-08-08', items: [
     '편집 화면이 절반으로 짧아졌습니다 — 2748px 에서 1110px 로',
     '자주 바꾸는 상태·개봉일·잔량·보관위치를 사진 바로 아래로 올렸습니다',
@@ -1739,7 +1755,10 @@ const NOTES = {
     ['달콤한',8,'sweet'], ['스파이시',8,'spice'], ['깔끔한',8,'clean'], ['피트',8,'peat'],
     ['후추',7,'pepper'], ['따뜻한',7,'sweet'],
     ['셰리',7,'dried'], ['부드러운',7,'soft'], ['복합적인',6,'complex'], ['다크 초콜릿',6,'choco'],
-    ['시트러스',6,'citrus'], ['짧은 여운',6,'clean'], ['감초',5,'herb'], ['견과류',5,'nut'],
+    ['시트러스',6,'citrus'], ['짧은 여운',6,'clean'],
+    /* 실제 노트 146병을 훑어 보니 `중간 길이의 마무리` 가 가장 흔한 표현인데 고를 칩이
+       없었다 — 여운 길이가 긴/짧은 둘뿐이라 대다수가 어디에도 못 붙었다. */
+    ['중간 여운',6,'long'], ['감초',5,'herb'], ['견과류',5,'nut'],
     ['소금기',5,'salt'], ['가죽',5,'leather'], ['미네랄',4,'earth'], ['흙내음',4,'earth'],
     ['타바코',4,'leather'], ['민트',3,'herb'],
   ]},
@@ -1754,6 +1773,103 @@ function notePicked(axis, raw){
   const parts = String(raw || '').split(',').map(s => s.trim()).filter(Boolean);
   return { picked: parts.filter(p => names.has(p)), free: parts.filter(p => !names.has(p)) };
 }
+/* ══════════════ 텍스트 → 태그 매칭 ══════════════
+   자유롭게 쓴 시음 노트에서 디스크립터를 찾아 칩을 켜 준다.
+
+   **임베딩 API 를 쓰지 않는다.** 대상이 고정된 84개 단어라 의미 유사도 문제가 아니라
+   사전 매칭 문제다. 서버도 키도 없이 오프라인에서 즉시 끝난다.
+
+   실측한 실패 사례가 출발점이다 — `상큼한 오렌지와 배의 달콤함, 토피 애플, 크리미한 질감`
+   에서 **한 칩도 켜지지 않았다.** 편집 폼이 쉼표로 자른 조각이 디스크립터와 완전히
+   같을 때만 켰기 때문이다(notePicked).
+
+   SYN 은 **변형 → 디스크립터**다. 한 변형이 여러 디스크립터를 가리킬 수 있다.
+   ⚠ 짧은 말은 넣지 않는다 — `배` 같은 한 글자를 변형에 넣으면 `배럴`·`배합` 에 걸린다
+   (디스크립터 이름 자체는 그대로 부분 문자열로 잡히므로 넣을 이유도 없다). */
+const SYN = {
+  '시트러스': ['감귤', '귤류', '오렌지', '레몬', '라임', '자몽', '유자', 'citrus', 'orange', 'lemon'],
+  '말린 과일': ['건과일', '건과', '드라이 프루트', 'dried fruit', '곶감', '대추야자'],
+  '과일': ['과실', '프루티', 'fruity', '과일향'],
+  '사과': ['애플', 'apple', '풋사과', '청사과'],
+  '배': ['서양배', '梨', 'pear'],
+  '부드러운': ['매끄러운', '실키', '스무스', 'smooth', '유연한', '순한'],
+  /* `피니쉬` 는 실제 노트에서 `피니시` 만큼 자주 쓰인다(146병 실측) — 둘 다 넣는다 */
+  '긴 여운': ['길고', '긴 피니시', '긴 피니쉬', '롱 피니시', '롱 피니쉬', '오래', '길게',
+              'long finish', '여운이 길', '피니쉬가 길', '피니시가 길'],
+  '짧은 여운': ['짧고', '짧게', 'short finish'],
+  '중간 여운': ['중간 길이', '중간~', '미디엄', 'medium finish', '적당한 길이'],
+  '크리미': ['크림같', '크리미한', 'creamy', '유질감'],
+  '크림': ['크리미', 'cream'],
+  '스모키': ['훈연', '연기', '그을', 'smoky', 'smoke', '스모크'],
+  '피트': ['피티', '이탄', 'peat', 'peated'],
+  '달콤한': ['단맛', '달달', '스위트', 'sweet', '달콤함'],
+  '드라이': ['드라이한', '건조한', 'dry', '텁텁'],
+  '스파이시': ['향신료', '매콤', '알싸', 'spicy', 'spice'],
+  '후추': ['페퍼', 'pepper', '흑후추', '백후추'],
+  '오크': ['참나무', '나무향', 'oak', '오키'],
+  '바닐라': ['vanilla', '바닐린'],
+  '캐러멜': ['카라멜', 'caramel'],
+  '토피': ['toffee', '태피'],
+  '꿀': ['허니', 'honey', '벌꿀', '헤더 꿀'],
+  '벌집': ['허니콤', 'honeycomb'],
+  '셰리': ['쉐리', 'sherry', '올로로소', 'px', '페드로'],
+  '초콜릿': ['쇼콜라', 'chocolate', '카카오'],
+  '다크 초콜릿': ['다크초콜릿', 'dark chocolate'],
+  '견과류': ['너트', 'nut', '아몬드', '호두', '헤이즐넛', '고소', '땅콩', '피칸'],
+  '몰트': ['맥아', 'malt', '보리'],
+  '감초': ['리코리스', 'licorice'],
+  '커피': ['에스프레소', 'coffee', '원두'],
+  '시나몬': ['계피', 'cinnamon'],
+  '소금기': ['짠맛', '짭짤', '바닷', '해풍', '요오드', 'saline', '소금'],
+  '소금': ['짠맛', '짭짤', 'salt'],
+  '가죽': ['레더', 'leather'],
+  '허브': ['herbal', '풀향', '약초'],
+  '민트': ['박하', 'mint', '멘톨'],
+  '베리류': ['베리', 'berry', '딸기', '라즈베리', '블랙커런트'],
+  '건포도': ['레이즌', 'raisin', '포도'],
+  '무화과': ['fig'],
+  '코코넛': ['coconut'],
+  '흙내음': ['흙', 'earthy', '이끼'],
+  '타바코': ['담배', 'tobacco', '시가'],
+  '꽃': ['플로럴', 'floral', '꽃향'],
+  '장미': ['rose'],
+  '버터': ['butter', '버터리'],
+  '생강': ['진저', 'ginger'],
+  '깔끔한': ['클린', 'clean', '깨끗', '깔끔', '정돈'],
+  '복합적인': ['복합', 'complex', '층층'],
+  '미네랄': ['mineral', '광물'],
+  '따뜻한': ['온화', 'warm'],
+  '오렌지 껍질': ['오렌지필', 'orange peel', '껍질'],
+  '다크 체리': ['체리', 'cherry'],
+};
+/* 점수 = 매칭 방식의 신뢰도. 임계값은 아래 둘이다.
+   ≥ MATCH_ON  → 자동으로 켠다
+   ≥ MATCH_SUG → 추천만 한다(점선 강조, 켜지지는 않는다) */
+const MATCH_ON = 0.75, MATCH_SUG = 0.5;
+const MATCH_W = {exact:1, sub:0.9, syn:0.85, fam:0.7};
+/** 한 축에서 텍스트에 맞는 디스크립터를 찾는다 → [{name, score, how}] */
+function matchTags(ax, raw){
+  const s = String(raw || '').toLowerCase();
+  if (!s.trim()) return [];
+  const list = NOTES[ax].list.map(x => x[0]);
+  const parts = new Set(String(raw || '').split(/[,·/\n]/).map(x => x.trim()).filter(Boolean));
+  const hit = new Map();
+  const put = (n, how) => {
+    const sc = MATCH_W[how];
+    if (!hit.has(n) || hit.get(n).score < sc) hit.set(n, {name:n, score:sc, how});
+  };
+  list.forEach(n => {
+    if (parts.has(n)) return put(n, 'exact');           // 쉼표 조각과 완전히 같다
+    if (s.includes(n.toLowerCase())) return put(n, 'sub');  // 문장 안에 이름이 들어 있다
+    const vs = SYN[n];
+    if (vs && vs.some(v => s.includes(v.toLowerCase()))) put(n, 'syn');
+  });
+  /* 같은 아이콘 계열까지 넓힌다 — 추천 등급으로만 낸다(자동으로 켜지지 않는다) */
+  const fams = new Set([...hit.keys()].map(n => NOTE_FAM[ax + '|' + n]));
+  list.forEach(n => { if (!hit.has(n) && fams.has(NOTE_FAM[ax + '|' + n])) put(n, 'fam'); });
+  return [...hit.values()].sort((a, b) => b.score - a.score);
+}
+
 /** 선택 그리드 HTML. open=true 면 전체, false 면 가중치 상위 + 선택된 것.
     only 를 주면 **그 목록만** 후보로 둔다(게임 초급의 후보 좁히기).
     좁힌 목록은 전부 보여야 뜻이 있으므로 접지 않는다. */
@@ -5612,6 +5728,13 @@ function openEdit(id, draft){
           <div class="nbody" data-nbody="${ax}" hidden>
             <div class="nwrap">${noteGrid(ax, it[ax], false)}</div>
             ${G([ax])}
+            <!-- 자동으로 켜지 않는다. 타이핑 도중 일부러 끈 칩이 되살아나면 짜증난다 —
+                 누를 때만 훑는다(초안 배지가 "손댄 값은 안 건드린다" 와 같은 결). -->
+            <div class="mrow nfind">
+              <button type="button" class="mini am" data-nfind="${ax}"
+                >${ic('sparkle')}텍스트에서 태그 찾기</button>
+              <span class="hint" data-nfmsg="${ax}"></span>
+            </div>
           </div>
         </div>`).join('')}
 
@@ -5666,6 +5789,42 @@ function openEdit(id, draft){
       btn.classList.toggle('on', !b.hidden);
       btn.textContent = b.hidden ? '수정' : '접기';
       if (!b.hidden) b.scrollIntoView({block:'nearest'});
+    };
+  });
+  /* 텍스트에서 태그 찾기. 0.75 이상은 켜고, 0.5~0.75 는 추천으로만 표시한다.
+     **이미 켜 둔 칩은 끄지 않는다** — 찾기는 더해 주는 동작이지 덮어쓰는 동작이 아니다. */
+  f.querySelectorAll('[data-nfind]').forEach(btn => {
+    btn.onclick = () => {
+      const ax = btn.dataset.nfind;
+      const ta = f.querySelector(`[name="${ax}"]`);
+      const msg = f.querySelector(`[data-nfmsg="${ax}"]`);
+      const hits = matchTags(ax, ta ? ta.value : '');
+      if (!hits.length){ msg.textContent = '텍스트에서 찾은 태그가 없습니다'; return; }
+      const sec = f.querySelector(`[data-nsec="${ax}"]`);
+      /* **텍스트에 합쳐 넣는다.** 저장되는 것은 이 textarea 이고 칩은 그 파생이라,
+         칩만 켜 두면 다시 열었을 때 사라진다(`오렌지` 라는 글자로는 `시트러스` 가
+         정확 일치하지 않는다). 수동 클릭과 같은 경로를 써서 결과를 남긴다. */
+      const { picked, free } = notePicked(ax, ta.value);
+      const add = hits.filter(h => h.score >= MATCH_ON).map(h => h.name);
+      const next = [...new Set([...picked, ...add])];
+      const order = NOTES[ax].list.map(x => x[0]);
+      next.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+      ta.value = [...next, ...free].join(', ');
+      ta.dispatchEvent(new Event('input', {bubbles: true}));   // 초안 배지 해제
+      /* 후보가 상위 10개 밖에 있을 수 있으니 목록을 모두 펼친 뒤 표시한다 */
+      sec.querySelector('.nwrap').innerHTML = noteGrid(ax, ta.value, true);
+      const more = sec.querySelector('[data-nmore]'); if (more) more.dataset.nopen = '1';
+      const on = picked;
+      /* 추천 등급은 점선으로만 — 켜지지는 않는다 */
+      const sug = hits.filter(h => h.score >= MATCH_SUG && h.score < MATCH_ON).map(h => h.name);
+      sug.forEach(n => {
+        const c = sec.querySelector(`[data-npick="${CSS.escape(n)}"]`);
+        if (c && !c.classList.contains('on')) c.classList.add('sug');
+      });
+      const added = add.filter(n => !on.includes(n));
+      msg.innerHTML = `<b>${added.length}개</b> 켰습니다${
+        sug.length ? ` · 추천 ${sug.length}개(점선)` : ''}`;
+      repaintSum();
     };
   });
   /** 노트 요약과 스펙 배지를 지금 입력값으로 다시 그린다 */
