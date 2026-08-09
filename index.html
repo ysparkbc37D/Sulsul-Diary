@@ -733,7 +733,9 @@ pre.csv{
   outline:none;border-color:var(--accent-line);box-shadow:0 0 0 3px var(--accent-bg)}
 .f.drafted input,.f.drafted textarea,.f.drafted select{
   background:var(--accent-bg);box-shadow:inset 2px 0 0 var(--accent2)}
-.imgb{display:flex;gap:12px}
+/* 도구를 펼치면 **사진 아래 전체 폭**으로 간다. 사진 옆(228px)에 두면 버튼 넷이
+   314px 라 늘 두 줄이 됐다. 접혀 있을 때는 사진만 있으므로 이 줄바꿈이 보이지 않는다. */
+.imgb{display:flex;gap:12px;flex-wrap:wrap}
 /* 사진 + 카메라 버튼을 함께 감싼다. 버튼을 .prev 안에 두면 drawShots() 가 innerHTML 을
    다시 쓸 때마다 사라진다 */
 .prevw{position:relative;flex:none}
@@ -750,7 +752,9 @@ pre.csv{
 }
 .imgb .prev.raw img{inset:5px}
 .imgb .prev img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
-.imgb .side{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+/* 100% 로 두어 **사진 아래 전체 폭**을 쓴다. 사진 옆(228px)에 두면 버튼 넷이 314px 라
+   늘 두 줄이 됐다. 접혀 있을 때는 사진만 있어 이 줄바꿈이 보이지 않는다. */
+.imgb .side{flex:1 1 100%;min-width:0;display:flex;flex-direction:column;gap:7px}
 /* ⚠ `[hidden]` 은 특이도 (0,1,0) 이라 위의 `.imgb .side`(0,2,0) 에 진다 — 속성만 걸면
    hidden===true 인데 화면에는 386px 가 그대로 남는다(실제로 그렇게 새어 있었다).
    숨김은 **같거나 더 높은 특이도로** 못박아야 한다. */
@@ -763,13 +767,19 @@ pre.csv{
 }
 .mini.am{color:var(--accent);border-color:var(--accent-line);background:var(--accent-bg)}
 /* AI 초안 줄 — 버튼과 상태 문구가 나란히, 문구가 길어지면 아래로 감긴다 */
-.airow{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+/* AI 초안 결과 줄. 버튼은 헤더로 갔고 여기는 메시지만 남았다 —
+   할 말이 없으면 자리를 쓰지 않는다(:empty). */
+.airow{display:block;margin:0 0 12px}
+.airow:empty{display:none}
 .airow .hint{flex:1;min-width:150px}
+/* 헤더 액션 — 제목과 ✕ 사이. 아이콘+짧은 글자로 폭을 아낀다 */
+#shAct:empty{display:none}
+#shAct .mini{flex:none;padding:5px 9px;font-size:11px}
 /* .ask — 초안 병으로 들어왔을 때 "채워 볼까요?" 를 묻는 상태.
    모달을 띄우지 않는 대신 이 줄이 눈에 걸려야 한다. 답하면 평상 상태로 돌아간다. */
 .airow.ask{
   background:var(--accent-bg);border:1px solid var(--accent-line);
-  border-radius:11px;padding:10px 11px;
+  border-radius:11px;padding:10px 11px;color:var(--ink2);
 }
 .airow.ask .hint{color:var(--ink2)}
 .airow.ask .hint b{color:var(--accent)}
@@ -1443,6 +1453,9 @@ pre.csv{
 <section class="sheet" id="sheet" role="dialog" aria-modal="true">
   <div class="sh-head"><span class="grab"></span>
     <h2 id="shTitle">—</h2>
+    <!-- 시트별 액션 자리. 본문 맨 위 한 줄을 통째로 쓰던 버튼(편집의 AI 초안)을
+         여기로 올려 폼에서 한 행을 없앴다. openSheet 의 4번째 인자로 채운다. -->
+    <span id="shAct"></span>
     <button class="ib" id="shClose" aria-label="닫기">✕</button>
   </div>
   <div class="sh-body" id="shBody"></div>
@@ -3300,12 +3313,15 @@ function openDonate(){
   };
   $('#qrOpen').onclick = () => window.open(DONATE.page, '_blank', 'noopener');
 }
-function openSheet(title, body, foot){
+/** act: 헤더(제목과 ✕ 사이)에 놓을 시트별 액션 HTML. 없으면 비운다 —
+    이전 시트의 버튼이 남으면 엉뚱한 화면에서 눌린다. */
+function openSheet(title, body, foot, act){
   /* 게임 제한시간 시계를 반드시 끈다. 화면 이동은 전부 이 함수를 지나므로 여기서
      정리하면 빠뜨릴 경로가 없다 — 남아 돌면 다른 화면에서 차례가 넘어간다.
      (필요한 화면이 자기 시계를 다시 켠다.) */
   if (typeof stopClock === 'function') stopClock();
   $('#shTitle').textContent = title;
+  $('#shAct').innerHTML = act || '';
   $('#shBody').innerHTML = body;
   $('#shFoot').innerHTML = foot || '';
   $('#shBody').scrollTop = 0;
@@ -5524,13 +5540,11 @@ function openEdit(id, draft){
     <!-- 중복 구매 경고는 여기 둔다. 마법사의 로그에 두면 1초 뒤 편집 폼으로 넘어가며
          사라져 읽을 수가 없다. 편집 중인 병은 자기 자신을 중복으로 잡지 않는다. -->
     ${dupWarnHTML(it.name_ko || it.name_en || '', id)}
-    <!-- AI 초안 — 위저드가 아니라 여기 둔다. 위저드는 곧 이 폼으로 넘어가 사라지고,
-         여기 있으면 **이미 등록한 병**에도 쓸 수 있다.
-         **빈 칸과 아직 초안인 칸**을 채운다 — 직접 고친 값은 건드리지 않는다. -->
-    <div class="airow">
-      <button type="button" class="mini am" id="aiGo">${ic('refresh')}AI로 빈 칸·초안 채우기</button>
-      <span class="hint" id="aiMsg"></span>
-    </div>
+    <!-- AI 초안의 **버튼은 헤더로** 올렸다(제목 옆). 본문에 두면 늘 한 행을 먹는데,
+         정작 누르는 것은 드물다. 여기 남은 것은 결과 메시지뿐이고, 할 말이 없으면
+         CSS 의 :empty 로 사라져 높이를 쓰지 않는다.
+         ⚠ 템플릿 리터럴 안이라 백틱을 쓰면 문자열이 끊긴다(실록 V-13). -->
+    <p class="airow hint" id="aiMsg"></p>
     <!-- ── 편집 폼의 순서 ──
          **등록을 마친 뒤 가장 자주 바뀌는 것**(상태·개봉일·잔량·보관위치·사진·시음 노트)을
          위로 올리고, 한 번 넣으면 잘 안 고치는 것(기본 사양·구매 정보)은 접어 둔다.
@@ -5556,12 +5570,18 @@ function openEdit(id, draft){
             ? '<span class="hint"><span class="spin"></span> 위키미디어에서 사진 후보 검색 중…</span>'
             : ''}</div>
           <div class="mrow">
-            <button type="button" class="mini am" id="reFind">${ic('refresh')}사진 다시 찾기</button>
+            <!-- 라벨을 줄여 넷이 한 줄에 들어가게 한다 — 아이콘이 뜻을 이미 말한다.
+                 "사진 다시 찾기"(117px) + "직접 촬영"(90px) 로는 폭을 넘겨 두 줄이 됐다. -->
+            <button type="button" class="mini am" id="reFind">${ic('refresh')}다시 찾기</button>
             <button type="button" class="mini" id="findG">${ic('search')}구글</button>
             <button type="button" class="mini" id="findW">Whiskybase</button>
-            <button type="button" class="mini" id="findN">네이버</button>
-            <button type="button" class="mini" id="pickFile">${ic('camera')}직접 촬영</button>
-            ${src ? `<button type="button" class="mini" id="rmPhoto">사진 삭제</button>` : ''}
+            <button type="button" class="mini" id="pickFile">${ic('camera')}촬영</button>
+            <!-- 네이버는 뺐다 — 쇼핑 검색이라 병 사진으로 쓸 것이 거의 없었다.
+                 사진 삭제(전체 지우기)는 **썸네일 칩이 없을 때만** 남긴다.
+                 칩이 있으면 대표 사진을 다시 탭해 한 장씩 지울 수 있지만, 옛 URL 사진만
+                 있는 병은 탭할 칩이 없어 지울 방법이 사라진다. -->
+            ${src && !(it.images?.length || it.image_norm)
+              ? `<button type="button" class="mini" id="rmPhoto">사진 삭제</button>` : ''}
           </div>
           <div class="shots" id="shotList"></div>
           <p class="hint">후보를 탭하거나 URL을 넣으면 <b>목록에 추가</b>됩니다 (최대 ${MAX_SHOTS}장).
@@ -5606,7 +5626,12 @@ function openEdit(id, draft){
       </details>
     </form>`,
     `<button class="btn" data-act="cancel">취소</button>
-     <button class="btn pri" data-act="save">저장</button>`);
+     <button class="btn pri" data-act="save">저장</button>`,
+    /* 헤더 액션 — 위저드가 아니라 편집 폼에 둔다. 위저드는 곧 이 폼으로 넘어가 사라지고,
+       여기 있으면 **이미 등록한 병**에도 쓸 수 있다.
+       **빈 칸과 아직 초안인 칸**을 채운다 — 직접 고친 값은 건드리지 않는다. */
+    `<button type="button" class="mini am" id="aiGo" title="AI로 빈 칸·초안 채우기"
+      >${ic('refresh')}AI</button>`);
 
   /* 사진 목록에는 '정규화된' 것만 담는다. 원본 URL 을 그대로 넣으면
      규격이 어긋난 이미지가 대표로 저장돼 목록 크기가 다시 들쭉날쭉해진다. */
@@ -5703,7 +5728,6 @@ function openEdit(id, draft){
   };
   $('#findG').onclick = () => openSearch('https://www.google.com/search?tbm=isch&q=');
   $('#findW').onclick = () => openSearch('https://www.whiskybase.com/search?q=');
-  $('#findN').onclick = () => openSearch('https://search.shopping.naver.com/search/all?query=');
   $('#pickFile').onclick = () => $('#fileIn').click();
   $('#fileIn').onchange = async e => {
     const files = [...e.target.files].slice(0, MAX_SHOTS);
