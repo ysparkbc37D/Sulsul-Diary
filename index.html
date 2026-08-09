@@ -1523,15 +1523,17 @@ const LS_VER = 'wc.ver';       // 마지막으로 이력을 확인한 버전
    CHANGELOG.md 와 내용을 맞춘다(그쪽이 사람이 읽는 정식 보고서). */
 const APP_VER = '2.0.0';
 const CHANGES = [
-  { v: '1.9.0', d: '2026-08-09', items: [
-    '시음 노트 아래 텍스트에서 태그 찾기 버튼이 생겼습니다',
-    '자유롭게 쓴 문장에서 향·맛·여운 태그를 찾아 켜 줍니다',
-    '감귤류·오렌지 → 시트러스 처럼 다르게 쓴 말도 알아봅니다',
+  { v: '2.0.0', d: '2026-08-09', items: [
+    '자유롭게 쓴 시음 노트에서 향·맛·여운 태그를 자동으로 찾아 줍니다',
+    '감귤류·오렌지 → 시트러스, 스파이스 → 스파이시 처럼 다르게 쓴 말도 알아봅니다',
+    '찾은 태그는 아래 자동 등록 줄에 따로 보여 줍니다 — 내가 쓴 문장은 건드리지 않습니다',
     '확신이 낮은 것은 켜지 않고 점선으로만 추천합니다',
-    '이미 켜 둔 태그는 끄지 않습니다 — 더해 주기만 합니다',
     '여운에 중간 여운 을 더했습니다 (긴/짧은 둘뿐이라 대다수가 고를 칩이 없었습니다)',
-    '편집 화면이 조금 더 짧아졌습니다 — AI 버튼이 제목 옆으로 올라갔습니다',
-    '사진 도구에서 네이버를 뺐고 버튼이 한 줄로 들어갑니다',
+    '게임 정답이 카드에 보이는 태그와 같아졌습니다 — 전에는 게임에만 더 넓게 잡혔습니다',
+    '고급 난이도는 동의어·어형을 인정하지 않습니다',
+    '편집 화면에서 향·맛·여운을 모두 수정 으로 한 번에 펼칩니다',
+    '사진을 확대한 뒤 닫으면 목록으로 튕기던 문제를 고쳤습니다',
+    'AI 채우기가 접힌 칸을 채우면 그 칸을 펼쳐 보여 줍니다',
   ]},
   { v: '1.8.0', d: '2026-08-08', items: [
     '편집 화면이 절반으로 짧아졌습니다 — 2748px 에서 1110px 로',
@@ -1698,6 +1700,34 @@ const inTab = (it, tab) => { const s = TAB_ST[tab]; return !s || s.includes(it.s
 /** 지금 실제로 갖고 있는가 — 비움은 구매 이력이지 보유가 아니다.
     구매 술장이 비움을 포함하기로 했으므로(결정 1) '보유' 를 따로 가릴 수단이 필요하다 */
 const isHeld = it => it.status === '미개봉' || it.status === '오픈';
+
+/* ── 상태·잔량을 바꾸는 두 가지 (여기 한 곳에만 둔다) ──
+   전에는 같은 계산이 **세 곳**에 복제돼 있었다(상세의 한 잔/더블 · 시음 기록 저장 ·
+   목록의 한 잔). 그리고 그중 하나만 소수점을 버려서 **같은 동작이 경로마다 다른 값을
+   남겼다** — 700ml 병에서 30ml 를 따르면 95.7% 와 96% 가 갈렸다.
+   상태 전환(오픈·비움)의 딸린 값 처리도 두 곳에 흩어져 있었다. */
+/** 한 잔 따른다 — 잔량을 ml 만큼 깎고, 0 이 되면 비움으로 바꾼다. 새 잔량(%)을 돌려준다.
+    소수 한 자리를 유지한다: 700ml 에서 30ml 는 4.29% 라 정수로 자르면 오차가 쌓인다. */
+function pourOnce(it, ml){
+  const size = Number(it.size_ml) || 700;
+  const cur = Number(it.remaining_pct) || 0;
+  const next = Math.max(0, Math.round((cur - ml / size * 100) * 10) / 10);
+  it.remaining_pct = String(next);
+  if (next <= 0){ it.status = '비움'; it.remaining_pct = '0'; }
+  return next;
+}
+/** 상태를 바꾸고 **딸린 값까지** 맞춘다 — 오픈이면 개봉일·잔량, 비움이면 잔량 0.
+    `when` 은 개봉일로 쓸 날짜(시음 기록에서 저장하면 그 기록의 날짜다). */
+function setStatus(it, st, when){
+  const was = it.status;
+  it.status = st;
+  if (st === '오픈'){
+    it.opened_at = it.opened_at || when || today();
+    /* 이미 오픈이던 병의 잔량은 건드리지 않는다 — 다시 눌러 100% 로 되돌아가면 안 된다 */
+    if (was !== '오픈') it.remaining_pct = '100';
+  }
+  if (st === '비움') it.remaining_pct = '0';
+}
 
 /** 상태 필터 중 이 술장에서 의미가 있는 것.
     탭이 이미 보유 상태를 가르므로, 술장과 모순되는 조합(위시 술장 + 미개봉 → 언제나
@@ -3934,12 +3964,7 @@ function openDetail(id){
     /* 한 잔 / 더블 — 용량 기준으로 잔량을 깎는다 */
     const p = e.target.closest('[data-pour]');
     if (p){
-      const ml = Number(p.dataset.pour);
-      const size = Number(it.size_ml) || 700;
-      const cur = Number(it.remaining_pct) || 0;
-      const next = Math.max(0, Math.round((cur - ml / size * 100) * 10) / 10);
-      it.remaining_pct = String(next);
-      if (next <= 0){ it.status = '비움'; it.remaining_pct = '0'; }
+      const next = pourOnce(it, Number(p.dataset.pour));
       it.updated_at = nowISO();
       save(); render(); openDetail(it.id);
       toast(next <= 0 ? '다 마셨습니다 — 비움으로 바꿨습니다' : `잔량 ${next}%`);
@@ -3949,8 +3974,8 @@ function openDetail(id){
     const a2 = e.target.closest('[data-act2]');
     if (a2){
       const k = a2.dataset.act2;
-      if (k === 'open'){ it.status = '오픈'; it.opened_at = it.opened_at || today(); it.remaining_pct = '100'; }
-      if (k === 'empty'){ it.status = '비움'; it.remaining_pct = '0'; }
+      if (k === 'open') setStatus(it, '오픈');
+      if (k === 'empty') setStatus(it, '비움');
       if (k === 'buy'){ it.status = '미개봉'; it.purchase_date = it.purchase_date || today(); }
       it.updated_at = nowISO(); save(); render(); openDetail(it.id);
       toast(k === 'open' ? '개봉 처리했습니다' : k === 'empty' ? '비움 처리했습니다' : '구매로 전환했습니다');
@@ -4177,14 +4202,9 @@ function openSession(id, pre){
     const latest = [...it.sessions].sort((x, y) => (y.at || '').localeCompare(x.at || ''))
       .find(x => x.score);
     if (latest) it.rating_my = latest.score;
-    /* 미개봉이었다면 자동 개봉 처리 */
-    if (it.status === '미개봉'){ it.status = '오픈'; it.opened_at = it.opened_at || s.at; it.remaining_pct = '100'; }
-    if ($('#ssPour').checked && it.status === '오픈'){
-      const size = Number(it.size_ml) || 700;
-      const next = Math.max(0, Math.round((Number(it.remaining_pct) || 0) - 30 / size * 100));
-      it.remaining_pct = String(next);
-      if (next <= 0){ it.status = '비움'; it.remaining_pct = '0'; }
-    }
+    /* 미개봉이었다면 자동 개봉 처리 — 개봉일은 이 기록의 날짜로 잡는다 */
+    if (it.status === '미개봉') setStatus(it, '오픈', s.at);
+    if ($('#ssPour').checked && it.status === '오픈') pourOnce(it, 30);
     it.updated_at = nowISO();
     save(); render(); openDetail(it.id); toast('시음 기록을 저장했습니다');
   };
@@ -7695,11 +7715,7 @@ let sipUndo = null;
 function sip(id){
   const it = byId(id); if (!it || it.status !== '오픈') return;
   const before = { pct: it.remaining_pct, status: it.status, upd: it.updated_at };
-  const size = Number(it.size_ml) || 700;
-  const cur = Number(it.remaining_pct) || 0;
-  const next = Math.max(0, Math.round((cur - 30 / size * 100) * 10) / 10);
-  it.remaining_pct = String(next);
-  if (next <= 0){ it.status = '비움'; it.remaining_pct = '0'; }
+  const next = pourOnce(it, 30);
   it.updated_at = nowISO();
   save(); render();
   sipUndo = { id, before };
