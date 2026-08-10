@@ -308,7 +308,11 @@ header.top{
    트리거(.sel 버튼) 아래에 fixed 로 띄운다 — .wrap/.controls 어딘가에 overflow:hidden
    이 생겨도 잘리지 않고, 스크롤 위치와 무관하게 항상 트리거 바로 아래에 붙는다. */
 .dropmenu{
-  position:fixed;z-index:45;background:var(--surface);border:1px solid var(--line);
+  /* 55 — .sheet(50) 보다 높아야 한다. 카테고리/타입 선택기는 시트 밖(메인 목록)에 있어
+     45로도 문제가 없었지만, 게임 설정/평가 시트 안에서 여는 패널은 45면 시트 배경에
+     완전히 가려 안 보였다(실측: 참가자수·후보좁히기 패널이 화면에 렌더는 되는데
+     투명하게 사라져 있었음). 라이트박스(80)·토스트(90)보다는 낮게 둔다. */
+  position:fixed;z-index:55;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r2);box-shadow:var(--sh2);padding:6px;overflow-y:auto;
   opacity:0;transform:translateY(-4px);transition:opacity .12s,transform .12s;
   pointer-events:none;
@@ -741,9 +745,19 @@ pre.csv{
 .f label{font-size:11px;color:var(--ink3);padding-left:2px;display:flex;align-items:center;gap:5px}
 .dpill{font-size:9px;font-style:normal;color:var(--warn);border:1px solid var(--accent-line);
   background:var(--accent-bg);border-radius:4px;padding:0 4px;line-height:15px;letter-spacing:.02em}
-.f input,.f select,.f textarea{
+.f input,.f select,.f textarea,.f .fsel{
   width:100%;background:var(--surface);border:1px solid var(--line);border-radius:10px;
   padding:10px 11px;font-size:14px;
+}
+/* 게임의 예상 병·지역 — 네이티브 <select> 였다가 버튼+패널로 바꿨다(v2.1.0).
+   .sel 과 같은 화살표를 그려 목록이 열린다는 걸 알린다. */
+.f .fsel{
+  text-align:left;color:var(--ink);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+  padding-right:28px;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink3) 50%),
+    linear-gradient(135deg,var(--ink3) 50%,transparent 50%);
+  background-position:calc(100% - 16px) 18px, calc(100% - 11px) 18px;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
 }
 .f textarea{min-height:62px;resize:vertical;line-height:1.55}
 /* 잔량 슬라이더 */
@@ -1307,9 +1321,16 @@ h4.sec .nedit{margin-left:auto}
 .gopt label i{display:block;font-style:normal;font-size:10.5px;color:var(--ink3);margin-top:1px}
 .gor{display:flex;gap:8px;align-items:center}
 .gor > span{flex:none;font-size:11.5px;color:var(--ink2)}
-.gor select{
-  flex:1;min-width:0;height:31px;padding:0 8px;border-radius:8px;font-size:11.5px;
+/* 네이티브 <select> 였다가 버튼으로 바꿨다(v2.1.0) — .sel 과 같은 화살표를
+   그려 "누르면 목록이 열린다" 는 게 똑같이 읽히게 한다. */
+.gorsel{
+  flex:1;min-width:0;height:31px;padding:0 22px 0 8px;border-radius:8px;font-size:11.5px;
   background:var(--surface);border:1px solid var(--line);color:var(--ink);
+  text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+  appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink3) 50%),
+    linear-gradient(135deg,var(--ink3) 50%,transparent 50%);
+  background-position:calc(100% - 13px) 13px, calc(100% - 8px) 13px;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
 }
 /* 맞힐 항목 — 켜고 끄면 배점이 자동으로 다시 나뉜다. 나뉜 결과를 바로 아래에
    숫자로 보여 준다: 켰을 때 무엇이 얼마나 줄어드는지 눈으로 보여야 고를 수 있다. */
@@ -1553,8 +1574,12 @@ const LS_VER = 'wc.ver';       // 마지막으로 이력을 확인한 버전
    작은 수정마다 올라가고, 이것은 사용자에게 알릴 만한 변화에만 올린다.
    CHANGES 는 앱 안에 둔다 — 오프라인에서도 이력을 볼 수 있어야 한다.
    CHANGELOG.md 와 내용을 맞춘다(그쪽이 사람이 읽는 정식 보고서). */
-const APP_VER = '2.1.0';
+const APP_VER = '2.1.1';
 const CHANGES = [
+  { v: '2.1.1', d: '2026-08-11', items: [
+    '게임 화면의 드롭다운(참가자 수·제한시간·후보 좁히기·오답 감점·예상 병·예상 지역)도 앱 테마 패널로 바꿨습니다',
+    '전에는 목록 화면만 고쳐져 있었고 게임 설정·평가 화면은 그대로 안드로이드 전체화면 피커였습니다',
+  ]},
   { v: '2.1.0', d: '2026-08-10', items: [
     '주종·타입 드롭다운을 앱 테마 그대로인 패널로 바꿨습니다',
     '전에는 폰에서 탭하면 안드로이드가 흰 화면 가득 피커를 띄웠습니다',
@@ -2267,12 +2292,22 @@ function closeDropMenu(instant){
 /** items: [{v, label, count}]. current: 지금 선택된 v. onPick(v) 는 고른 뒤 불린다. */
 function openDropMenu(trigger, items, current, onPick){
   closeDropMenu(true);   // 이전 패널이 있으면 즉시 치운다 — 새로 열리는 패널과 안 겹치게
+  /* ⚠ 위 한 줄로는 부족하다 — DM 은 슬롯이 하나뿐인데, "고르기" 로 방금 닫힌 패널은
+     onPick() 이 부르는 openGameSetup() 같은 재렌더 안에서 **이미 DM 을 비우고** 자기
+     제거를 150ms 뒤로 예약해 둔 상태다. 그 직후 다른 트리거를 또 열면 DM 에는 아무것도
+     없어 위 줄이 아무 일도 안 하고, 사라지는 중인 옛 패널과 새 패널이 최대 150ms 동안
+     같이 떠 있는다 — document.querySelector('.dropmenu') 가 옛것을 집어 온다
+     (실측: 참가자 패널을 고른 직후 후보 좁히기를 열었더니 여전히 "2명~10명" 이 보였다).
+     DM 추적과 별개로 **실제 DOM 을 훑어** 남은 것을 전부 지운다. */
+  document.querySelectorAll('.dropmenu').forEach(el => el.remove());
   const m = document.createElement('div');
   m.className = 'dropmenu';
   m.setAttribute('role', 'listbox');
+  /* count 는 선택이다 — 주종·타입처럼 "몇 개" 가 있는 목록에는 배지로 붙이고,
+     참가자 수·제한시간처럼 셀 것이 없는 목록은 라벨만 낸다. */
   m.innerHTML = items.map(it => `<button type="button" class="dropitem${it.v === current ? ' on' : ''}"
       data-v="${esc(it.v)}" role="option" aria-selected="${it.v === current}">
-      <span>${esc(it.label)}</span><b>${it.count}</b></button>`).join('');
+      <span>${esc(it.label)}</span>${it.count != null ? `<b>${it.count}</b>` : ''}</button>`).join('');
   document.body.appendChild(m);
   /* 트리거 바로 아래에 고정 배치한다. 화면 오른쪽·아래로 넘치면 안으로 접어 넣는다 —
      360px 폭에서 타입 패널(160px대)이 오른쪽 8px 안에 들어오려면 이 보정이 필요하다. */
@@ -4823,12 +4858,13 @@ function openGameSetup(mode, lvKey, catsIn, pIn, tIn){
   const tSec = tIn == null ? loadT() : tIn;
   openSheet(`${GAME_TITLE[mode] || '블라인드'} · 병 고르기`, `
     ${mode !== 'multi' ? '' : `<div class="gmp">
+      <!-- 네이티브 <select> 였다가 버튼+커스텀 패널(openDropMenu)로 바꿨다(v2.1.0) —
+           폰에서 탭하면 전체화면 피커가 뜨는 문제가 게임 시트 안 셀렉트에도 똑같이
+           있었다. 항목 자체는 그대로 render 시점에 계산해 버튼에 얹는다. -->
       <div class="gor"><span>참가자</span>
-        <select data-gmp="n">${Array.from({length: GAME_MAX_P - GAME_MIN_P + 1}, (_, i) => i + GAME_MIN_P)
-          .map(n => `<option value="${n}"${n === nP ? ' selected' : ''}>${n}명</option>`).join('')}</select></div>
+        <button type="button" class="gorsel" data-gmp="n">${nP}명</button></div>
       <div class="gor"><span>제한시간</span>
-        <select data-gmp="t">${GAME_TIMES.map(s =>
-          `<option value="${s}"${s === tSec ? ' selected' : ''}>${timeLabel(s)}</option>`).join('')}</select></div>
+        <button type="button" class="gorsel" data-gmp="t">${timeLabel(tSec)}</button></div>
       <i>기기 하나를 돌려 씁니다. 잔 A 를 <b>${nP}명이 차례로</b> 평가한 뒤 잔 B 로 넘어갑니다.
         차례마다 빈 양식으로 시작하므로 <b>앞 사람의 답은 보이지 않습니다.</b>
         ${tSec ? `제한시간이 끝나면 입력한 것을 저장하고 다음 사람으로 넘어갑니다.`
@@ -4858,13 +4894,11 @@ function openGameSetup(mode, lvKey, catsIn, pIn, tIn){
             <i>켜면 동의어(감귤류→시트러스)와 어형(스파이스→스파이시)을 인정하지 않아
               정답이 좁아지고, 쓸 수 있는 병도 줄어듭니다</i></span></label>
         <div class="gor"><span>후보 좁히기</span>
-          <select data-go="narrow">${GAME_NARROW.map(n =>
-            `<option value="${n}"${n === lv.opt.narrow ? ' selected' : ''}
-              >${n ? `정답 + 오답 ${n}개` : '좁히지 않음 (84개)'}</option>`).join('')}</select></div>
+          <button type="button" class="gorsel" data-go="narrow">${
+            lv.opt.narrow ? `정답 + 오답 ${lv.opt.narrow}개` : '좁히지 않음 (84개)'}</button></div>
         <div class="gor"><span>오답 감점</span>
-          <select data-go="penDiv">${GAME_PENS.map(n =>
-            `<option value="${n}"${n === lv.opt.penDiv ? ' selected' : ''}
-              >${n ? `정답 하나의 1/${n}` : '감점 없음'}</option>`).join('')}</select></div>
+          <button type="button" class="gorsel" data-go="penDiv">${
+            lv.opt.penDiv ? `정답 하나의 1/${lv.opt.penDiv}` : '감점 없음'}</button></div>
       </div>`}
     </div>
     <p class="hint">${solo
@@ -4917,17 +4951,11 @@ function openGameSetup(mode, lvKey, catsIn, pIn, tIn){
      `!c.checked` 로 "켜려는 중" 을 판별할 수 없다 — 그렇게 쓰면 조건이 영영 거짓이라
      상한이 아예 걸리지 않는다(실제로 그렇게 새어 있었다). */
   $('#shBody').onchange = e => {
-    /* 멀티의 참가자 수·제한시간. 안내문과 차례 수가 함께 바뀌므로 다시 그린다 */
-    const mp = e.target.closest('[data-gmp]');
-    if (mp){
-      const v = Number(mp.value);
-      if (mp.dataset.gmp === 'n'){ saveP(v); return openGameSetup(mode, lv.key, cats, v, tSec); }
-      saveT(v); return openGameSetup(mode, lv.key, cats, nP, v);
-    }
-    /* 직접 설정의 레버. 어느 것이든 채점 기준이 바뀌므로 화면을 다시 그린다 —
-       특히 fam 은 쓸 수 있는 병 목록까지 바꾼다 */
+    /* 남은 것은 체크박스(data-go="showCount"/"strict")와 병 선택 체크박스뿐이다.
+       참가자 수·제한시간·후보 좁히기·오답 감점은 버튼+패널로 바뀌어 change 가
+       아니라 click 에서 처리한다(아래 onclick). */
     const go = e.target.closest('[data-go]');
-    if (go){
+    if (go && go.type === 'checkbox'){
       const k = go.dataset.go;
       /* strict 체크박스는 **점수 문턱**으로 저장한다 — 난이도가 fam 불리언이 아니라
          minScore 로 갈리기 때문이다(matchTags 의 단계별 점수를 그대로 쓴다) */
@@ -4935,8 +4963,7 @@ function openGameSetup(mode, lvKey, catsIn, pIn, tIn){
         saveOpt({...loadOpt(), minScore: go.checked ? GAME_STRICT_SC : GAME_MIN_SC});
         return openGameSetup(mode, 'custom', cats, nP, tSec);
       }
-      const v = go.type === 'checkbox' ? go.checked : Number(go.value);
-      saveOpt({...loadOpt(), [k]: v});
+      saveOpt({...loadOpt(), [k]: go.checked});
       return openGameSetup(mode, 'custom', cats, nP, tSec);
     }
     const c = e.target.closest('[data-gpick]');
@@ -4954,6 +4981,33 @@ function openGameSetup(mode, lvKey, catsIn, pIn, tIn){
   $('#shBody').onclick = e => {
     const ed = e.target.closest('[data-gedit]');
     if (ed){ e.preventDefault(); return openEdit(ed.dataset.gedit); }
+    /* 참가자 수 · 제한시간 — 버튼 + 커스텀 패널. 안내문과 차례 수가 함께 바뀌므로
+       고르면 셋업 전체를 다시 그린다(부분 갱신보다 어긋날 여지가 없다). */
+    const mp = e.target.closest('[data-gmp]');
+    if (mp){
+      const isN = mp.dataset.gmp === 'n';
+      const items = (isN
+        ? Array.from({length: GAME_MAX_P - GAME_MIN_P + 1}, (_, i) => i + GAME_MIN_P)
+        : GAME_TIMES).map(n => ({v: String(n), label: isN ? `${n}명` : timeLabel(n)}));
+      return openDropMenu(mp, items, String(isN ? nP : tSec), v => {
+        if (isN){ saveP(Number(v)); return openGameSetup(mode, lv.key, cats, Number(v), tSec); }
+        saveT(Number(v)); openGameSetup(mode, lv.key, cats, nP, Number(v));
+      });
+    }
+    /* 직접 설정의 후보 좁히기 · 오답 감점 — 마찬가지로 버튼 + 패널.
+       체크박스(showCount/strict)는 change 에서 이미 처리된다(위 onchange 참고). */
+    const go = e.target.closest('[data-go]');
+    if (go && go.tagName === 'BUTTON'){
+      const k = go.dataset.go;
+      const list = k === 'narrow' ? GAME_NARROW : GAME_PENS;
+      const items = list.map(n => ({v: String(n), label: k === 'narrow'
+        ? (n ? `정답 + 오답 ${n}개` : '좁히지 않음 (84개)')
+        : (n ? `정답 하나의 1/${n}` : '감점 없음')}));
+      return openDropMenu(go, items, String(lv.opt[k]), v => {
+        saveOpt({...loadOpt(), [k]: Number(v)});
+        openGameSetup(mode, 'custom', cats, nP, tSec);
+      });
+    }
     const b = e.target.closest('[data-glv]');
     if (b){
       /* 난이도를 바꾸면 정답 범위가 바뀌므로 화면을 다시 그린다. 고른 병은 버린다 —
@@ -5135,14 +5189,13 @@ function openGameGlass(i, pi){
     ${radarBlock('gg', ask('wb') ? '내 점수 · Whiskybase 예상 점수로도 채점됩니다' : '내 점수 · 향·맛·여운 합 ÷ 3')}
     ${noteSections('', pre, opt.showCount ? need : null, g.cand, true)}
     ${!ask('name') ? '' : `<div class="fg">
+      <!-- 네이티브 <select> 였다가 버튼+패널로 바꿨다(v2.1.0) — 잔이 최대 20개라
+           목록이 길어질수록 폰의 전체화면 피커 문제가 특히 두드러졌다.
+           선택값은 .value 대신 data-v 에 둔다(버튼엔 .value 가 없다). -->
       <div class="f wide"><label for="ggGuess">어느 병일까요</label>
-        <select id="ggGuess">
-          <option value="">— 고르지 않음 —</option>
-          ${GAME.glasses.map(x => byId(x.itemId)).filter(Boolean)
-            .sort((a, b) => fullName(a).localeCompare(fullName(b), 'ko'))
-            .map(x => `<option value="${esc(x.id)}"${my.guessId === x.id ? ' selected' : ''}
-              >${esc(fullName(x))}</option>`).join('')}
-        </select></div>
+        <button type="button" class="fsel" id="ggGuess" data-v="${esc(my.guessId || '')}">${
+          (() => { const gi = my.guessId ? byId(my.guessId) : null;
+            return esc(gi ? fullName(gi) : '— 고르지 않음 —'); })()}</button></div>
     </div>
     <p class="hint">이 판에 담긴 병 ${GAME.glasses.length}개 중에서 고릅니다.
       같은 병을 두 잔에 골라도 막지 않습니다 — 확신이 없을 때 둘 다 걸어 보는 것도 전략입니다.</p>`}
@@ -5154,10 +5207,8 @@ function openGameGlass(i, pi){
         <input id="ggAge" type="number" min="0" max="60" step="1" inputmode="numeric"
           placeholder="예: 12" value="${esc(my.age ?? '')}"></div>` : ''}
       ${ask('region') ? `<div class="f wide"><label for="ggRegion">지역 예상</label>
-        <select id="ggRegion"><option value="">— 고르지 않음 —</option>
-          ${Object.keys(REGION_COUNTRY).map(r =>
-            `<option value="${esc(r)}"${my.region === r ? ' selected' : ''}>${esc(r)}</option>`).join('')}
-        </select></div>` : ''}
+        <button type="button" class="fsel" id="ggRegion" data-v="${esc(my.region || '')}"
+          >${esc(my.region || '— 고르지 않음 —')}</button></div>` : ''}
     </div>`}
     <p class="hint">향·맛·여운은 <b>몇 개를 고르든 상관없습니다.</b> 맞힌 태그가 그 축의 배점을
       정답 개수로 나눈 만큼 올려 줍니다. ${opt.penDiv
@@ -5178,6 +5229,27 @@ function openGameGlass(i, pi){
     R[r.dataset.rax] = Number(r.value);
     $('#ggo_' + r.dataset.rax).textContent = r.value;
     paint();
+  };
+  /* 예상 병 · 예상 지역 — 버튼 + 커스텀 패널. 고르면 data-v 와 버튼 글자를 함께
+     갱신한다(제출은 이 둘만 읽는다 — 아래 val()/gs.dataset.v 참고). */
+  const ggGuessBtn = $('#ggGuess');
+  if (ggGuessBtn) ggGuessBtn.onclick = () => {
+    const items = [{v:'', label:'— 고르지 않음 —'},
+      ...GAME.glasses.map(x => byId(x.itemId)).filter(Boolean)
+        .sort((a, b) => fullName(a).localeCompare(fullName(b), 'ko'))
+        .map(x => ({v: x.id, label: fullName(x)}))];
+    openDropMenu(ggGuessBtn, items, ggGuessBtn.dataset.v, v => {
+      ggGuessBtn.dataset.v = v;
+      ggGuessBtn.textContent = items.find(x => x.v === v)?.label || '— 고르지 않음 —';
+    });
+  };
+  const ggRegionBtn = $('#ggRegion');
+  if (ggRegionBtn) ggRegionBtn.onclick = () => {
+    const items = [{v:'', label:'— 고르지 않음 —'}, ...Object.keys(REGION_COUNTRY).map(r => ({v:r, label:r}))];
+    openDropMenu(ggRegionBtn, items, ggRegionBtn.dataset.v, v => {
+      ggRegionBtn.dataset.v = v;
+      ggRegionBtn.textContent = v || '— 고르지 않음 —';
+    });
   };
   const picksOf = ax => [...document.querySelectorAll(`[data-nsec="${ax}"] .ncell.on`)].map(b => b.dataset.npick);
   /* 힌트로 받은 답. 정보는 주되 점수는 주지 않는다 — 채점에서 일치 수에서 뺀다. */
@@ -5238,10 +5310,13 @@ function openGameGlass(i, pi){
   const commit = () => {
     const tags = {}; NOTE_AXES.forEach(ax => { tags[ax] = picksOf(ax); });
     const gs = $('#ggGuess');
-    const val = id => { const el = $(id); return el ? el.value.trim() : ''; };
+    /* ggRegion 은 버튼이라 .value 가 없다 — data-v 를 대신 읽는다.
+       ggAbv/ggAge 는 여전히 <input> 이라 .value 그대로다. */
+    const val = id => { const el = $(id); if (!el) return '';
+      return 'v' in el.dataset ? el.dataset.v : el.value.trim(); };
     /* score(세 축 평균)가 WB 예상 점수를 겸한다 — 별도 wb 필드는 두지 않는다.
        solo 는 병을 알고 하므로 guessId 를 정답으로 채워 둔다(이름 배점은 0 이라 점수에 안 쓴다) */
-    g.mys[p] = {filled:true, tags, guessId: solo ? g.itemId : (gs ? gs.value : ''),
+    g.mys[p] = {filled:true, tags, guessId: solo ? g.itemId : (gs ? gs.dataset.v : ''),
       rad:{...R}, score: radarScore(R), hints,
       abv: val('#ggAbv'), age: val('#ggAge'), region: val('#ggRegion')};
     saveGame();
@@ -5267,7 +5342,7 @@ function openGameGlass(i, pi){
     }
     const anyTag = NOTE_AXES.some(ax => picksOf(ax).length);
     const gs = $('#ggGuess');
-    const guessId = solo ? g.itemId : (gs ? gs.value : '');
+    const guessId = solo ? g.itemId : (gs ? gs.dataset.v : '');
     if (!anyTag && !(solo ? false : guessId)){
       /* 멀티는 **빈 답도 받는다.** "모르겠다" 는 시음회에서 정당한 답이고, 막으면
          한 사람이 모른다는 이유로 판 전체가 멈춘다. 제한시간 만료도 이미 빈 답을
