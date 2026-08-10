@@ -299,7 +299,31 @@ header.top{
     linear-gradient(135deg,var(--ink3) 50%,transparent 50%);
   background-position:calc(100% - 9px) 14px, calc(100% - 4px) 14px;
   background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+  /* <select> 는 브라우저가 알아서 내용을 잘라 그렸다 — <button> 으로 바꾼 지금은
+     세 속성을 직접 줘야 `주종 145` 가 잘릴 때 말줄임(…)이 실제로 생긴다.
+     text-align 도 <button> 기본값이 center 라 명시해야 <select> 와 같은 왼쪽 정렬이 된다. */
+  overflow:hidden;white-space:nowrap;text-align:left;
 }
+/* ══════════════ 커스텀 드롭다운 패널 (openDropMenu) ══════════════
+   트리거(.sel 버튼) 아래에 fixed 로 띄운다 — .wrap/.controls 어딘가에 overflow:hidden
+   이 생겨도 잘리지 않고, 스크롤 위치와 무관하게 항상 트리거 바로 아래에 붙는다. */
+.dropmenu{
+  position:fixed;z-index:45;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r2);box-shadow:var(--sh2);padding:6px;overflow-y:auto;
+  opacity:0;transform:translateY(-4px);transition:opacity .12s,transform .12s;
+  pointer-events:none;
+}
+.dropmenu.on{opacity:1;transform:translateY(0);pointer-events:auto}
+.dropitem{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  width:100%;padding:9px 10px;border-radius:8px;font-size:13px;color:var(--ink2);
+  text-align:left;white-space:nowrap;
+}
+.dropitem:hover{background:var(--surface2)}
+.dropitem:focus-visible{outline:none;box-shadow:0 0 0 2px var(--accent-bg),inset 0 0 0 1px var(--accent-line)}
+.dropitem.on{background:var(--accent-bg);color:var(--accent);font-weight:700}
+.dropitem b{font-weight:600;color:var(--ink3);font-variant-numeric:tabular-nums}
+.dropitem.on b{color:var(--accent2)}
 /* 초기화 버튼 — 조건이 걸렸을 때만 보인다. 위험색은 쓰지 않는다(되돌릴 수 있는 동작이다) */
 #btnReset:not([hidden]){color:var(--accent);border-color:var(--accent-line);background:var(--accent-bg)}
 
@@ -1435,8 +1459,16 @@ h4.sec .nedit{margin-left:auto}
            드롭다운은 폭에 상관없이 전부 고를 수 있다.
            개수 표기(statLine)는 없앴다 — 1행 술장 탭이 이미 `전체 145` 로 세어 주고,
            그 폭이 있어야 필터·초기화가 이 행에 들어온다. -->
-      <select class="sel catsel" id="catSel" aria-label="주종"></select>
-      <select class="sel typesel" id="typeSel" aria-label="타입"></select>
+      <!-- 네이티브 <select> 였다가 버튼 + 커스텀 패널로 바꿨다(v2.1.0).
+           안드로이드에서 <select> 를 탭하면 OS 가 전체화면 피커를 그리는데
+           다크 테마를 전혀 못 입힌다 — PC 에서는 작은 인라인 목록인데 폰에서는
+           화면을 꽉 채워 플랫폼마다 크기가 달라진다는 지적을 그대로 해결한다.
+           openDropMenu() 가 패널을 연다. 항목 데이터는 render() 가 매번
+           `._items` 에 새로 얹어 둔다(아래 render 부분 참고). -->
+      <button type="button" class="sel catsel" id="catSel" aria-label="주종"
+        aria-haspopup="listbox" aria-expanded="false"></button>
+      <button type="button" class="sel typesel" id="typeSel" aria-label="타입"
+        aria-haspopup="listbox" aria-expanded="false"></button>
       <!-- 필터 안에 정렬도 들어갔으므로 라벨이 아니라 아이콘 하나로 둔다.
            적용된 개수는 배지로 보인다(정렬이 기본이 아니면 그것도 센다). -->
       <button class="sqb" id="btnFilter" aria-label="필터와 정렬"><svg viewBox="0 0 24 24"
@@ -1521,8 +1553,14 @@ const LS_VER = 'wc.ver';       // 마지막으로 이력을 확인한 버전
    작은 수정마다 올라가고, 이것은 사용자에게 알릴 만한 변화에만 올린다.
    CHANGES 는 앱 안에 둔다 — 오프라인에서도 이력을 볼 수 있어야 한다.
    CHANGELOG.md 와 내용을 맞춘다(그쪽이 사람이 읽는 정식 보고서). */
-const APP_VER = '2.0.0';
+const APP_VER = '2.1.0';
 const CHANGES = [
+  { v: '2.1.0', d: '2026-08-10', items: [
+    '주종·타입 드롭다운을 앱 테마 그대로인 패널로 바꿨습니다',
+    '전에는 폰에서 탭하면 안드로이드가 흰 화면 가득 피커를 띄웠습니다',
+    '이제 어느 기기에서나 버튼 바로 아래에 같은 크기로 뜹니다',
+    '주종은 0병이어도 늘 보여줍니다 — 위스키만 있어도 와인·리큐르를 기록할 수 있다는 걸 알 수 있습니다',
+  ]},
   { v: '2.0.0', d: '2026-08-09', items: [
     '자유롭게 쓴 시음 노트에서 향·맛·여운 태그를 자동으로 찾아 줍니다',
     '감귤류·오렌지 → 시트러스, 스파이스 → 스파이시 처럼 다르게 쓴 말도 알아봅니다',
@@ -2208,6 +2246,69 @@ function drawLightbox(){
 }
 const lbGo = d => { if (LB.list.length < 2) return;
   LB.i = (LB.i + d + LB.list.length) % LB.list.length; drawLightbox(); };
+
+/* ══════════════ 커스텀 드롭다운 (openDropMenu) ══════════════
+   `#catSel`/`#typeSel` 이 네이티브 <select> 였을 때 안드로이드에서 탭하면 OS 가
+   전체화면 피커를 그렸다 — 다크 테마를 못 입히고, PC 에서는 작은 인라인 목록인데
+   폰에서는 화면을 꽉 채워 플랫폼마다 크기가 달랐다(v2.1.0, 실사용자 지적).
+   버튼(.sel) + 앱 스타일 패널로 바꿔 두 문제를 한 번에 없앤다 — 트리거 바로
+   아래에 뜨는 작은 패널이라 크기가 항상 같고, 다크 테마가 그대로 먹는다.
+
+   한 번에 하나만 열린다(DM.close). 여는 쪽이 알아서 앞의 것을 닫는다. */
+const DM = {close: null, trigger: null, timer: 0};
+/** instant 없이 부르면(바깥 클릭·Escape·선택) 페이드아웃 뒤 지운다.
+    instant 로 부르면(새 패널이 이 자리를 대신할 때) 즉시 지운다 — 안 그러면
+    빠르게 여닫을 때마다 사라지는 중인 패널이 쌓인다(실측: 10회 연타에 12개 잔존). */
+function closeDropMenu(instant){
+  clearTimeout(DM.timer);
+  if (DM.close) DM.close(instant);
+  DM.close = null; DM.trigger = null;
+}
+/** items: [{v, label, count}]. current: 지금 선택된 v. onPick(v) 는 고른 뒤 불린다. */
+function openDropMenu(trigger, items, current, onPick){
+  closeDropMenu(true);   // 이전 패널이 있으면 즉시 치운다 — 새로 열리는 패널과 안 겹치게
+  const m = document.createElement('div');
+  m.className = 'dropmenu';
+  m.setAttribute('role', 'listbox');
+  m.innerHTML = items.map(it => `<button type="button" class="dropitem${it.v === current ? ' on' : ''}"
+      data-v="${esc(it.v)}" role="option" aria-selected="${it.v === current}">
+      <span>${esc(it.label)}</span><b>${it.count}</b></button>`).join('');
+  document.body.appendChild(m);
+  /* 트리거 바로 아래에 고정 배치한다. 화면 오른쪽·아래로 넘치면 안으로 접어 넣는다 —
+     360px 폭에서 타입 패널(160px대)이 오른쪽 8px 안에 들어오려면 이 보정이 필요하다. */
+  const place = () => {
+    const r = trigger.getBoundingClientRect();
+    const w = Math.max(r.width, 168);
+    let left = Math.min(r.left, window.innerWidth - w - 8);
+    left = Math.max(8, left);
+    const top = Math.min(r.bottom + 6, window.innerHeight - 60);
+    m.style.left = left + 'px'; m.style.top = top + 'px'; m.style.width = w + 'px';
+    m.style.maxHeight = Math.max(120, Math.min(360, window.innerHeight - top - 12)) + 'px';
+  };
+  place();
+  requestAnimationFrame(() => m.classList.add('on'));
+  const onDoc = e => { if (!m.contains(e.target) && e.target !== trigger) closeDropMenu(); };
+  const onKey = e => { if (e.key === 'Escape') closeDropMenu(); };
+  document.addEventListener('mousedown', onDoc, true);
+  document.addEventListener('keydown', onKey);
+  window.addEventListener('resize', place);
+  window.addEventListener('scroll', place, true);
+  m.onclick = e => {
+    const b = e.target.closest('[data-v]'); if (!b) return;
+    const v = b.dataset.v; closeDropMenu(); onPick(v);
+  };
+  trigger.setAttribute('aria-expanded', 'true');
+  DM.trigger = trigger;
+  DM.close = instant => {
+    m.classList.remove('on');
+    document.removeEventListener('mousedown', onDoc, true);
+    document.removeEventListener('keydown', onKey);
+    window.removeEventListener('resize', place);
+    window.removeEventListener('scroll', place, true);
+    trigger.setAttribute('aria-expanded', 'false');
+    if (instant) m.remove(); else DM.timer = setTimeout(() => m.remove(), 150);
+  };
+}
 
 function toast(msg, ms){
   const t = $('#toast'); t.textContent = msg; t.classList.add('on');
@@ -3170,15 +3271,17 @@ function render(){
      주종이 스크롤 밖으로 밀려 나갔다. **병 수는 옵션 라벨에 넣어** 배지 대신 살린다. */
   const catSel = $('#catSel');
   catSel.hidden = false;
-  /* 라벨에서 `전체` 와 괄호를 뺀다 — 360px 3행에 필터·초기화까지 들어오면 이 셀렉트는
+  /* 라벨에서 `전체` 와 괄호를 뺀다 — 360px 3행에 필터·초기화까지 들어오면 이 버튼은
      93px 이고 글자칸은 65px 뿐이다. `주종 전체 (145)` 는 105px 라 절반만 보이고
      **병 수가 잘려 나간다** — 병 수는 주종을 칩에서 드롭다운으로 바꿀 때 배지를
      포기한 대가로 라벨에 살려 둔 것이라, 그것이 잘리면 남는 것이 없다.
-     `주종 145` 는 61px 로 들어간다. 펼치면 전체 라벨이 그대로 보인다. */
-  catSel.innerHTML = ['all', ...cats].map(c =>
-    `<option value="${esc(c)}">${c === 'all' ? '주종' : esc(c)} ${
-      c === 'all' ? inTabItems.length : (catCount[c] || 0)}</option>`).join('');
-  catSel.value = V.cat;
+     `주종 145` 는 61px 로 들어간다. 패널을 펼치면 전체 라벨이 그대로 보인다.
+     ._items 는 openDropMenu 가 패널을 그릴 때 읽는다 — DOM 프로퍼티라 매 렌더마다
+     그냥 덮어써도 되고, innerHTML 처럼 이스케이프를 신경 쓸 필요가 없다. */
+  catSel._items = ['all', ...cats].map(c => ({v: c,
+    label: c === 'all' ? '주종' : c, count: c === 'all' ? inTabItems.length : (catCount[c] || 0)}));
+  const catCur = catSel._items.find(x => x.v === V.cat) || catSel._items[0];
+  catSel.textContent = `${catCur.label} ${catCur.count}`;
 
   /* 타입 칩 — 현재 탭 + 주종 안에서만 집계한다 */
   const inCat = inTabItems.filter(i => V.cat === 'all' || i.cat === V.cat);
@@ -3192,11 +3295,12 @@ function render(){
   if (used.length > 1){
     typeSel.hidden = false;
     /* 주종과 같은 이유로 `전체`·괄호를 뺀다 (위 catSel 주석 참조) */
-    typeSel.innerHTML = ['all', ...used].map(t =>
-      `<option value="${esc(t)}">${t === 'all' ? '타입' : esc(t)} ${
-        t === 'all' ? inCat.length : inCat.filter(i => i.type === t).length}</option>`).join('');
-    typeSel.value = V.type;
-  } else { typeSel.hidden = true; typeSel.innerHTML = ''; }
+    typeSel._items = ['all', ...used].map(t => ({v: t,
+      label: t === 'all' ? '타입' : t,
+      count: t === 'all' ? inCat.length : inCat.filter(i => i.type === t).length}));
+    const typeCur = typeSel._items.find(x => x.v === V.type) || typeSel._items[0];
+    typeSel.textContent = `${typeCur.label} ${typeCur.count}`;
+  } else { typeSel.hidden = true; typeSel.textContent = ''; typeSel._items = null; }
 
   /* 사이드바(데스크톱) — 같은 데이터를 세로 목록으로. 탭과 주종을 각각 한 섹션.
      주종 4개를 위 catSel 과 같은 이유로 늘 전부 보여준다. 전에는 하나뿐이면
@@ -7748,13 +7852,22 @@ const onNavClick = e => {
 };
 $('#tabSegs').onclick = onNavClick;
 $('#sideNav').onclick = onNavClick;
-/* 폰의 주종은 드롭다운이다. 사이드바(데스크톱)는 여전히 [data-cat] 버튼이라
-   onNavClick 이 그쪽을 담당한다 — 두 경로가 같은 V.cat 을 쓴다. */
-$('#catSel').onchange = e => {
-  V.cat = e.target.value; V.type = 'all';   // 주종을 바꾸면 타입 필터는 초기화
-  render();
+/* 폰의 주종은 커스텀 드롭다운이다. 사이드바(데스크톱)는 여전히 [data-cat] 버튼이라
+   onNavClick 이 그쪽을 담당한다 — 두 경로가 같은 V.cat 을 쓴다.
+   버튼은 클릭할 때마다 render() 가 그 시점에 채워 둔 `._items` 를 읽는다 —
+   목록이 항상 최신이라 별도로 동기화할 게 없다. */
+$('#catSel').onclick = () => {
+  const el = $('#catSel');
+  openDropMenu(el, el._items, V.cat, v => {
+    V.cat = v; V.type = 'all';   // 주종을 바꾸면 타입 필터는 초기화
+    render();
+  });
 };
-$('#typeSel').onchange = e => { V.type = e.target.value; render(); };
+$('#typeSel').onclick = () => {
+  const el = $('#typeSel');
+  if (el.hidden || !el._items) return;   // 타입이 하나뿐이면 숨겨져 있다
+  openDropMenu(el, el._items, V.type, v => { V.type = v; render(); });
+};
 /* 초기화 — 검색어·필터·정렬만 푼다. 술장 탭과 주종·타입은 화면에 그대로 보이는
    상태라 여기서 함께 지우면 내가 건드리지 않은 것이 사라진 것으로 보인다. */
 $('#btnReset').onclick = () => {
