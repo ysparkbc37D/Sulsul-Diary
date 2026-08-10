@@ -1410,6 +1410,89 @@ h4.sec .nedit{margin-left:auto}
   background:var(--surface2);border:1px solid var(--line);color:var(--ink2);
 }
 .nhint:active{background:var(--accent-bg);color:var(--accent)}
+
+/* ══════════════ 파티 게임 (사다리 · 삼각 검사 · 라이어) ══════════════ */
+/* 게임 목록의 소제목. 시음 게임과 술자리 게임은 채점 기준이 달라 갈라 둔다 */
+.gsech{
+  display:flex;align-items:baseline;gap:7px;margin:5px 2px 1px;
+  font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink3);font-weight:700;
+}
+.gsech:first-child{margin-top:0}
+.gsech i{
+  font-style:normal;font-size:11px;letter-spacing:0;text-transform:none;
+  font-weight:500;color:var(--ink3);
+}
+/* 숫자 하나를 크게 보여 주는 칸 — 라이어의 남은 인원, 삼각 검사의 라운드 */
+.pstep{
+  display:flex;align-items:center;gap:9px;margin:0 0 12px;padding:10px 12px;
+  border-radius:11px;background:var(--surface2);font-size:12.5px;color:var(--ink2);
+}
+.pstep b{flex:none;font:700 15px/1 var(--sans);color:var(--ink);font-variant-numeric:tabular-nums}
+.pstep span{flex:1;min-width:0;word-break:keep-all;line-height:1.5}
+/* 비밀을 덮는 카드. 눌러서 열고, 다음 사람에게 넘기기 전에 다시 덮는다.
+   **덮인 상태가 기본값**이다 — 열린 채로 시작하면 넘기는 도중에 보인다. */
+.pveil{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  width:100%;min-height:188px;padding:22px 16px;margin:0 0 13px;border-radius:16px;
+  background:var(--surface2);border:1px dashed var(--line);text-align:center;
+}
+.pveil.on{background:var(--accent-bg);border-style:solid;border-color:var(--accent-line)}
+.pveil em{font-style:normal;font-size:11.5px;color:var(--ink3);letter-spacing:.02em}
+/* 제시어는 **정확히 읽혀야** 한다 — 세리프 본문 폰트는 옛날식 숫자라 `라가불린 16년` 이
+   `라가불린 I6년` 처럼 보였다(실측 스크린샷). 여기만 sans + tabular 로 둔다. */
+.pveil strong{font:700 24px/1.3 var(--sans);font-variant-numeric:tabular-nums;
+  color:var(--ink);word-break:keep-all;letter-spacing:-.01em}
+.pveil.on strong{color:var(--accent)}
+.pveil .psub{font-size:12px;color:var(--ink2);line-height:1.6;word-break:keep-all}
+.pveil svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;color:var(--ink3)}
+/* 고르는 칩들 — 삼각 검사의 잔, 라이어의 투표 대상 */
+.ppick{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 13px}
+.ppick button{
+  flex:1 1 84px;min-width:84px;padding:13px 10px;border-radius:12px;
+  background:var(--surface);border:1px solid var(--line);color:var(--ink2);
+  font-size:13px;font-weight:600;line-height:1.4;word-break:keep-all;
+}
+.ppick button.on{
+  background:var(--accent-bg);border-color:var(--accent2);color:var(--accent);
+  box-shadow:0 0 0 2px var(--accent-bg);
+}
+/* 숫자는 sans + tabular. 세리프 본문 폰트는 옛날식 숫자라 작게 쓰면 `1` 이 `I` 로 읽힌다 */
+.ppick button b{display:block;font:700 17px/1.2 var(--sans);font-variant-numeric:tabular-nums;
+  margin-bottom:2px}
+/* 결과 줄 — 참가자별 점수/투표 */
+.prow{
+  display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;
+  background:var(--surface2);margin:0 0 6px;font-size:13px;
+}
+.prow > b{flex:1;min-width:0;font-weight:700;color:var(--ink);word-break:keep-all}
+.prow i{font-style:normal;font-size:11.5px;color:var(--ink3)}
+.prow u{flex:none;text-decoration:none;font:700 15px/1 var(--sans);color:var(--ink2);
+  font-variant-numeric:tabular-nums}
+.prow.hit{background:var(--accent-bg)}
+.prow.hit > b, .prow.hit u{color:var(--accent)}
+.prow.liar{background:#fdeaea}
+.prow.liar > b, .prow.liar u, .prow.liar i{color:#8f3634}
+/* 사다리. SVG 를 손으로 그린다(radarSVG·qrDraw 와 같은 방식) — 라이브러리를 쓰면
+   오프라인에서 빈 칸이 된다. 가로 스크롤은 칸이 많을 때만 생긴다. */
+.padder{overflow-x:auto;margin:0 0 12px;padding:2px}
+.padder svg{display:block;min-width:100%;height:auto}
+.padder .lline{stroke:var(--line);stroke-width:2.4;stroke-linecap:round;fill:none}
+.padder .lrung{stroke:var(--line);stroke-width:2.4;stroke-linecap:round}
+.padder .ltrace{
+  stroke:var(--accent2);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;fill:none;
+}
+.padder .lcap{fill:var(--ink3);font:600 11px/1 var(--sans);text-anchor:middle}
+.padder .lcap.on{fill:var(--accent)}
+/* 결과 슬롯 입력 */
+.pslot{display:flex;align-items:center;gap:8px;margin:0 0 6px}
+.pslot > b{
+  flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;
+  background:var(--surface2);border:1px solid var(--line);
+  font:700 12px/1 var(--sans);color:var(--ink2);
+}
+.pslot input{flex:1;min-width:0}
 </style>
 </head>
 <body>
@@ -1574,8 +1657,16 @@ const LS_VER = 'wc.ver';       // 마지막으로 이력을 확인한 버전
    작은 수정마다 올라가고, 이것은 사용자에게 알릴 만한 변화에만 올린다.
    CHANGES 는 앱 안에 둔다 — 오프라인에서도 이력을 볼 수 있어야 한다.
    CHANGELOG.md 와 내용을 맞춘다(그쪽이 사람이 읽는 정식 보고서). */
-const APP_VER = '2.2.0';
+const APP_VER = '2.3.0';
 const CHANGES = [
+  { v: '2.3.0', d: '2026-08-11', items: [
+    '술자리 게임 3개가 생겼습니다 — 라이어 게임, 삼각 검사, 사다리 타기',
+    '모두 기기 하나를 돌려 쓰고 서버가 필요 없습니다',
+    '라이어 게임의 제시어는 내 컬렉션에서 나옵니다 — 비슷한 술끼리 짝지어 줍니다',
+    '삼각 검사는 잔 3개 중 2개만 같은 술입니다. 다른 하나를 찾아내세요',
+    '사다리 타기는 결과를 컬렉션에서 뽑아 채울 수 있습니다',
+    'GAME 목록을 시음 / 술자리로 나눴습니다',
+  ]},
   { v: '2.2.0', d: '2026-08-11', items: [
     '향·맛·여운에서 고를 수 있는 항목이 85개에서 105개로 늘었습니다',
     '세 축이 같은 어휘를 씁니다 — 토피·몰트·과일은 맛에만, 달콤한·부드러운은 여운에만 있었습니다',
@@ -2175,6 +2266,10 @@ const ICONS = {
         + '<path d="M16 6.2a3 3 0 0 1 0 5.8"/><path d="M17 14.4c2.2.5 3.6 2.4 3.6 5"/>',
   toast:  '<path d="M4.6 4.4h5.6l-1 7.6a1.8 1.8 0 0 1-3.6 0Z"/><path d="M7.4 12v7.4"/><path d="M5 19.6h4.8"/>'
         + '<path d="M13.8 4.4h5.6l-1 7.6a1.8 1.8 0 0 1-3.6 0Z"/><path d="M16.6 12v7.4"/><path d="M14.2 19.6H19"/>',
+  /* 파티 게임용. ladder 는 세로 두 줄 + 가로 발판, mask 는 눈가면 */
+  ladder: '<path d="M7.5 3.5v17M16.5 3.5v17"/><path d="M7.5 8h9M7.5 12h9M7.5 16h9"/>',
+  mask:   '<path d="M3.6 8.4c2.9-1 5.6-1.5 8.4-1.5s5.5.5 8.4 1.5c0 5.4-1.6 8.7-4.4 8.7-1.6 0-2.7-1-4-1-1.3 0-2.4 1-4 1-2.8 0-4.4-3.3-4.4-8.7Z"/>'
+        + '<path d="M8.2 11.4h1.6M14.2 11.4h1.6"/>',
 /* 노트 계열 아이콘 — 디스크립터가 70여 개라 하나씩 그릴 수 없다.
    계열별로 하나씩 만들어 여러 디스크립터가 공유한다(참고 앱도 같은 방식).
    24x24 stroke, currentColor. 작게 쓰이므로 선 하나가 더 들어가면 뭉갠다. */
@@ -4543,6 +4638,15 @@ const timeLabel = s => !s ? '제한 없음'
   : s < 60 ? `${s}초` : s % 60 ? `${Math.floor(s / 60)}분 ${s % 60}초` : `${s / 60}분`;
 const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
+/* 파티 게임의 인원 범위. ⚠ **GAMES 배열 리터럴이 이 값을 읽으므로 반드시 그보다
+   위에 있어야 한다** — 아래에 두면 TDZ 로 스크립트 전체가 조용히 죽는다(실록 V-8,
+   GAME_MIN_SC 에서 이미 한 번 밟았다).
+   삼각 검사는 따르는 진행자 1명 + 답하는 사람 최소 1명이라 2명부터,
+   라이어는 2명이면 서로를 지목하는 것뿐이라 **3명부터**다. */
+const TRI_MIN_P = 2, TRI_MAX_P = 10;
+const LIAR_MIN_P = 3, LIAR_MAX_P = 10;
+const LAD_MIN_P = 2, LAD_MAX_P = 10;
+
 /* 게임 목록. **새 게임은 이 배열에 항목만 더하면 된다.**
    할 수 없는 것은 켜 두지 않는다 — 멀티는 목록에 두되 왜 안 되는지 적고 잠근다. */
 const GAMES = [
@@ -4558,7 +4662,26 @@ const GAMES = [
    desc:'여러 명이 같은 잔을 놓고 겨룹니다. <b>서버가 필요 없습니다</b> — 기기 하나를 '
       + '돌려 씁니다. 잔 A 를 모두가 차례로 평가한 뒤 잔 B 로 넘어갑니다. '
       + '공정하게 하려면 <b>제한시간</b>을 걸어 두세요.'},
+  /* ── 여기부터 파티 게임(kind:'party') ──
+     위 세 개는 컬렉션 노트로 채점하는 시음 게임이고, 아래는 술자리 게임이다.
+     성격이 달라 목록에서 소제목으로 가른다(openGames 참고). */
+  {key:'triangle', name:'삼각 검사', icon:'search', on:true, kind:'party',
+   line:`병 2개 · ${TRI_MIN_P}~${TRI_MAX_P}명`,
+   desc:'잔 3개 중 <b>2개는 같은 술, 1개만 다른 술</b>입니다. 다른 하나를 찾아내세요. '
+      + '전문 관능검사에서 쓰는 형식이라 <b>찍으면 3분의 1</b>이고, 그보다 잘 맞히면 '
+      + '실제로 구별한 것입니다. 따르는 사람은 답을 알게 되므로 답하지 않습니다.'},
+  {key:'liar', name:'라이어 게임', icon:'mask', on:true, kind:'party',
+   line:`${LIAR_MIN_P}~${LIAR_MAX_P}명 · 기기 하나로`,
+   desc:'모두 같은 술을 받고 <b>한 명만 다른 술</b>을 받습니다. 돌아가며 한마디씩 하고 '
+      + '누가 거짓말쟁이인지 투표합니다. 제시어는 <b>내 컬렉션</b>에서 나오므로, '
+      + '아는 척하려면 진짜로 알아야 합니다.'},
+  {key:'ladder', name:'사다리 타기', icon:'ladder', on:true, kind:'party',
+   line:`${LAD_MIN_P}~${LAD_MAX_P}명 · 뽑기`,
+   desc:'누가 다음 잔을 따를지, 오늘 어느 병을 열지 정합니다. 결과는 직접 적거나 '
+      + '<b>컬렉션에서 뽑아</b> 채울 수 있습니다.'},
 ];
+/** 시음 게임인지(=컬렉션 노트로 채점하는지). 파티 게임은 kind:'party' 다. */
+const isParty = key => !!(GAMES.find(g => g.key === key) || {}).kind;
 
 /* 디스크립터 → 아이콘 계열. 계열이 동의어·상위개념을 묶어 준다
    (`건포도` · `말린 과일` · `셰리` = dried) — AI 없이 유의어 매칭이 되는 이유다. */
@@ -4595,22 +4718,23 @@ function gameAnswer(it, opt){
   ['wb','abv','age','region'].forEach(k => { if (a[k] == null) a.dead.push(k); });
   return a;
 }
+/** Fisher-Yates. **새 배열을 돌려준다** — 인자를 제자리에서 섞으면 호출부가
+    원본을 잃는다(잔 순서를 섞은 뒤 원래 고른 순서를 다시 쓰는 곳이 있다). */
+function shuffle(arr){
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 /** 후보 좁히기(초급) — 정답 전부 + 오답 n 개를 섞어 돌려준다.
     **판을 만들 때 한 번만 뽑아 고정한다** — 잔을 다시 열 때마다 후보가 바뀌면
     앞서 고른 것이 목록에서 사라진다. */
 function gameCand(ax, answer, n){
-  const pool = NOTES[ax].list.map(x => x[0]).filter(x => !answer.includes(x));
-  for (let i = pool.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
+  const pool = shuffle(NOTES[ax].list.map(x => x[0]).filter(x => !answer.includes(x)));
   /* 정답이 앞에 몰려 있으면 세지 않아도 보이므로 전체를 다시 섞는다 */
-  const out = [...answer, ...pool.slice(0, n)];
-  for (let i = out.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
+  return shuffle([...answer, ...pool.slice(0, n)]);
 }
 
 let GAME = null;                 /* 진행 중인 한 판 */
@@ -4634,6 +4758,48 @@ function saveGame(){
 }
 /** 참가자 pi 의 답안. 혼자 하는 모드는 참가자가 한 명이라 늘 0 번이다. */
 const myOf = (g, pi) => (g && g.mys && g.mys[pi || 0]) || null;
+
+/* ══════════════ 파티 게임 (사다리 · 삼각 검사 · 라이어) ══════════════
+   술자리에서 기기 하나로 여러 명이 하는 게임. 시음 게임과 **저장소를 분리한다**
+   (`wc.party` ≠ `wc.game`). 한 곳에 섞으면 안 되는 이유가 두 가지다:
+
+   1. `GAME_VER` 는 모양이 바뀔 때 진행 중인 판을 **버리는** 장치다. 두 종류가 한
+      키를 쓰면 파티 게임을 손볼 때마다 남의 시음 판까지 날아간다.
+   2. 시음 판의 `glasses[].ans/cand/mys` 모양은 채점·결과·기록이 전부 전제하고 있다.
+      파티 게임에는 그런 것이 없어서, 한 객체에 담으면 읽는 쪽마다 종류 분기가 생긴다.
+
+   대신 **진행 중인 판은 하나뿐이다** — 시음 판과 파티 판을 동시에 열어 두면 GAME
+   버튼이 무엇을 이어야 할지 알 수 없다. 새 판을 시작할 때 다른 종류를 정리한다. */
+const LS_PARTY = 'wc.party';
+/* 1: 첫 판(v2.3.0) */
+const PARTY_VER = 1;
+let PARTY = null;
+function loadParty(){
+  try{ PARTY = JSON.parse(localStorage.getItem(LS_PARTY) || 'null'); }catch(e){ PARTY = null; }
+  if (PARTY && PARTY.v !== PARTY_VER){ PARTY = null; saveParty(); }
+}
+function saveParty(){
+  try{
+    if (PARTY) localStorage.setItem(LS_PARTY, JSON.stringify(PARTY));
+    else localStorage.removeItem(LS_PARTY);
+  }catch(e){}
+}
+/** 진행 중인 판을 모두 비운다. 종류를 바꿔 시작할 때 부른다 — 둘이 함께 살아 있으면
+    `openGames` 가 무엇을 이어야 할지 정할 수 없다. */
+function clearAllPlay(){
+  GAME = null; saveGame();
+  PARTY = null; saveParty();
+}
+/** 참가자 이름. 시음 게임과 같은 규칙(참가자 1..N)이라 모임이 같으면 설명이 같다. */
+const partyNames = n => Array.from({length: n}, (_, i) => `참가자 ${i + 1}`);
+/* 파티 게임도 인원을 기억한다 — 같은 모임이 다시 하면 같은 설정이다.
+   시음 게임의 `wc.gp` 와 따로 둔다: 라이어는 최소 3명이라 범위가 다르다. */
+const LS_PP = 'wc.pp';
+const loadPP = (lo, hi, dflt) => { try{
+  const n = Number(localStorage.getItem(LS_PP));
+  return n >= lo && n <= hi ? n : dflt;
+}catch(e){ return dflt; } };
+const savePP = n => { try{ localStorage.setItem(LS_PP, String(n)); }catch(e){} };
 
 /* ── 지난 기록 ──────────────────────────────
    게임이 끝난 뒤 친구들과 논평하려면 판이 남아 있어야 한다. `wc.glog` 에 최신순으로
@@ -4838,22 +5004,30 @@ function gameNextTurn(){
 /* ── 게임 목록 ───────────────────────────── */
 function openGames(){
   /* 진행 중인 판이 있으면 그것을 먼저 보여 준다 — 목록으로 돌아왔을 때
-     이어서 할 방법이 없으면 판이 사라진 것처럼 보인다. */
+     이어서 할 방법이 없으면 판이 사라진 것처럼 보인다.
+     시음 판과 파티 판은 동시에 살아 있지 않다(clearAllPlay 참고). */
   if (GAME) return openGameBoard();
+  if (PARTY) return openPartyResume();
   const logN = loadLog().length;
+  /** 카드 하나 */
+  const card = g => `
+    <button type="button" class="gcard${g.on ? '' : ' goff'}" data-game="${g.key}"
+      ${g.on ? '' : 'aria-disabled="true"'}>
+      <span class="gletter">${ic(g.icon)}</span>
+      <span class="gmeta">
+        <b>${esc(g.name)}${g.on ? '' : ' <em>준비 중</em>'}</b>
+        <i>${esc(g.line)}</i>
+        <span>${g.desc}</span>
+        ${g.off ? `<span class="hint">${esc(g.off)}</span>` : ''}
+      </span>
+    </button>`;
   openSheet('GAME', `
     <div class="glist">
-      ${GAMES.map(g => `
-        <button type="button" class="gcard${g.on ? '' : ' goff'}" data-game="${g.key}"
-          ${g.on ? '' : 'aria-disabled="true"'}>
-          <span class="gletter">${ic(g.icon)}</span>
-          <span class="gmeta">
-            <b>${esc(g.name)}${g.on ? '' : ' <em>준비 중</em>'}</b>
-            <i>${esc(g.line)}</i>
-            <span>${g.desc}</span>
-            ${g.off ? `<span class="hint">${esc(g.off)}</span>` : ''}
-          </span>
-        </button>`).join('')}
+      <div class="gsech">시음 <i>내 노트로 채점합니다</i></div>
+      ${GAMES.filter(g => !g.kind).map(card).join('')}
+      <!-- 성격이 달라 갈라 둔다: 아래는 채점 기준이 컬렉션 노트가 아니다 -->
+      <div class="gsech">술자리 <i>기기 하나로 여러 명이</i></div>
+      ${GAMES.filter(g => g.kind === 'party').map(card).join('')}
       <!-- 지난 기록. 게임이 아니라 보관함이라 목록 끝에 두고 모양을 달리한다 -->
       <button type="button" class="gcard glogb" data-logs="1">
         <span class="gletter">${ic('book')}</span>
@@ -4872,9 +5046,717 @@ function openGames(){
     const c = e.target.closest('[data-game]'); if (!c) return;
     const g = GAMES.find(x => x.key === c.dataset.game);
     if (!g?.on) return toast('아직 준비 중입니다');
+    if (g.kind === 'party') return openPartySetup(g.key);
     openGameSetup(g.key);
   };
   $('#shFoot').onclick = e => { if (e.target.closest('[data-act="close"]')) closeSheet(); };
+}
+
+/* ── 파티 게임 라우팅 ─────────────────────
+   판의 현재 단계(`PARTY.phase`)만 보고 화면을 고른다. 화면마다 다음 화면을 직접
+   부르지 않고 전부 이 함수를 지나게 한다 — 그래야 앱을 닫았다 열어도, 뒤로가기로
+   돌아와도 같은 자리로 복귀한다(핫시트는 기기를 넘기는 중에 잘못 눌리기 쉽다). */
+function openPartyResume(){
+  if (!PARTY) return openGames();
+  switch (PARTY.kind){
+    case 'ladder':   return openLadderBoard();
+    case 'triangle': return openTriRoute();
+    case 'liar':     return openLiarRoute();
+  }
+  PARTY = null; saveParty();       // 모르는 종류는 버린다(앞 버전의 잔재)
+  return openGames();
+}
+/** 종류별 셋업으로 보낸다 */
+function openPartySetup(kind){
+  switch (kind){
+    case 'ladder':   return openLadderSetup();
+    case 'triangle': return openTriSetup();
+    case 'liar':     return openLiarSetup();
+  }
+}
+/** 파티 게임 공통 푸터 처리 — 판 버리고 목록으로 */
+function partyQuit(msg){
+  PARTY = null; saveParty();
+  if (msg) toast(msg);
+  openGames();
+}
+
+/* ══════════════ 사다리 타기 ══════════════
+   순열을 난수로 뽑아 놓고 그림을 맞추는 게 아니라, **발판을 먼저 놓고 따라가서**
+   순열을 얻는다. 발판은 한 줄 안에서 서로 겹치지 않는 인접 교환들이므로 그 곱은
+   반드시 유효한 순열이다 — 따라간 결과와 그린 그림이 어긋날 수가 없다.
+   (순열을 먼저 뽑고 그림을 맞추려 하면 "그림대로 가면 다른 결과" 가 나온다.) */
+const LAD_PAD = 26, LAD_COL = 54, LAD_TOP = 26, LAD_ROW = 30, LAD_BOT = 30;
+/** 발판을 놓는다 → rows[r] = [발판이 놓인 왼쪽 칸 번호...]
+
+    ⚠ 왼쪽부터 훑으며 "놓았으면 다음 칸을 건너뛴다" 로 만들면 안 된다. 처음엔 그렇게
+    썼는데, 0 에 놓으면 1 을 건너뛰고 2 를 보게 되어 **발판이 짝수 칸에 쏠린다.**
+    같은 인접 교환이 반복되면 서로 상쇄되어 제자리로 돌아온다 — 실측으로 5칸에서
+    항등 순열이 3.45% 나왔고(무작위라면 1/120=0.83%), 실제로 첫 판이 5명 전원
+    제자리였다. 그래서 **(줄, 칸)을 무작위로 골라 하나씩 놓고, 같은 줄에서 옆에 붙는
+    것만 버린다** — 칸 선택에 편향이 없다.
+    (붙이면 안 되는 이유: 한 칸에서 좌우 두 발판을 만나면 어디로 갈지 정해지지 않는다.) */
+function ladderRungs(n){
+  const R = Math.max(5, n + 3);
+  /* ⚠ 발판 **개수를 고정하면 안 된다.** 발판 하나가 인접 교환(홀수 순열)이므로
+     개수를 k 로 고정하면 나오는 순열의 부호가 k 의 홀짝으로 고정된다 — 실측으로
+     4칸에서 24개 중 **12개만** 나왔다(개수가 늘 7개였다). 도달 불가능한 결과가
+     절반이면 뽑기가 아니다. 개수를 4가지 값에서 뽑아 두 부호를 모두 낸다. */
+  const base = Math.max(n, Math.round(R * (n - 1) * 0.30));
+  const want = base + Math.floor(Math.random() * 4);
+  const rows = Array.from({length: R}, () => []);
+  let placed = 0, guard = 0;
+  while (placed < want && guard++ < want * 14){
+    const r = Math.floor(Math.random() * R);
+    const c = Math.floor(Math.random() * (n - 1));
+    if (rows[r].some(x => Math.abs(x - c) <= 1)) continue;
+    rows[r].push(c); placed++;
+  }
+  rows.forEach(row => row.sort((a, b) => a - b));
+  /* 전원이 제자리로 돌아오는 경우도 **그대로 둔다.** 걸러내고 싶었지만 2칸에서는
+     제자리(안 바뀜)와 교환이 유일한 두 결과라, 제자리를 버리면 2명 사다리가 늘
+     서로 바뀌는 고정 결과가 된다. 발판은 늘 n 개 이상이라 눈으로는 충분히 엉켜 있다. */
+  return rows;
+}
+/** 시작 칸 c 에서 따라 내려간 도착 칸과 꺾인 점들 */
+function ladderTrace(rows, n, c){
+  const X = i => LAD_PAD + i * LAD_COL;
+  const pts = [[X(c), LAD_TOP]];
+  rows.forEach((row, r) => {
+    const y = LAD_TOP + (r + 0.5) * LAD_ROW;
+    if (row.includes(c)){ pts.push([X(c), y], [X(c + 1), y]); c += 1; }
+    else if (row.includes(c - 1)){ pts.push([X(c), y], [X(c - 1), y]); c -= 1; }
+  });
+  pts.push([X(c), LAD_TOP + rows.length * LAD_ROW]);
+  return {end: c, pts};
+}
+function ladderSVG(P){
+  const n = P.n, rows = P.rows, R = rows.length;
+  const X = i => LAD_PAD + i * LAD_COL;
+  const W = LAD_PAD * 2 + (n - 1) * LAD_COL, H = LAD_TOP + R * LAD_ROW + LAD_BOT;
+  const y0 = LAD_TOP, y1 = LAD_TOP + R * LAD_ROW;
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img"
+    aria-label="사다리 ${n}칸">`;
+  for (let i = 0; i < n; i++) s += `<path class="lline" d="M${X(i)} ${y0}V${y1}"/>`;
+  rows.forEach((row, r) => {
+    const y = y0 + (r + 0.5) * LAD_ROW;
+    row.forEach(c => { s += `<path class="lrung" d="M${X(c)} ${y}H${X(c + 1)}"/>`; });
+  });
+  /* 경로는 **한 번에 하나만** 그린다. 처음엔 공개된 것을 다 겹쳐 그렸는데, 10명을
+     전부 공개하면 열 개의 선이 같은 색으로 거의 모든 구간을 덮어 사다리가 통째로
+     강조색 덩어리가 되고 아무 경로도 읽을 수 없었다(실측 스크린샷).
+     결과 목록은 아래에 쌓이므로 그림은 지금 보고 있는 사람만 보여 주면 된다. */
+  if (P.focus != null && P.focus >= 0 && P.focus < n){
+    const t = ladderTrace(rows, n, P.focus);
+    s += `<polyline class="ltrace" points="${t.pts.map(p => p.join(',')).join(' ')}"/>`;
+  }
+  for (let i = 0; i < n; i++){
+    const on = P.focus === i;
+    /* 위쪽은 참가자 번호. 아래쪽은 **번호를 적지 않는다** — 결과는 섞여 들어가 있어서
+       적어 넣은 순서와 다르다(ladderSetup 의 shuffle 참고). 눈금만 찍는다. */
+    s += `<text class="lcap${on ? ' on' : ''}" x="${X(i)}" y="${y0 - 9}">${i + 1}</text>`;
+    s += `<path class="lrung" d="M${X(i) - 5} ${y1 + 7}H${X(i) + 5}"/>`;
+  }
+  return s + '</svg>';
+}
+
+function openLadderSetup(nIn, outsIn){
+  const n = Math.min(LAD_MAX_P, Math.max(LAD_MIN_P, nIn || loadPP(LAD_MIN_P, LAD_MAX_P, 4)));
+  /* 결과 칸은 인원 수만큼. 인원을 바꿔도 적어 둔 것은 남긴다 — 다시 타이핑하게
+     만들면 인원을 잘못 눌렀을 때 손해가 크다. */
+  const outs = Array.from({length: n}, (_, i) => (outsIn || [])[i] || '');
+  openSheet('사다리 타기', `
+    <div class="gor"><span>참가자</span>
+      <button type="button" class="gorsel" data-lad="n">${n}명</button></div>
+    <p class="hint">누가 다음 잔을 따를지, 오늘 어느 병을 열지 정합니다.
+      결과를 비워 두면 <b>번호만</b>으로 뽑습니다.</p>
+    <div class="gcats">
+      <span>결과 채우기</span>
+      <button type="button" class="gcatb" data-lfill="pick">컬렉션에서 뽑기</button>
+      <button type="button" class="gcatb" data-lfill="order">순서 매기기</button>
+      <button type="button" class="gcatb" data-lfill="clear">비우기</button>
+    </div>
+    ${outs.map((v, i) => `<div class="pslot"><b>${i + 1}</b>
+      <input type="text" data-lout="${i}" maxlength="40" placeholder="결과 ${i + 1}"
+        value="${esc(v)}"></div>`).join('')}`,
+    `<button class="btn" data-act="back">뒤로</button>
+     <button class="btn pri" data-act="start">사다리 만들기</button>`);
+  /** 지금 화면에 적힌 결과들 */
+  const readOuts = () => [...document.querySelectorAll('[data-lout]')].map(i => i.value.trim());
+  $('#shBody').onclick = e => {
+    const nb = e.target.closest('[data-lad]');
+    if (nb) return openDropMenu(nb,
+      Array.from({length: LAD_MAX_P - LAD_MIN_P + 1}, (_, i) => i + LAD_MIN_P)
+        .map(k => ({v: String(k), label: `${k}명`})),
+      String(n), v => { savePP(Number(v)); openLadderSetup(Number(v), readOuts()); });
+    const f = e.target.closest('[data-lfill]');
+    if (!f) return;
+    const k = f.dataset.lfill;
+    if (k === 'clear') return openLadderSetup(n, []);
+    if (k === 'order') return openLadderSetup(n, Array.from({length: n}, (_, i) => `${i + 1}번째`));
+    /* 컬렉션에서 뽑기 — 지금 마실 만한 것으로 좁힌다(비운 병을 뽑아 주면 쓸 수 없다) */
+    const pool = DB.items.filter(i => i.status !== '비움' && i.status !== '위시');
+    const src = (pool.length >= n ? pool : DB.items);
+    if (!src.length) return toast('컬렉션이 비어 있습니다');
+    /* 병이 인원보다 적으면 같은 병이 두 번 나오는 대신 있는 만큼만 채운다 */
+    const got = shuffle(src).slice(0, n).map(fullName);
+    openLadderSetup(n, Array.from({length: n}, (_, i) => got[i] || ''));
+  };
+  $('#shFoot').onclick = e => {
+    if (e.target.closest('[data-act="back"]')) return openGames();
+    if (!e.target.closest('[data-act="start"]')) return;
+    const o = readOuts();
+    clearAllPlay();
+    /* 결과를 칸에 **섞어서** 넣는다. 사다리 자체는 완전 균등하지 않다 — 무작위로 발판을
+       놓으면 제자리로 돌아올 확률이 조금 높다(5칸 실측 27%, 균등이면 20%). 적어 넣은
+       순서 그대로 칸에 박으면 "3번은 제자리에 남기 쉽다" 를 아는 사람이 유리해진다.
+       결과 배치를 사다리와 독립적으로 한 번 섞으면 그 편향이 무의미해진다.
+       (그래서 사다리 아래쪽에 칸 번호를 적지 않는다 — 적어 넣은 순서와 다르므로.) */
+    PARTY = {v: PARTY_VER, kind: 'ladder', at: nowISO(), n,
+      names: partyNames(n),
+      outs: shuffle(o.map((t, i) => t || `${i + 1}번`)),
+      rows: ladderRungs(n),
+      shown: Array.from({length: n}, () => false),
+      focus: null};
+    saveParty();
+    openLadderBoard();
+  };
+}
+
+/* ══════════════ 삼각 검사 (오드원아웃) ══════════════
+   잔 3개 중 2개는 같은 술, 1개만 다른 술. 다른 하나를 찾는다.
+   **노트가 필요 없다** — 채점 기준이 내 기록이 아니라 "실제로 어느 잔에 무엇을 따랐나"
+   이므로 컬렉션의 아무 병이나 쓸 수 있다(시음 게임은 노트가 빈 병을 못 쓴다).
+
+   따르는 사람은 어쩔 수 없이 답을 알게 된다. 그래서 **진행자를 명시하고 답하지 않게**
+   한다 — 몰래 따르게 만들면 반드시 누군가 훔쳐본다. 지시는 덮개(.pveil) 뒤에 두고,
+   따른 뒤 다시 덮은 상태로 넘긴다. */
+const TRI_ROUNDS = [1, 2, 3, 4, 5];
+const TRI_GLASS = ['1', '2', '3'];
+/** 라운드 하나를 뽑는다 — 어느 병이 홀수인지와 그 잔의 자리를 함께 무작위로 */
+const triRound = () => ({
+  odd: Math.floor(Math.random() * 2),          // 0=ids[0] 가 1잔, 1=ids[1] 이 1잔
+  oddGlass: Math.floor(Math.random() * 3),
+  poured: false,
+  picks: [],
+});
+/** 라운드 r 에서 잔 gi 에 들어간 병의 id */
+const triPourId = (P, r) => TRI_GLASS.map((_, gi) =>
+  P.ids[gi === r.oddGlass ? r.odd : 1 - r.odd]);
+
+function openTriSetup(nIn, rIn, idsIn){
+  const n = Math.min(TRI_MAX_P, Math.max(TRI_MIN_P, nIn || loadPP(TRI_MIN_P, TRI_MAX_P, 3)));
+  const rounds = TRI_ROUNDS.includes(rIn) ? rIn : 3;
+  let ids = (idsIn || []).filter(id => byId(id));
+  openSheet('삼각 검사 · 병 고르기', `
+    <div class="gor"><span>답하는 사람</span>
+      <button type="button" class="gorsel" data-tri="n">${n}명</button></div>
+    <div class="gor"><span>라운드</span>
+      <button type="button" class="gorsel" data-tri="r">${rounds}회</button></div>
+    <div class="pstep"><b>${ids.length}/2</b>
+      <span>아래에서 <b>두 병</b>을 고르세요. 라운드마다 한 병이 2잔, 다른 병이 1잔
+        들어갑니다. <b>같은 지역·타입</b>을 고르면 훨씬 어려워집니다.</span></div>
+    <p class="hint">따르는 <b>진행자 1명</b>은 답하지 않습니다 — 어느 잔에 무엇을 넣었는지
+      알기 때문입니다. 그래서 사람은 모두 <b>${n + 1}명</b> 필요합니다.
+      한 라운드에 잔 3개를 쓰므로 술은 조금씩만 따르세요.</p>
+    <div class="glist">
+      ${DB.items.filter(i => i.status !== '위시').map(it => {
+        const on = ids.includes(it.id);
+        return `<label class="grow${!on && ids.length >= 2 ? ' goff' : ''}">
+          <input type="checkbox" data-tpick="${esc(it.id)}" ${on ? 'checked' : ''}>
+          <span class="gmeta"><b>${esc(fullName(it))}</b>
+            <span class="gtag"><i>${esc(it.type || '타입 미기재')}</i>
+              <i>${esc(it.region || it.country || '지역 미기재')}</i>
+              <i class="${it.abv ? '' : 'na'}">${it.abv ? it.abv + '%' : '도수 미기재'}</i></span>
+          </span></label>`; }).join('')}
+    </div>`,
+    `<button class="btn" data-act="back">뒤로</button>
+     <button class="btn pri" data-act="start" ${ids.length === 2 ? '' : 'disabled'}>시작</button>`);
+  $('#shBody').onchange = e => {
+    const c = e.target.closest('[data-tpick]'); if (!c) return;
+    const id = c.dataset.tpick;
+    /* 두 병이 찬 상태에서 새로 고르면 **가장 먼저 고른 것을 밀어낸다** — 거절하면
+       손으로 풀고 다시 골라야 해서 두 번 눌러야 한다(1병 모드와 같은 판단). */
+    ids = c.checked ? [...ids.filter(x => x !== id), id].slice(-2) : ids.filter(x => x !== id);
+    openTriSetup(n, rounds, ids);
+  };
+  $('#shBody').onclick = e => {
+    const b = e.target.closest('[data-tri]'); if (!b) return;
+    if (b.dataset.tri === 'n') return openDropMenu(b,
+      Array.from({length: TRI_MAX_P - TRI_MIN_P + 1}, (_, i) => i + TRI_MIN_P)
+        .map(k => ({v: String(k), label: `${k}명`})),
+      String(n), v => { savePP(Number(v)); openTriSetup(Number(v), rounds, ids); });
+    openDropMenu(b, TRI_ROUNDS.map(k => ({v: String(k), label: `${k}회`})),
+      String(rounds), v => openTriSetup(n, Number(v), ids));
+  };
+  $('#shFoot').onclick = e => {
+    if (e.target.closest('[data-act="back"]')) return openGames();
+    if (!e.target.closest('[data-act="start"]')) return;
+    if (ids.length !== 2) return toast('두 병을 골라 주세요');
+    clearAllPlay();
+    PARTY = {v: PARTY_VER, kind: 'triangle', at: nowISO(),
+      ids: [...ids], nm: ids.map(id => fullName(byId(id))),
+      names: partyNames(n),
+      rounds: Array.from({length: rounds}, triRound),
+      ri: 0, pi: 0};
+    saveParty();
+    openTriRoute();
+  };
+}
+
+/** 삼각 검사의 단계 라우터 — 화면은 전부 PARTY 상태만 보고 고른다.
+    단계를 **따로 저장하지 않고 진행 상황에서 끌어낸다.** `phase` 필드를 두었더니
+    갱신을 빠뜨려 실제로는 답을 받는 중인데 값이 'pour' 로 남아 있었다 — 화면 선택에
+    쓰이지 않는 필드라 조용히 어긋난 채로 저장까지 됐다. 있으면 언젠가 거짓말을 한다. */
+function openTriRoute(){
+  const P = PARTY; if (!P) return openGames();
+  if (P.ri >= P.rounds.length) return openTriResult();
+  return P.rounds[P.ri].poured ? openTriAsk() : openTriPour();
+}
+
+/** 따르기 지시 — 덮개 뒤에 둔다. 참가자가 보면 게임이 끝난다. */
+function openTriPour(){
+  const P = PARTY, r = P.rounds[P.ri];
+  const pour = triPourId(P, r);
+  let open = false;
+  const draw = () => {
+    openSheet(`삼각 검사 · ${P.ri + 1}라운드`, `
+      <div class="pstep"><b>${P.ri + 1}/${P.rounds.length}</b>
+        <span><b>진행자만</b> 보세요. 잔 3개에 아래대로 따른 뒤 덮고 넘깁니다.</span></div>
+      <button type="button" class="pveil${open ? ' on' : ''}" data-tveil="1">
+        ${open ? `<em>이 라운드에 따를 것</em>
+          ${TRI_GLASS.map((g, gi) => `<div class="prow"><b>잔 ${g}</b>
+            <u>${esc(fullName(byId(pour[gi])) || '')}</u></div>`).join('')}
+          <span class="psub">따른 뒤 <b>다시 눌러 덮으세요.</b></span>`
+        : `${ic('mask')}<strong>지시 보기</strong>
+          <span class="psub">참가자에게 보이지 않게 가리고 누르세요.</span>`}
+      </button>
+      <p class="hint">두 병 중 하나가 <b>2잔</b>, 다른 하나가 <b>1잔</b>입니다.
+        어느 쪽이 1잔인지는 라운드마다 바뀝니다 — 참가자가 앞 라운드로 추측할 수 없습니다.</p>`,
+      `<button class="btn" data-act="quit">판 버리기</button>
+       <button class="btn pri" data-act="ok">따랐습니다</button>`);
+    $('#shBody').onclick = e => {
+      if (!e.target.closest('[data-tveil]')) return;
+      open = !open; draw();
+    };
+    $('#shFoot').onclick = e => {
+      if (e.target.closest('[data-act="quit"]')) return partyQuit('판을 버렸습니다');
+      if (!e.target.closest('[data-act="ok"]')) return;
+      r.poured = true; P.pi = 0; saveParty();
+      openTriRoute();
+    };
+  };
+  draw();
+}
+
+/** 참가자 한 명이 다른 잔 하나를 지목한다. 차례 사이에 넘겨주기 화면을 끼운다. */
+function openTriAsk(){
+  const P = PARTY, r = P.rounds[P.ri];
+  const who = P.names[P.pi] || '참가자';
+  let sel = null;
+  openSheet(`삼각 검사 · ${P.ri + 1}라운드`, `
+    <div class="ghand">
+      <span class="gletter on">${P.pi + 1}</span>
+      <b>${esc(who)}</b>
+      <p>기기를 <b>${esc(who)}</b> 에게 넘겨 주세요.<br>
+        잔 <b>1 · 2 · 3</b> 중 <b>다른 하나</b>를 고르세요.</p>
+    </div>
+    <div class="ppick">${TRI_GLASS.map((g, gi) =>
+      `<button type="button" data-tg="${gi}"><b>${g}</b>이 잔</button>`).join('')}</div>
+    <div class="gsum">${P.ri + 1}라운드 · ${P.pi + 1}/${P.names.length}번째 사람</div>
+    <p class="hint">두 잔은 같은 술입니다. 확신이 없으면 <b>세 잔을 번갈아</b> 맡아 보세요 —
+      찍으면 3분의 1이라 여러 라운드를 모아야 실력이 드러납니다.</p>`,
+    `<button class="btn" data-act="quit">판 버리기</button>
+     <button class="btn pri" data-act="ok" disabled>다음</button>`);
+  $('#shBody').onclick = e => {
+    const b = e.target.closest('[data-tg]'); if (!b) return;
+    sel = Number(b.dataset.tg);
+    document.querySelectorAll('[data-tg]').forEach(x =>
+      x.classList.toggle('on', Number(x.dataset.tg) === sel));
+    $('[data-act="ok"]').disabled = false;
+  };
+  $('#shFoot').onclick = e => {
+    if (e.target.closest('[data-act="quit"]')) return partyQuit('판을 버렸습니다');
+    if (!e.target.closest('[data-act="ok"]')) return;
+    if (sel == null) return toast('잔을 고르세요');
+    r.picks[P.pi] = sel;
+    P.pi += 1;
+    /* 이 라운드의 마지막 사람이면 다음 라운드로. ri 가 라운드 수에 닿으면
+       openTriRoute 가 스스로 결과 화면을 고른다 — 끝났다는 표시를 따로 두지 않는다. */
+    if (P.pi >= P.names.length){ P.ri += 1; P.pi = 0; }
+    saveParty();
+    openTriRoute();
+  };
+}
+
+function openTriResult(){
+  const P = PARTY; if (!P) return openGames();
+  const R = P.rounds.length;
+  /* 참가자별 정답 수 */
+  const score = P.names.map((_, pi) =>
+    P.rounds.reduce((s, r) => s + (r.picks[pi] === r.oddGlass ? 1 : 0), 0));
+  const best = Math.max(...score, 0);
+  const chance = Math.round(R / 3 * 10) / 10;
+  openSheet('삼각 검사 · 결과', `
+    <div class="gsc"><b>${best}/${R}</b>
+      <span>최고 기록</span>
+      <i>찍었을 때 기대값 ${chance}개 — 이보다 높아야 구별한 것입니다</i></div>
+    <div class="gsech">사람별</div>
+    ${P.names.map((nm, pi) => `<div class="prow${score[pi] > chance ? ' hit' : ''}">
+      <b>${esc(nm)}</b>
+      <i>${P.rounds.map(r => r.picks[pi] === r.oddGlass ? '○' : '×').join(' ')}</i>
+      <u>${score[pi]}/${R}</u></div>`).join('')}
+    <div class="gsech">라운드별 정답</div>
+    ${P.rounds.map((r, ri) => `<div class="prow">
+      <b>${ri + 1}라운드 · 잔 ${TRI_GLASS[r.oddGlass]}</b>
+      <i>${esc(P.nm[r.odd])} 1잔 · ${esc(P.nm[1 - r.odd])} 2잔</i></div>`).join('')}
+    <p class="hint">두 병은 <b>${esc(P.nm[0])}</b> 와 <b>${esc(P.nm[1])}</b> 였습니다.
+      맞힌 사람이 찍은 기대값보다 뚜렷하게 많다면 실제로 두 술을 구별한 것입니다.</p>`,
+    `<button class="btn" data-act="quit">끝내기</button>
+     <button class="btn pri" data-act="again">같은 병으로 다시</button>`);
+  $('#shFoot').onclick = e => {
+    if (e.target.closest('[data-act="quit"]')) return partyQuit();
+    if (!e.target.closest('[data-act="again"]')) return;
+    P.rounds = P.rounds.map(triRound); P.ri = 0; P.pi = 0;
+    saveParty(); openTriRoute();
+  };
+}
+
+/* ══════════════ 라이어 게임 ══════════════
+   모두 같은 제시어를 받고 한 명만 다른 것을 받는다. 돌아가며 한마디씩 한 뒤 투표한다.
+
+   제시어가 **내 컬렉션에서 나온다**는 게 이 게임의 전부다. 아무 단어나 쓰면 어느 앱에나
+   있는 라이어 게임이지만, `라가불린 16년` 과 `탈리스커 10년` 이면 피트 이야기로 버텨야
+   해서 위스키를 아는 사람들끼리 훨씬 재밌어진다.
+
+   비슷한 것을 골라 줘야 게임이 성립한다 — `라가불린` 과 `베일리스` 가 나오면 첫 마디에
+   끝난다. 그래서 **타입 → 지역 → 나머지** 순으로 좁혀 짝을 뽑고, 태그 모드는 아이콘
+   계열(NOTE_FAM)이 같은 것끼리 묶는다(`건포도` 와 `말린 과일`). */
+const LIAR_SRC = [{k:'bottle', label:'컬렉션의 병'}, {k:'tag', label:'향·맛·여운 태그'}];
+const LIAR_MODES = [
+  {k:'diff', label:'다른 술을 받는다',
+   desc:'라이어도 제시어를 받지만 <b>비슷한 다른 술</b>입니다. 자기가 라이어인 줄 모릅니다 — '
+      + '대화가 어긋나기 시작할 때의 그 표정이 이 방식의 재미입니다.'},
+  {k:'none', label:'아무것도 못 받는다',
+   desc:'라이어는 <b>자기가 라이어라는 것만</b> 압니다. 남들의 말을 듣고 아는 척해야 합니다 — '
+      + '고전적인 방식이고 더 어렵습니다.'},
+];
+/** 비슷한 병 두 개 → [제시어, 라이어 제시어] */
+function liarBottlePair(){
+  const pool = DB.items.filter(i => i.status !== '위시');
+  if (pool.length < 2) return null;
+  const a = pool[Math.floor(Math.random() * pool.length)];
+  const reg = x => x.region || x.country || '';
+  const rest = pool.filter(x => x.id !== a.id);
+  const byType = rest.filter(x => x.type && x.type === a.type);
+  const byReg = rest.filter(x => reg(x) && reg(x) === reg(a));
+  const cand = byType.length ? byType : (byReg.length ? byReg : rest);
+  const b = cand[Math.floor(Math.random() * cand.length)];
+  return [fullName(a), fullName(b)];
+}
+/** 같은 계열의 디스크립터 두 개 */
+function liarTagPair(){
+  const ax = NOTE_AXES[Math.floor(Math.random() * NOTE_AXES.length)];
+  const list = NOTES[ax].list.map(x => x[0]);
+  const a = list[Math.floor(Math.random() * list.length)];
+  const fam = NOTE_FAM[ax + '|' + a];
+  const same = list.filter(n => n !== a && NOTE_FAM[ax + '|' + n] === fam);
+  const cand = same.length ? same : list.filter(n => n !== a);
+  const b = cand[Math.floor(Math.random() * cand.length)];
+  const L = NOTES[ax].label;
+  return [`${L} · ${a}`, `${L} · ${b}`];
+}
+const liarPair = src => (src === 'tag' ? liarTagPair() : liarBottlePair());
+
+function openLiarSetup(nIn, srcIn, modeIn, tIn){
+  const n = Math.min(LIAR_MAX_P, Math.max(LIAR_MIN_P, nIn || loadPP(LIAR_MIN_P, LIAR_MAX_P, 4)));
+  const src = LIAR_SRC.some(s => s.k === srcIn) ? srcIn : 'bottle';
+  const mode = LIAR_MODES.some(m => m.k === modeIn) ? modeIn : 'diff';
+  const tSec = tIn == null ? 180 : tIn;
+  const md = LIAR_MODES.find(m => m.k === mode);
+  const pool = DB.items.filter(i => i.status !== '위시').length;
+  const lack = src === 'bottle' && pool < 2;
+  openSheet('라이어 게임', `
+    <div class="gor"><span>참가자</span>
+      <button type="button" class="gorsel" data-lia="n">${n}명</button></div>
+    <div class="gor"><span>제시어</span>
+      <button type="button" class="gorsel" data-lia="src">${
+        LIAR_SRC.find(s => s.k === src).label}</button></div>
+    <div class="gor"><span>토론 시간</span>
+      <button type="button" class="gorsel" data-lia="t">${timeLabel(tSec)}</button></div>
+    <div class="gcats">
+      <span>라이어는</span>
+      ${LIAR_MODES.map(m => `<button type="button" class="gcatb${m.k === mode ? ' on' : ''}"
+        data-liam="${m.k}">${m.label}</button>`).join('')}
+      <i>${md.desc}</i>
+    </div>
+    ${lack ? `<div class="gsum warn">컬렉션에 병이 <b>2개 이상</b> 있어야 제시어를 만들 수 있습니다.
+      병을 더 넣거나 제시어를 <b>향·맛·여운 태그</b>로 바꿔 주세요.</div>` : ''}
+    <p class="hint">기기를 돌려 가며 각자 <b>자기 제시어만</b> 확인합니다. 그다음 돌아가며
+      한마디씩 하고, 누가 거짓말쟁이인지 <b>비밀 투표</b>합니다.
+      ${mode === 'diff'
+        ? '라이어도 자기가 라이어인 줄 모르므로 <b>연기할 필요가 없습니다.</b>'
+        : '라이어는 자기가 라이어인 것을 압니다.'}</p>
+    <div class="pstep"><b>${n}</b><span>명이 한 기기를 돌려 씁니다.
+      확인이 끝날 때까지 <b>화면을 남에게 보이지 마세요.</b></span></div>`,
+    `<button class="btn" data-act="back">뒤로</button>
+     <button class="btn pri" data-act="start" ${lack ? 'disabled' : ''}>시작</button>`);
+  $('#shBody').onclick = e => {
+    const m = e.target.closest('[data-liam]');
+    if (m) return openLiarSetup(n, src, m.dataset.liam, tSec);
+    const b = e.target.closest('[data-lia]'); if (!b) return;
+    const k = b.dataset.lia;
+    if (k === 'n') return openDropMenu(b,
+      Array.from({length: LIAR_MAX_P - LIAR_MIN_P + 1}, (_, i) => i + LIAR_MIN_P)
+        .map(v => ({v: String(v), label: `${v}명`})),
+      String(n), v => { savePP(Number(v)); openLiarSetup(Number(v), src, mode, tSec); });
+    if (k === 'src') return openDropMenu(b,
+      LIAR_SRC.map(s => ({v: s.k, label: s.label})), src,
+      v => openLiarSetup(n, v, mode, tSec));
+    openDropMenu(b, GAME_TIMES.map(s => ({v: String(s), label: timeLabel(s)})),
+      String(tSec), v => openLiarSetup(n, src, mode, Number(v)));
+  };
+  $('#shFoot').onclick = e => {
+    if (e.target.closest('[data-act="back"]')) return openGames();
+    if (!e.target.closest('[data-act="start"]')) return;
+    const pair = liarPair(src);
+    if (!pair) return toast('제시어를 만들 수 없습니다');
+    clearAllPlay();
+    PARTY = {v: PARTY_VER, kind: 'liar', at: nowISO(), n, src, mode, timer: tSec,
+      names: partyNames(n),
+      word: pair[0], liarWord: pair[1],
+      liar: Math.floor(Math.random() * n),
+      seen: Array.from({length: n}, () => false),
+      talked: false, until: null,
+      votes: Array.from({length: n}, () => null),
+      vi: 0};
+    saveParty();
+    openLiarRoute();
+  };
+}
+
+/** 라이어 게임의 단계 라우터. 단계는 **진행 상황에서 끌어낸다** — `talked` 만 사용자가
+    직접 넘기는 단계라서 저장한다(나머지는 seen/votes 로 알 수 있다). */
+function openLiarRoute(){
+  const P = PARTY; if (!P) return openGames();
+  const un = P.seen.findIndex(s => !s);
+  if (un >= 0) return openLiarDeal(un);
+  if (!P.talked) return openLiarTalk();
+  if (P.votes.some(v => v == null)) return openLiarVote();
+  return openLiarResult();
+}
+
+/** 한 사람이 자기 제시어만 확인한다. 덮개가 기본이고, 덮은 뒤에야 다음으로 넘어간다. */
+function openLiarDeal(pi){
+  const P = PARTY;
+  const who = P.names[pi];
+  const isLiar = pi === P.liar;
+  /* 이 사람에게 보여 줄 것. 'none' 모드의 라이어만 제시어가 없다. */
+  const mine = isLiar ? (P.mode === 'none' ? null : P.liarWord) : P.word;
+  let open = false, closedOnce = false;
+  const draw = () => {
+    openSheet('라이어 게임 · 제시어 확인', `
+      <div class="pstep"><b>${pi + 1}/${P.n}</b>
+        <span>기기를 <b>${esc(who)}</b> 에게 넘겨 주세요. 다른 사람은 보지 않습니다.</span></div>
+      <button type="button" class="pveil${open ? ' on' : ''}" data-lveil="1">
+        ${open
+          ? `<em>내 제시어</em>
+             <strong>${mine == null ? '당신이 라이어입니다' : esc(mine)}</strong>
+             <span class="psub">${mine == null
+               ? '제시어를 모릅니다. 남들의 말을 듣고 <b>아는 척</b>하세요.'
+               : '외웠으면 <b>다시 눌러 덮고</b> 넘기세요.'}</span>`
+          : `${ic('mask')}<strong>${closedOnce ? '덮었습니다' : '내 제시어 보기'}</strong>
+             <span class="psub">${closedOnce
+               ? '<b>다음 사람</b>을 눌러 넘기세요.'
+               : '남에게 보이지 않게 가리고 누르세요.'}</span>`}
+      </button>
+      <p class="hint">${P.mode === 'diff'
+        ? '한 명은 <b>비슷한 다른 술</b>을 받습니다. 자기가 라이어인지는 아무도 모릅니다 — '
+          + '대화가 어긋나면 그때 알게 됩니다.'
+        : '한 명은 제시어 대신 <b>라이어라는 사실</b>을 받습니다.'}</p>`,
+      `<button class="btn" data-act="quit">판 버리기</button>
+       <button class="btn pri" data-act="next" ${closedOnce ? '' : 'disabled'}>${
+         pi + 1 >= P.n ? '토론 시작' : '다음 사람'}</button>`);
+    $('#shBody').onclick = e => {
+      if (!e.target.closest('[data-lveil]')) return;
+      open = !open;
+      if (!open) closedOnce = true;      // 덮은 뒤에만 넘길 수 있다
+      draw();
+    };
+    $('#shFoot').onclick = e => {
+      if (e.target.closest('[data-act="quit"]')) return partyQuit('판을 버렸습니다');
+      if (!e.target.closest('[data-act="next"]')) return;
+      if (!closedOnce) return toast('제시어를 확인하고 덮어 주세요');
+      P.seen[pi] = true; saveParty();
+      openLiarRoute();
+    };
+  };
+  draw();
+}
+
+/** 토론. 제한시간을 걸면 앱의 그 시계(startClock)를 그대로 쓴다 — 타이머를 새로
+    만들면 시트를 옮길 때 남아 돌아 남의 차례를 넘긴다(openSheet 가 stopClock 을 부른다). */
+function openLiarTalk(){
+  const P = PARTY;
+  /* 남은 시간은 **끝나는 시각(until)으로** 들고 있는다. 처음엔 화면을 열 때마다
+     startClock(P.timer) 로 시작했는데, 이 화면을 벗어났다 돌아오면 28초가 다시 30초가
+     되어 **떠났다 오기만 하면 무한정 끌 수 있었다**(실측). 앱을 닫았다 열어도 같다. */
+  let left = 0;
+  if (P.timer){
+    if (!P.until){ P.until = Date.now() + P.timer * 1000; saveParty(); }
+    left = Math.max(0, Math.round((P.until - Date.now()) / 1000));
+  }
+  openSheet('라이어 게임 · 토론', `
+    ${!P.timer ? '' : `<div class="gturn">
+      <span class="gletter on">${ic('group')}</span>
+      <b>토론</b><u id="ggClock">${mmss(left)}</u></div>`}
+    <div class="pstep"><b>${P.n}</b>
+      <span>돌아가며 제시어에 대해 <b>한마디씩</b> 하세요. 너무 정확히 말하면 라이어가
+        정답을 알게 되고, 너무 두루뭉술하면 의심받습니다.</span></div>
+    <p class="hint">${P.src === 'tag'
+      ? '태그 하나로 이야기하므로 <b>그 향이 나는 술</b>을 예로 들어 보세요.'
+      : '병 하나로 이야기하므로 <b>지역·피트·숙성</b> 같은 이야기가 자연스럽습니다.'}
+      ${P.timer ? '시간이 끝나면 자동으로 투표로 넘어갑니다.' : '준비되면 투표로 넘어가세요.'}</p>
+    <p class="hint">아직 <b>아무도 지목하지 마세요.</b> 투표는 기기를 돌려 가며
+      <b>비밀로</b> 합니다.</p>`,
+    `<button class="btn" data-act="quit">판 버리기</button>
+     <button class="btn pri" data-act="vote">투표 시작</button>`);
+  const go = () => { P.talked = true; P.until = null; saveParty(); openLiarRoute(); };
+  /* 이미 시간이 지났으면(닫아 둔 사이에 끝났다) 바로 투표로 넘긴다 */
+  if (P.timer && left <= 0) return go();
+  if (P.timer) startClock(left, go);
+  $('#shFoot').onclick = e => {
+    if (e.target.closest('[data-act="quit"]')) return partyQuit('판을 버렸습니다');
+    if (e.target.closest('[data-act="vote"]')) return go();
+  };
+}
+
+/** 비밀 투표 — 한 명씩 지목한다. 자기 자신은 고를 수 없다. */
+function openLiarVote(){
+  const P = PARTY;
+  const vi = P.votes.findIndex(v => v == null);
+  const who = P.names[vi];
+  let sel = null;
+  openSheet('라이어 게임 · 투표', `
+    <div class="ghand">
+      <span class="gletter on">${vi + 1}</span>
+      <b>${esc(who)}</b>
+      <p>기기를 <b>${esc(who)}</b> 에게 넘겨 주세요.<br>
+        거짓말쟁이라고 생각하는 사람을 고르세요.</p>
+    </div>
+    <div class="ppick">${P.names.map((nm, i) => i === vi ? '' :
+      `<button type="button" data-lv="${i}"><b>${i + 1}</b>${esc(nm)}</button>`).join('')}</div>
+    <div class="gsum">${vi + 1}/${P.n} 번째 투표</div>
+    <p class="hint">자기 자신은 고를 수 없습니다. 고른 사람은 다른 사람에게 보이지 않습니다 —
+      다 모인 뒤에 함께 공개합니다.</p>`,
+    `<button class="btn" data-act="quit">판 버리기</button>
+     <button class="btn pri" data-act="ok" disabled>${
+       vi + 1 >= P.n ? '결과 보기' : '다음 사람'}</button>`);
+  $('#shBody').onclick = e => {
+    const b = e.target.closest('[data-lv]'); if (!b) return;
+    sel = Number(b.dataset.lv);
+    document.querySelectorAll('[data-lv]').forEach(x =>
+      x.classList.toggle('on', Number(x.dataset.lv) === sel));
+    $('[data-act="ok"]').disabled = false;
+  };
+  $('#shFoot').onclick = e => {
+    if (e.target.closest('[data-act="quit"]')) return partyQuit('판을 버렸습니다');
+    if (!e.target.closest('[data-act="ok"]')) return;
+    if (sel == null) return toast('한 사람을 고르세요');
+    P.votes[vi] = sel; saveParty();
+    openLiarRoute();
+  };
+}
+
+function openLiarResult(){
+  const P = PARTY; if (!P) return openGames();
+  /* 득표수 */
+  const tally = P.names.map((_, i) => P.votes.filter(v => v === i).length);
+  const top = Math.max(...tally);
+  const topIdx = tally.map((c, i) => c === top ? i : -1).filter(i => i >= 0);
+  /* 동표면 라이어가 이긴다 — 지목이 갈렸으면 잡아낸 것이 아니다(관례) */
+  const caught = topIdx.length === 1 && topIdx[0] === P.liar;
+  openSheet('라이어 게임 · 결과', `
+    <div class="gsc"><b>${caught ? '시민 승' : '라이어 승'}</b>
+      <span>거짓말쟁이 — <b>${esc(P.names[P.liar])}</b></span>
+      <i>${caught ? '최다 득표로 잡혔습니다'
+        : topIdx.length > 1 ? `${top}표 동표로 갈렸습니다 — 잡아내지 못했습니다`
+        : `표가 ${esc(P.names[topIdx[0]])} 에게 몰렸습니다`}</i></div>
+    <div class="gsech">제시어</div>
+    <div class="prow"><b>모두가 받은 것</b><u>${esc(P.word)}</u></div>
+    <div class="prow liar"><b>라이어가 받은 것</b>
+      <u>${P.mode === 'none' ? '없음 (라이어라는 사실만)' : esc(P.liarWord)}</u></div>
+    <div class="gsech">득표</div>
+    ${P.names.map((nm, i) => `<div class="prow${
+        i === P.liar ? ' liar' : (topIdx.includes(i) ? ' hit' : '')}">
+      <b>${esc(nm)}${i === P.liar ? ' <i>라이어</i>' : ''}</b>
+      <i>${P.votes[i] == null ? '' : '→ ' + esc(P.names[P.votes[i]])}</i>
+      <u>${tally[i]}표</u></div>`).join('')}
+    <p class="hint">누가 누구를 지목했는지까지 남아 있습니다 — 라이어를 감싼 사람이
+      누구였는지 보면서 이야기하세요.</p>`,
+    `<button class="btn" data-act="quit">끝내기</button>
+     <button class="btn pri" data-act="again">같은 인원으로 다시</button>`);
+  $('#shFoot').onclick = e => {
+    if (e.target.closest('[data-act="quit"]')) return partyQuit();
+    if (!e.target.closest('[data-act="again"]')) return;
+    const pair = liarPair(P.src);
+    if (!pair) return toast('제시어를 만들 수 없습니다');
+    P.word = pair[0]; P.liarWord = pair[1];
+    P.liar = Math.floor(Math.random() * P.n);
+    P.seen = P.seen.map(() => false);
+    P.talked = false; P.until = null;      // 새 판이니 토론 시계도 새로 잡는다
+    P.votes = P.votes.map(() => null);
+    saveParty(); openLiarRoute();
+  };
+}
+
+function openLadderBoard(){
+  const P = PARTY; if (!P) return openGames();
+  const n = P.n;
+  const done = (P.shown || []).filter(Boolean).length;
+  /* 도착 칸 → 결과. 그림을 따라가서 얻으므로 그림과 어긋날 수 없다. */
+  const endOf = c => ladderTrace(P.rows, n, c).end;
+  openSheet('사다리 타기', `
+    <div class="pstep"><b>${done}/${n}</b>
+      <span>${done < n
+        ? '아래 <b>번호</b>를 누르면 그 사람의 경로를 따라갑니다.'
+        : '모두 공개했습니다. 번호를 누르면 그 경로만 다시 그립니다.'}</span></div>
+    <div class="padder">${ladderSVG(P)}</div>
+    <div class="ppick">${Array.from({length: n}, (_, i) =>
+      `<button type="button" class="${P.focus === i ? 'on' : ''}" data-lgo="${i}">
+        <b>${i + 1}</b>${P.shown[i] ? esc(P.outs[endOf(i)]) : '누르기'}</button>`).join('')}</div>
+    ${!done ? '' : `<div class="gsech">공개된 결과</div>
+      ${Array.from({length: n}, (_, i) => i).filter(i => P.shown[i]).map(i =>
+        `<div class="prow hit"><b>${esc(P.names[i])}</b>
+          <u>${esc(P.outs[endOf(i)])}</u></div>`).join('')}`}`,
+    `<button class="btn" data-act="quit">끝내기</button>
+     ${done >= n ? `<button class="btn pri" data-act="again">다시 만들기</button>`
+       : `<button class="btn pri" data-act="all">전체 공개</button>`}`);
+  $('#shBody').onclick = e => {
+    const b = e.target.closest('[data-lgo]'); if (!b) return;
+    const i = Number(b.dataset.lgo);
+    /* 한 번 공개한 것은 되돌리지 않는다 — 결과를 봐 놓고 접으면 안 본 척이 된다.
+       다시 누르면 그 경로만 그림에서 끄고 켠다. */
+    P.shown[i] = true;
+    P.focus = (P.focus === i ? null : i);
+    saveParty();
+    openLadderBoard();
+  };
+  $('#shFoot').onclick = e => {
+    if (e.target.closest('[data-act="quit"]')) return partyQuit();
+    if (e.target.closest('[data-act="all"]')){
+      /* 전부 공개할 때는 경로를 지운다 — 열 개를 겹쳐 그리면 아무것도 안 읽힌다 */
+      P.shown = P.shown.map(() => true); P.focus = null;
+      saveParty(); return openLadderBoard();
+    }
+    if (e.target.closest('[data-act="again"]')){
+      /* 결과는 그대로 두고 발판만 다시 놓는다 — 대개 같은 후보로 한 번 더 돌린다.
+         배치도 다시 섞는다: 같은 사다리를 다시 타는 게 아니라 새 판이다. */
+      P.rows = ladderRungs(n); P.outs = shuffle(P.outs);
+      P.shown = P.shown.map(() => false); P.focus = null;
+      saveParty(); return openLadderBoard();
+    }
+  };
 }
 
 /* ── 셀프 셋업 ───────────────────────────── */
@@ -5081,12 +5963,9 @@ function openGameSetup(mode, lvKey, catsIn, pIn, tIn){
 function gameStart(ids, mode, lvKey, cats, nP, tSec){
   const solo = mode === 'solo';
   const lv = gameLevel(lvKey);
-  const items = ids.map(byId).filter(Boolean);
+  let items = ids.map(byId).filter(Boolean);
   if (items.length < (solo ? 1 : GAME_MIN_G)) return toast(solo ? '병을 골라 주세요' : '두 병 이상 골라 주세요');
-  if (!solo) for (let i = items.length - 1; i > 0; i--){       // Fisher–Yates
-    const j = Math.floor(Math.random() * (i + 1));
-    [items[i], items[j]] = [items[j], items[i]];
-  }
+  if (!solo) items = shuffle(items);
   /* 참가자. 혼자 하는 모드는 한 명이다 — 답안을 늘 배열(mys)로 두어 모양을 하나로
      유지한다. 두 모양을 쓰면 채점부가 분기되어 한쪽만 고쳐진다. */
   const players = mode === 'multi'
@@ -8147,8 +9026,10 @@ load();
   if (n){ DB.items.forEach(i => { delete i.rating_bible; }); save(); }
 }
 /* 진행 중인 게임 한 판을 되살린다. DB 와 별개라 동기화를 타지 않는다 —
-   잔을 눈앞에 두고 하는 놀이라서 기기 로컬이 맞다. */
+   잔을 눈앞에 두고 하는 놀이라서 기기 로컬이 맞다.
+   파티 게임(사다리·삼각 검사·라이어)은 저장소가 따로다(wc.party). */
 loadGame();
+loadParty();
 /* 대부분이 위스키이므로 위스키 탭에서 시작한다 (다른 주종이 섞여 있을 때만 의미가 있다) */
 {
   const c = {};
