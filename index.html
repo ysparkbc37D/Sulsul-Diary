@@ -3154,30 +3154,31 @@ function render(){
      거기에 넣을 수 있다는 사실 자체가 감춰진다 */
   $('#tabSegs').innerHTML = TABS.map(tabHTML).join('');
 
-  /* 주종 — 현재 탭 안에서 1건 이상인 것만, CATS 정의 순서로 */
+  /* 주종 — CATS 4개를 **늘 전부** 보여준다(0건 포함). 병 수 탭(전체·구매·경험·위시)이
+     "위시가 0병이어도 늘 보인다 — 안 그러면 넣을 수 있다는 사실 자체가 감춰진다" 는
+     것과 같은 이유다(사용자 요청, 2026-08-10). 리큐르·기타주류가 0병이라고 옵션에서
+     빠지면 이 앱이 위스키 말고도 기록할 수 있다는 걸 아무도 모른다. */
   const inTabItems = DB.items.filter(i => inTab(i, V.tab));
   const catCount = {};
   inTabItems.forEach(i => { catCount[i.cat] = (catCount[i.cat] || 0) + 1; });
-  const cats = CATS.filter(c => catCount[c]);
-  /* 고른 주종이 이 탭에 없으면 먼저 되돌린다. 그린 뒤에 되돌리면 이번 렌더에서만
-     켜진 칩이 목록과 어긋난다(탭을 옮기면 눈에 보인다) */
-  if (V.cat !== 'all' && !catCount[V.cat]) V.cat = 'all';
+  const cats = CATS;
+  /* ⚠ "고른 주종이 이 탭에 0건이면 전체로 되돌린다" 는 가드를 없앴다. 0건도 이제
+     정식 선택지라서, 가드를 남겨 두면 0건인 주종을 고르자마자 렌더 중에 다시
+     all 로 튕겨 나간다 — 클릭이 씹히는 것처럼 보인다. V.cat 은 'all' 이거나 항상
+     CATS 의 멤버이므로(다른 값을 넣는 경로가 없다) 되돌릴 필요도 없다. */
   /* 주종은 드롭다운이다(칩 → 드롭다운). 칩 여러 개가 타입 칩과 한 행을 다투면서
-     주종이 스크롤 밖으로 밀려 나갔다. **병 수는 옵션 라벨에 넣어** 배지 대신 살린다.
-     주종이 하나뿐이면 고를 것이 없으므로 숨긴다 — 타입 칩이 폭을 다 쓴다. */
+     주종이 스크롤 밖으로 밀려 나갔다. **병 수는 옵션 라벨에 넣어** 배지 대신 살린다. */
   const catSel = $('#catSel');
-  if (cats.length > 1){
-    catSel.hidden = false;
-    /* 라벨에서 `전체` 와 괄호를 뺀다 — 360px 3행에 필터·초기화까지 들어오면 이 셀렉트는
-       93px 이고 글자칸은 65px 뿐이다. `주종 전체 (145)` 는 105px 라 절반만 보이고
-       **병 수가 잘려 나간다** — 병 수는 주종을 칩에서 드롭다운으로 바꿀 때 배지를
-       포기한 대가로 라벨에 살려 둔 것이라, 그것이 잘리면 남는 것이 없다.
-       `주종 145` 는 61px 로 들어간다. 펼치면 전체 라벨이 그대로 보인다. */
-    catSel.innerHTML = ['all', ...cats].map(c =>
-      `<option value="${esc(c)}">${c === 'all' ? '주종' : esc(c)} ${
-        c === 'all' ? inTabItems.length : catCount[c]}</option>`).join('');
-    catSel.value = V.cat;
-  } else { catSel.hidden = true; catSel.innerHTML = ''; }
+  catSel.hidden = false;
+  /* 라벨에서 `전체` 와 괄호를 뺀다 — 360px 3행에 필터·초기화까지 들어오면 이 셀렉트는
+     93px 이고 글자칸은 65px 뿐이다. `주종 전체 (145)` 는 105px 라 절반만 보이고
+     **병 수가 잘려 나간다** — 병 수는 주종을 칩에서 드롭다운으로 바꿀 때 배지를
+     포기한 대가로 라벨에 살려 둔 것이라, 그것이 잘리면 남는 것이 없다.
+     `주종 145` 는 61px 로 들어간다. 펼치면 전체 라벨이 그대로 보인다. */
+  catSel.innerHTML = ['all', ...cats].map(c =>
+    `<option value="${esc(c)}">${c === 'all' ? '주종' : esc(c)} ${
+      c === 'all' ? inTabItems.length : (catCount[c] || 0)}</option>`).join('');
+  catSel.value = V.cat;
 
   /* 타입 칩 — 현재 탭 + 주종 안에서만 집계한다 */
   const inCat = inTabItems.filter(i => V.cat === 'all' || i.cat === V.cat);
@@ -3198,15 +3199,14 @@ function render(){
   } else { typeSel.hidden = true; typeSel.innerHTML = ''; }
 
   /* 사이드바(데스크톱) — 같은 데이터를 세로 목록으로. 탭과 주종을 각각 한 섹션.
-     주종이 하나뿐일 때도 '전체'를 보여 준다(화면이 비어 보이지 않도록) */
+     주종 4개를 위 catSel 과 같은 이유로 늘 전부 보여준다. 전에는 하나뿐이면
+     `위스키 9 / 전체 9` 처럼 같은 수가 겹쳐 보여 '전체'만 남겼는데, 이제는 나머지가
+     0건으로라도 항상 나열되므로 더 이상 겹치지 않는다. */
   const segHTML = c =>
     `<button class="seg${V.cat === c ? ' on' : ''}" data-cat="${esc(c)}">${
       c === 'all' ? '전체' : esc(c)}<b>${
-      c === 'all' ? inTabItems.length : catCount[c]}</b></button>`;
-  /* 주종이 하나뿐인 탭(구매가 전부 위스키인 경우 등)에서는 '전체'만 둔다 —
-     `위스키 9 / 전체 9` 처럼 같은 수를 두 번 보여 주게 되기 때문이다.
-     그래도 '전체'는 남긴다: 병 수를 읽는 자리이자 목록이 비어 보이지 않게 하는 것이다 */
-  const sideCats = cats.length > 1 ? [...cats, 'all'] : ['all'];
+      c === 'all' ? inTabItems.length : (catCount[c] || 0)}</b></button>`;
+  const sideCats = [...cats, 'all'];
   $('#sideNav').innerHTML =
       '<div class="navsec">구분</div>' + TABS.map(tabHTML).join('')
     + '<div class="navsec">주종</div>' + sideCats.map(segHTML).join('');
